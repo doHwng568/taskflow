@@ -7,18 +7,17 @@ import com.example.taskflow.config.SecurityConfig;
 import com.example.taskflow.entity.User;
 import com.example.taskflow.security.JwtService;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
-import java.time.Instant;
+import java.util.List;
+
 
 @RestController
+@RequestMapping("/api/users")
 public class UserController {
 
-    @GetMapping("/random")
-    public ResponseEntity<ApiResponse<String>> randomApi() {
-
-        return ResponseEntity.ok()
-                .body(ApiResponse.success("Random API"));
+    @GetMapping
+    public List<User> getAll() {
+        return List.of(new User(1L, "Hehe"), new User(2L, "Bob"));
     }
 }

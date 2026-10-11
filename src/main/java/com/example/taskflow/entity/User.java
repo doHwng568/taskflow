@@ -23,6 +23,15 @@ public class User {
 
     private String password;
 
+    public User() {
+
+    }
+
+    public User(Long id, String username) {
+        this.id = id;
+        this.username = username;
+    }
+
     @OneToMany(mappedBy = "user")
     private List<RefreshToken> refreshTokenList = new ArrayList<>();
 
