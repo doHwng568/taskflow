@@ -5,6 +5,7 @@ import com.example.taskflow.common.enums.ErrorCode;
 import com.example.taskflow.common.exception.BusinessException;
 import com.example.taskflow.config.SecurityConfig;
 import com.example.taskflow.entity.User;
+import com.example.taskflow.security.JwtService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -14,10 +15,10 @@ import java.time.Instant;
 @RestController
 public class UserController {
 
-    private SecurityConfig securityConfig;
+    private JwtService jwtService;
 
-    public UserController(SecurityConfig securityConfig) {
-        this.securityConfig = securityConfig;
+    public UserController(JwtService jwtService) {
+        this.jwtService = jwtService;
     }
 
     @GetMapping("/login")
@@ -25,34 +26,19 @@ public class UserController {
 
         User user = new User();
         user.setId(1L);
-
-        if(user.getId() == 1){
-            throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
-        }
-
         return ResponseEntity.ok(user);
     }
 
     @GetMapping("/register")
     public ResponseEntity<ApiResponse<String>> register() {
-
+        System.out.println("REGISTER CONTROLLER CALLED");
         return ResponseEntity.ok(new ApiResponse<>("123", "Success", "dataa", Instant.now()));
     }
 
     @GetMapping("/test-jwt")
     public ResponseEntity<ApiResponse<String>> testJwt() {
 
-        User user1 = securityConfig.test_001();
-        User user2 = securityConfig.test_001();
-
-        System.out.println(user1 == user2);  //true
-
-        // set username for user1
-        user1.setUsername("new name");
-
-        // log username of user2 -> result: new name
-        System.out.println(user2.getUsername());
-
+        System.out.println(jwtService.generateToken("testjwt"));
         return ResponseEntity.ok(new ApiResponse<>("123", "Success", "Test JWT", Instant.now()));
     }
 }
