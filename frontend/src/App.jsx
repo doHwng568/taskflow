@@ -1,19 +1,21 @@
-import { useEffect, useState } from 'react'
-import axios from 'axios'
+import { Routes, Route } from "react-router-dom";
+import Header from "./layouts/Header";
+import Register from "../src/modules/auth/pages/Register";
+import Login from "../src/modules/auth/pages/Login";
+import Home from "./shared/components/Home";
 
 function App() {
-  const [users, setUsers] = useState([])
-
-  useEffect(() => {
-    axios.get('/api/users')      // proxy tự forward → localhost:8080/api/users
-      .then(res => setUsers(res.data))
-      .catch(err => console.error(err))
-  }, [])
-
   return (
-    <ul>
-      {users.map(u => <li key={u.id}>{u.username}</li>)}
-    </ul>
+    <>
+      <Header />
+
+      <Routes>
+        <Route path="/home" element={<Home />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/login" element={<Login />} />
+      </Routes>
+    </>
+
   )
 }
 
