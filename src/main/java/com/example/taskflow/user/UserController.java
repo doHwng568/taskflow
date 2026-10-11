@@ -15,30 +15,10 @@ import java.time.Instant;
 @RestController
 public class UserController {
 
-    private JwtService jwtService;
+    @GetMapping("/random")
+    public ResponseEntity<ApiResponse<String>> randomApi() {
 
-    public UserController(JwtService jwtService) {
-        this.jwtService = jwtService;
-    }
-
-    @GetMapping("/login")
-    public ResponseEntity<User> login() throws Exception {
-
-        User user = new User();
-        user.setId(1L);
-        return ResponseEntity.ok(user);
-    }
-
-    @GetMapping("/register")
-    public ResponseEntity<ApiResponse<String>> register() {
-        System.out.println("REGISTER CONTROLLER CALLED");
-        return ResponseEntity.ok(new ApiResponse<>("123", "Success", "dataa", Instant.now()));
-    }
-
-    @GetMapping("/test-jwt")
-    public ResponseEntity<ApiResponse<String>> testJwt() {
-
-        System.out.println(jwtService.generateToken("testjwt"));
-        return ResponseEntity.ok(new ApiResponse<>("123", "Success", "Test JWT", Instant.now()));
+        return ResponseEntity.ok()
+                .body(ApiResponse.success("Random API"));
     }
 }
