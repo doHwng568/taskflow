@@ -12,15 +12,13 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
 
 @RestController
 @RequestMapping("/auth")
+@CrossOrigin(origins = "http://localhost:5173")
 public class AuthController {
 
     private final AuthenticationManager authenticationManager;
@@ -38,18 +36,11 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<String>> register(@RequestBody RegisterRequest request) {
-        if (userRepository.existsByUsername(request.username())) {
-            return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(new ApiResponse<>("409", "Username already exists", null, Instant.now()));
-        }
+        System.out.println(request.username() + " , " + request.password());
 
-        User user = new User();
-        user.setUsername(request.username());
-        user.setPassword(passwordEncoder.encode(request.password())); // KHÔNG lưu plain text
-        userRepository.save(user);
-
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(new ApiResponse<>("201", "Registered", user.getUsername(), Instant.now()));
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(ApiResponse.success("Đăng kí thành công"));
     }
 
     @PostMapping("/login")
