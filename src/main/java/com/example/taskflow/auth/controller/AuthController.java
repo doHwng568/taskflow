@@ -2,6 +2,7 @@ package com.example.taskflow.auth.controller;
 
 import com.example.taskflow.auth.dto.request.LoginRequest;
 import com.example.taskflow.auth.dto.request.RegisterRequest;
+import com.example.taskflow.auth.dto.response.LoginResponse;
 import com.example.taskflow.auth.dto.response.RegisterResponse;
 import com.example.taskflow.auth.service.AuthServiceImpl;
 import com.example.taskflow.common.dto.ApiResponse;
@@ -24,13 +25,9 @@ import java.time.Instant;
 @CrossOrigin(origins = "http://localhost:5173")
 public class AuthController {
 
-    private final AuthenticationManager authenticationManager;
-    private final JwtService jwtService;
     private final AuthServiceImpl authServiceImpl;
 
-    public AuthController(AuthenticationManager authenticationManager, JwtService jwtService, AuthServiceImpl authServiceImpl) {
-        this.authenticationManager = authenticationManager;
-        this.jwtService = jwtService;
+    public AuthController(AuthServiceImpl authServiceImpl) {
         this.authServiceImpl = authServiceImpl;
     }
 
@@ -45,17 +42,11 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<ApiResponse<String>> login(@RequestBody LoginRequest request) {
-        try {
-            // Spring Security tự so khớp password với hash trong DB
-            authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(request.username(), request.password()));
-        } catch (BadCredentialsException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(new ApiResponse<>("401", "Invalid username or password", null, Instant.now()));
-        }
+    public ResponseEntity<ApiResponse<LoginResponse>> login(@Valid @RequestBody LoginRequest request) {
+        LoginResponse loginResponse = authServiceImpl.login(request);
 
-        String token = jwtService.generateToken(request.username());
-        return ResponseEntity.ok(new ApiResponse<>("200", "Success", token, Instant.now()));
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body((ApiResponse.success(loginResponse, "Login successfully")));
     }
 }

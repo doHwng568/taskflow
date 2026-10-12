@@ -1,6 +1,8 @@
 package com.example.taskflow.auth.service;
 
+import com.example.taskflow.auth.dto.request.LoginRequest;
 import com.example.taskflow.auth.dto.request.RegisterRequest;
+import com.example.taskflow.auth.dto.response.LoginResponse;
 import com.example.taskflow.auth.dto.response.RegisterResponse;
 import com.example.taskflow.auth.repository.AuthRepository;
 import com.example.taskflow.common.enums.ErrorCode;
@@ -35,5 +37,21 @@ public class AuthService implements AuthServiceImpl {
 
         User userSaved = authRepository.save(user);
         return new RegisterResponse(user.getId(), userSaved.getUsername());
+    }
+
+    @Override
+    public LoginResponse login(LoginRequest request) {
+        if(!authRepository.existsByUsername(request.username())){
+            throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
+        }
+
+        User userRepo = authRepository.findByUsername(request.username());
+
+        boolean isMatchPassword = passwordEncoder.matches(request.password(), userRepo.getPassword());
+
+        if(isMatchPassword) {
+            return new LoginResponse(request.username());
+        }
+        throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
     }
 }
