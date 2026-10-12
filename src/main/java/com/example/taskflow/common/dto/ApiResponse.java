@@ -22,10 +22,10 @@ public class ApiResponse<T> {
     private Instant timestamp;
 
     // success response
-    public static <T> ApiResponse<T> success(T data) {
+    public static <T> ApiResponse<T> success(T data, String message) {
         return ApiResponse.<T>builder()
                 .code("6868")
-                .message("Success")
+                .message(message)
                 .data(data)
                 .timestamp(Instant.now())
                 .build();
@@ -37,6 +37,15 @@ public class ApiResponse<T> {
                 .code(errorCode.getCode())
                 .message(errorCode.getMessage())
                 .data(null)
+                .timestamp(Instant.now())
+                .build();
+    }
+
+    public static <T> ApiResponse<T> errorWithData(ErrorCode errorCode, T data) {
+        return ApiResponse.<T>builder()
+                .code(errorCode.getCode())
+                .message(errorCode.getMessage())
+                .data(data)
                 .timestamp(Instant.now())
                 .build();
     }
