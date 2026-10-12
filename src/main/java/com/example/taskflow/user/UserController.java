@@ -16,8 +16,4 @@ import java.util.List;
 @RequestMapping("/api/users")
 public class UserController {
 
-    @GetMapping
-    public List<User> getAll() {
-        return List.of(new User(1L, "Hehe"), new User(2L, "Bob"));
-    }
 }

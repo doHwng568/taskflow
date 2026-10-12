@@ -2,6 +2,7 @@ package com.example.taskflow.entity;
 
 
 import jakarta.persistence.*;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -12,6 +13,7 @@ import java.util.List;
 @Table(name = "users")
 @Getter
 @Setter
+@Builder
 public class User {
 
     @Id
@@ -22,15 +24,6 @@ public class User {
     private String username;
 
     private String password;
-
-    public User() {
-
-    }
-
-    public User(Long id, String username) {
-        this.id = id;
-        this.username = username;
-    }
 
     @OneToMany(mappedBy = "user")
     private List<RefreshToken> refreshTokenList = new ArrayList<>();

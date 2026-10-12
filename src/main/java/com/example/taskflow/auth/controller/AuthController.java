@@ -1,11 +1,14 @@
-package com.example.taskflow.auth;
+package com.example.taskflow.auth.controller;
 
-import com.example.taskflow.auth.dto.LoginRequest;
-import com.example.taskflow.auth.dto.RegisterRequest;
+import com.example.taskflow.auth.dto.request.LoginRequest;
+import com.example.taskflow.auth.dto.request.RegisterRequest;
+import com.example.taskflow.auth.dto.response.RegisterResponse;
+import com.example.taskflow.auth.service.AuthServiceImpl;
 import com.example.taskflow.common.dto.ApiResponse;
-import com.example.taskflow.entity.User;
 import com.example.taskflow.security.JwtService;
 import com.example.taskflow.user.UserRepository;
+import jakarta.validation.Valid;
+import org.apache.coyote.Response;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -22,25 +25,23 @@ import java.time.Instant;
 public class AuthController {
 
     private final AuthenticationManager authenticationManager;
-    private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final AuthServiceImpl authServiceImpl;
 
-
-    public AuthController(AuthenticationManager authenticationManager, UserRepository userRepository, PasswordEncoder passwordEncoder, JwtService jwtService) {
+    public AuthController(AuthenticationManager authenticationManager, JwtService jwtService, AuthServiceImpl authServiceImpl) {
         this.authenticationManager = authenticationManager;
-        this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.authServiceImpl = authServiceImpl;
     }
 
     @PostMapping("/register")
-    public ResponseEntity<ApiResponse<String>> register(@RequestBody RegisterRequest request) {
-        System.out.println(request.username() + " , " + request.password());
+    public ResponseEntity<ApiResponse<RegisterResponse>> register(@Valid @RequestBody RegisterRequest request) {
+
+        RegisterResponse registerResponse = authServiceImpl.register(request);
 
         return ResponseEntity
-                .status(HttpStatus.OK)
-                .body(ApiResponse.success("Đăng kí thành công"));
+                .status(HttpStatus.CREATED)
+                .body(ApiResponse.success(registerResponse, "Register successfully"));
     }
 
     @PostMapping("/login")
