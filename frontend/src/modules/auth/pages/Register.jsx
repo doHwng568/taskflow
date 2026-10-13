@@ -74,6 +74,7 @@ function Register() {
                 })}
                 <br />
                 <button>Register</button>
+                <p>{response.code === 'USER_002' ? response.message : null}</p>
             </form>
         </>
     )
