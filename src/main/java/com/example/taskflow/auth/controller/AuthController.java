@@ -23,7 +23,7 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<RegisterResponse>> register(@Valid @RequestBody RegisterRequest request) {
-
+        System.out.println(request.username() + "," + request.password());
         RegisterResponse registerResponse = authServiceImpl.register(request);
 
         return ResponseEntity

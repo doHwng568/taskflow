@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
+import axios  from "axios"
 
 function Login() {
 
@@ -16,22 +17,11 @@ function Login() {
         e.preventDefault()
 
         try {
-            const res = await fetch("http://localhost:8080/auth/login", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(form), // convert object js to json
-            });
+            const res = await axios.post('http://localhost:8080/auth/login', form)
 
-            if (res.ok) {
-                navigate('/home')
-            } else {
-                const data = await res.json()
-                setResponse(data)
-                console.log(data)
-            }
-
+            navigate('/home')
         } catch (err) {
-            console.log(`Error: ${err}`)
+            setResponse(err.response.data)
         }
     }
 
@@ -53,7 +43,7 @@ function Login() {
             <h1>LOGIN</h1>
             <form onSubmit={handleSubmit}>
                 <input type="text" placeholder="Username" name="username" onChange={handleChange} />
-                {response.data?.map((item, index) => {
+                {response.errors?.map((item, index) => {
                     if (item.field === 'username') {
                         return <p key={index}>{item.message}</p>
                     }
@@ -61,7 +51,7 @@ function Login() {
                 })}
                 <br />
                 <input type="password" placeholder="Password" name="password" onChange={handleChange} />
-                {response.data?.map((item, index) => {
+                {response.errors?.map((item, index) => {
                     if (item.field === 'password') {
                         return <p key={index}>{item.message}</p>
                     }

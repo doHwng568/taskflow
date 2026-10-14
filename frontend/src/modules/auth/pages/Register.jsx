@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from 'react-router-dom'
+import axios from 'axios'
 
 function Register() {
 
@@ -15,27 +16,15 @@ function Register() {
     const handleSubmit = async (e) => {
         e.preventDefault(); // prevent auto reload page
 
-        console.log(form)
-
         try {
+            // axios tự parse json 2 chiều
+            const res = await axios.post('http://localhost:8080/auth/register', form)
 
-            // gửi request và nhận lại response
-            const res = await fetch("http://localhost:8080/auth/register", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(form), // convert object js to json
-            });
-
-            if (res.ok) {
-                navigate('/login')
-            } else {
-                const data = await res.json();
-                console.log(data)
-                setResponse(data)
-            }
+            navigate('/login')
 
         } catch (err) {
-            console.log('Error: ', err)
+            console.log(err.response.data)
+            setResponse(err.response.data)
         }
     }
 
@@ -58,7 +47,7 @@ function Register() {
             <h1>REGISTER</h1>
             <form onSubmit={handleSubmit}>
                 <input type="text" placeholder="Username" name="username" onChange={handleChange} />
-                {response.data?.map((item, index) => {
+                {response.errors?.map((item, index) => {
                     if (item.field === 'username') {
                         return <p key={index}>{item.message}</p>
                     }
@@ -66,7 +55,7 @@ function Register() {
                 })}
                 <br />
                 <input type="password" placeholder="Password" name="password" onChange={handleChange} />
-                {response.data?.map((item, index) => {
+                {response.errors?.map((item, index) => {
                     if (item.field === 'password') {
                         return <p key={index}>{item.message}</p>
                     }
