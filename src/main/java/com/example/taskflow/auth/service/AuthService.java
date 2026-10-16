@@ -32,11 +32,9 @@ public class AuthService implements AuthServiceImpl {
             throw new BusinessException(ErrorCode.USERNAME_ALREADY_EXISTS);
         }
 
-        User user = User
-                .builder()
-                .username(request.username())
-                .password(passwordEncoder.encode(request.password()))
-                .build();
+        User user = new User();
+        user.setUsername(request.username());
+        user.setPassword(passwordEncoder.encode(request.password()));
 
         User userSaved = authRepository.save(user);
         return new RegisterResponse(user.getId(), userSaved.getUsername());
