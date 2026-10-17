@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
+import api from "../../../services/api";
 
 function Register() {
 
@@ -18,7 +19,7 @@ function Register() {
 
         try {
             // axios tự parse json 2 chiều
-            const res = await axios.post('http://localhost:8080/auth/register', form)
+            const res = await api.post('/auth/register', form)
 
             navigate('/login')
 
