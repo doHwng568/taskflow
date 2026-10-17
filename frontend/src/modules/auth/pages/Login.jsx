@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-import axios  from "axios"
+import axios from "axios"
+import api from "../../../services/api"
 
 function Login() {
 
@@ -17,7 +18,10 @@ function Login() {
         e.preventDefault()
 
         try {
-            const res = await axios.post('http://localhost:8080/auth/login', form)
+            const res = await api.post('/auth/login', form)
+
+            const accessToken = res.data.data.accessToken
+            localStorage.setItem('accessToken', accessToken)
 
             navigate('/home')
         } catch (err) {
