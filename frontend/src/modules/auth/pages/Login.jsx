@@ -2,6 +2,7 @@ import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import axios from "axios"
 import api from "../../../services/api"
+import { useAuthStore } from "../../../stores/authStore"
 
 function Login() {
 
@@ -14,6 +15,8 @@ function Login() {
 
     const [response, setResponse] = useState('')
 
+    const login = useAuthStore(state => state.login)
+
     const handleSubmit = async (e) => {
         e.preventDefault()
 
@@ -21,8 +24,8 @@ function Login() {
             const res = await api.post('/auth/login', form)
 
             const accessToken = res.data.data.accessToken
-            localStorage.setItem('accessToken', accessToken)
-
+            login(accessToken)
+            
             navigate('/home')
         } catch (err) {
             setResponse(err.response.data)
