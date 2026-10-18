@@ -5,6 +5,7 @@ import Login from "../src/modules/auth/pages/Login";
 import Home from "./shared/components/Home";
 import MainWorkspace from "../src/modules/workspace/pages/MainWorkspace"
 import Logout from "./modules/auth/pages/Logout";
+import Test from "./layouts/Test";
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/workspace" element={<MainWorkspace />} />
         <Route path="/logout" element={<Logout />} />
+        <Route path="/test" element={<Test />} />
       </Routes>
     </>
 
