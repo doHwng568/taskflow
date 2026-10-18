@@ -83,10 +83,58 @@
   font-size: 13px;
 }
 
+.workspace-list-menu-wrap {
+  position: relative;
+}
+
 .workspace-list-menu {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
   color: #606873;
   font-size: 21px;
   line-height: 1;
+}
+
+.workspace-list-menu:hover,
+.workspace-list-menu[aria-expanded="true"] {
+  background: #e5e7eb;
+}
+
+.workspace-list-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 20;
+  display: grid;
+  min-width: 175px;
+  padding: 5px;
+  border: 1px solid #d1d5db;
+  border-radius: 7px;
+  background: #fff;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 15%);
+}
+
+.workspace-list-dropdown button {
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #303640;
+  text-align: left;
+}
+
+.workspace-list-dropdown button:hover {
+  background: #f3f4f6;
+}
+
+.workspace-list-dropdown .workspace-delete-list-option {
+  color: #b42318;
 }
 
 .workspace-list-cards {

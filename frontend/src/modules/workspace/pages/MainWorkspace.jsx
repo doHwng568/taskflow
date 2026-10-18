@@ -65,7 +65,6 @@ function readCards() {
       return INITIAL_CARDS;
     }
 
-    // Đọc cả dữ liệu cũ đã lưu bằng trường status.
     return parsedCards
       .filter(
         (card) =>
@@ -100,6 +99,12 @@ function MainWorkspace() {
 
   const [showListForm, setShowListForm] = useState(false);
   const [newListName, setNewListName] = useState("");
+
+  const [openListMenuId, setOpenListMenuId] = useState(null);
+  const [listToRename, setListToRename] = useState(null);
+  const [listNameDraft, setListNameDraft] = useState("");
+  const [listNameError, setListNameError] = useState("");
+  const [listToDelete, setListToDelete] = useState(null);
 
   useEffect(() => {
     localStorage.setItem(LISTS_STORAGE_KEY, JSON.stringify(lists));
@@ -214,6 +219,52 @@ function MainWorkspace() {
     setShowListForm(false);
   };
 
+  const openRenameList = (list) => {
+    setListToRename(list);
+    setListNameDraft(list.name);
+    setListNameError("");
+    setOpenListMenuId(null);
+  };
+
+  const handleRenameList = (event) => {
+    event.preventDefault();
+
+    const newName = listNameDraft.trim();
+
+    if (!newName) {
+      setListNameError("Bạn hãy nhập tên danh sách.");
+      return;
+    }
+
+    setLists((currentLists) =>
+      currentLists.map((list) =>
+        list.id === listToRename.id ? { ...list, name: newName } : list,
+      ),
+    );
+
+    setListToRename(null);
+    setListNameDraft("");
+    setListNameError("");
+  };
+
+  const handleDeleteList = () => {
+    if (!listToDelete) {
+      return;
+    }
+
+    const deletedListId = listToDelete.id;
+
+    setLists((currentLists) =>
+      currentLists.filter((list) => list.id !== deletedListId),
+    );
+
+    setCards((currentCards) =>
+      currentCards.filter((card) => card.listId !== deletedListId),
+    );
+
+    setListToDelete(null);
+  };
+
   return (
     <main className="workspace-page">
       <div className="workspace-topbar">
@@ -234,15 +285,51 @@ function MainWorkspace() {
       <div className="workspace-board">
         {lists.map((list) => {
           const listCards = cards.filter((card) => card.listId === list.id);
+          const isMenuOpen = openListMenuId === list.id;
 
           return (
             <section className="workspace-list" key={list.id}>
               <div className="workspace-list-heading">
                 <h2>{list.name}</h2>
                 <span className="workspace-card-count">{listCards.length}</span>
-                <span className="workspace-list-menu" aria-hidden="true">
-                  ⋯
-                </span>
+
+                <div className="workspace-list-menu-wrap">
+                  <button
+                    className="workspace-list-menu"
+                    type="button"
+                    aria-label={`Tùy chọn danh sách ${list.name}`}
+                    aria-expanded={isMenuOpen}
+                    title="Tùy chọn danh sách"
+                    onClick={() =>
+                      setOpenListMenuId((currentId) =>
+                        currentId === list.id ? null : list.id,
+                      )
+                    }
+                  >
+                    ⋯
+                  </button>
+
+                  {isMenuOpen && (
+                    <div className="workspace-list-dropdown">
+                      <button
+                        type="button"
+                        onClick={() => openRenameList(list)}
+                      >
+                        Đổi tên danh sách
+                      </button>
+                      <button
+                        className="workspace-delete-list-option"
+                        type="button"
+                        onClick={() => {
+                          setListToDelete(list);
+                          setOpenListMenuId(null);
+                        }}
+                      >
+                        Xóa danh sách
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="workspace-list-cards">
@@ -404,6 +491,87 @@ function MainWorkspace() {
           </Button>
           <Button variant="danger" onClick={handleDeleteCard}>
             Xóa thẻ
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      <Modal
+        show={Boolean(listToRename)}
+        onHide={() => {
+          setListToRename(null);
+          setListNameError("");
+        }}
+        centered
+      >
+        <Form onSubmit={handleRenameList}>
+          <Modal.Header closeButton>
+            <Modal.Title>Đổi tên danh sách</Modal.Title>
+          </Modal.Header>
+
+          <Modal.Body>
+            <Form.Group controlId="new-list-name">
+              <Form.Label>Tên mới</Form.Label>
+              <Form.Control
+                autoFocus
+                value={listNameDraft}
+                onChange={(event) => {
+                  setListNameDraft(event.target.value);
+                  setListNameError("");
+                }}
+                placeholder="Nhập tên danh sách mới"
+                maxLength={60}
+              />
+            </Form.Group>
+
+            {listNameError && (
+              <p className="workspace-form-error" role="alert">
+                {listNameError}
+              </p>
+            )}
+          </Modal.Body>
+
+          <Modal.Footer>
+            <Button
+              type="button"
+              variant="outline-secondary"
+              onClick={() => {
+                setListToRename(null);
+                setListNameError("");
+              }}
+            >
+              Hủy
+            </Button>
+            <Button type="submit" variant="secondary">
+              Lưu tên
+            </Button>
+          </Modal.Footer>
+        </Form>
+      </Modal>
+
+      <Modal
+        show={Boolean(listToDelete)}
+        onHide={() => setListToDelete(null)}
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Xóa danh sách?</Modal.Title>
+        </Modal.Header>
+
+        <Modal.Body>
+          Danh sách “{listToDelete?.name}” có{" "}
+          {cards.filter((card) => card.listId === listToDelete?.id).length} thẻ.
+          Xóa danh sách cũng sẽ xóa các thẻ bên trong.
+        </Modal.Body>
+
+        <Modal.Footer>
+          <Button
+            variant="outline-secondary"
+            onClick={() => setListToDelete(null)}
+          >
+            Hủy
+          </Button>
+          <Button variant="danger" onClick={handleDeleteList}>
+            Xóa danh sách
           </Button>
         </Modal.Footer>
       </Modal>
