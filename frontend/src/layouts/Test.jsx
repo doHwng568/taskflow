@@ -8,15 +8,15 @@ function Test() {
     const isAuthenticated = useAuthStore(state => state.isAuthenticated)
     const username = useAuthStore(state => state.username)
 
+    const handleInput = (e) => {
+        login(e.target.value)
+    }
+    
     return (
         <>
             <h1>xin chao {username}</h1>
 
-
-            {
-                isAuthenticated ?
-                <button onClick={logout}>Logout</button> : <button onClick={login}>Login</button>
-            }
+            <input type="text" onChange={handleInput}/>
         </>
 
     )

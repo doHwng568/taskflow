@@ -14,10 +14,13 @@ export const useAuthStore = create((set) => ({
     isAuthenticated: false,
 
     // action 
-    login: () => {
+    login: (accessToken) => {
+
+        const username = getUserFromAccessToken(accessToken);
+
         set({
-            accessToken: null,
-            username: "user",
+            accessToken: accessToken,
+            username: username,
             isAuthenticated: true,
         })
     },
