@@ -1,0 +1,122 @@
+.workspace-page {
+  min-height: calc(100vh - 56px);
+  padding: 2.5rem 0 3rem;
+  background: #f5f7fb;
+}
+
+.workspace-container {
+  max-width: 1180px;
+}
+
+.workspace-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.workspace-heading h1 {
+  margin: 0;
+  color: #172033;
+  font-size: clamp(1.7rem, 3vw, 2.25rem);
+  font-weight: 700;
+}
+
+.workspace-eyebrow {
+  margin: 0 0 0.45rem;
+  color: #65728a;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+}
+
+.workspace-subtitle {
+  margin: 0.45rem 0 0;
+  color: #65728a;
+}
+
+.workspace-storage-note {
+  margin-bottom: 1.25rem;
+}
+
+.workspace-board {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start;
+  gap: 1rem;
+}
+
+.workspace-column {
+  min-height: 250px;
+  padding: 1rem;
+  border: 1px solid #e1e6ef;
+  border-radius: 0.75rem;
+  background: #fff;
+}
+
+.workspace-column-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.workspace-column-heading h2 {
+  margin: 0;
+  color: #273247;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.workspace-column-cards {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.workspace-task-card {
+  border-color: #e5e9f0;
+  box-shadow: 0 2px 7px rgb(23 32 51 / 5%);
+}
+
+.workspace-card-content {
+  margin: 0 0 1rem;
+  color: #273247;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.workspace-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.workspace-empty-message {
+  margin: 0;
+  padding: 1rem 0.25rem;
+  color: #7a8598;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.workspace-form-error {
+  margin: 0.75rem 0 0;
+  color: #b02a37;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 767.98px) {
+  .workspace-page {
+    padding-top: 1.5rem;
+  }
+
+  .workspace-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .workspace-board {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
