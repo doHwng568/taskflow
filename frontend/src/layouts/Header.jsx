@@ -39,6 +39,10 @@ function Header() {
               <Nav.Link as={Link} to="/login">Login</Nav.Link>
             </>}
 
+            {
+              isLogged && <Nav.Link as={Link} to="/user">Profile</Nav.Link>
+            }
+
             {isLogged &&
               <Nav.Link as={Link} to="/logout">Logout</Nav.Link>
             }
