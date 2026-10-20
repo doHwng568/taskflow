@@ -30,8 +30,6 @@ function Home() {
             <h1>Common Home</h1>
             <h2>Xin chào {subject}</h2>
 
-            {isLogged && <Button as={Link} to="/workspace" > Workspace </Button>}
-
         </>
     );
 }
