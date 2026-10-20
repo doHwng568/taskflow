@@ -12,7 +12,9 @@ function Home() {
             <h1>Common Home</h1>
             <h2>Xin chào {username}</h2>
 
-            {isAuthenticated && <Button as={Link} to="/workspace" > Workspace </Button>}
+            <Link to="/workspace">
+                <button>My Workspace</button>
+            </Link>
 
         </>
     );

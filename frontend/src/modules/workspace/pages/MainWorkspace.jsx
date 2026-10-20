@@ -1,30 +1,15 @@
-import axios from "axios"
-import { useEffect, useState } from "react"
-import api from "../../../services/api"
+import MainArea from '../../area/pages/MainArea'
 
 function MainWorkspace() {
 
-    // const [response, setResponse] = useState()
-
-    // useEffect(() => {
-    //     const fetchWorkspaceData = async () => {
-    //         try {
-    //             const res = await api.get('/workspace')
-    //             console.log(res.data)
-    //         } catch (err) {
-    //             console.log(err)
-    //         }
-    //     }
-
-    //     fetchWorkspaceData()
-    // }, [])
+    console.log("MainWorkspace rendered");
 
     return (
         <>
-            <h1>Workspace</h1>
+            <h3 style={{ color: 'red' }}>Workspace</h3>
+            <MainArea />
         </>
-    )
-
+    );
 }
 
-export default MainWorkspace
+export default MainWorkspace;

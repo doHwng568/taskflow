@@ -8,6 +8,7 @@ import Logout from "./modules/auth/pages/Logout";
 import Test from "./layouts/Test";
 
 function App() {
+  
   return (
     <>
       <Header />
@@ -16,9 +17,9 @@ function App() {
         <Route path="/home" element={<Home />} />
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/workspace" element={<MainWorkspace />} />
         <Route path="/logout" element={<Logout />} />
         <Route path="/test" element={<Test />} />
+        <Route path="/workspace" element={<MainWorkspace />} />
       </Routes>
     </>
 
