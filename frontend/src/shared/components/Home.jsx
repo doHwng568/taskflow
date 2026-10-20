@@ -1,7 +1,5 @@
-import { useNavigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode'
 import { useEffect, useState } from 'react';
-import Button from 'react-bootstrap/Button';
 import { Link } from 'react-router-dom';
 
 function Home() {
@@ -30,6 +28,9 @@ function Home() {
             <h1>Common Home</h1>
             <h2>Xin chào {subject}</h2>
 
+            <Link to="/workspace">
+                <button>My Workspace</button>
+            </Link>
         </>
     );
 }
