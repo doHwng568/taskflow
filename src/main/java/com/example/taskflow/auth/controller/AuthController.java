@@ -6,23 +6,13 @@ import com.example.taskflow.auth.dto.response.LoginResponse;
 import com.example.taskflow.auth.dto.response.RegisterResponse;
 import com.example.taskflow.auth.service.AuthServiceImpl;
 import com.example.taskflow.common.dto.ApiResponse;
-import com.example.taskflow.security.JwtService;
-import com.example.taskflow.user.UserRepository;
 import jakarta.validation.Valid;
-import org.apache.coyote.Response;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
-
-import java.time.Instant;
 
 @RestController
 @RequestMapping("/auth")
-@CrossOrigin(origins = "http://localhost:5173")
 public class AuthController {
 
     private final AuthServiceImpl authServiceImpl;
@@ -33,7 +23,7 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<RegisterResponse>> register(@Valid @RequestBody RegisterRequest request) {
-
+        System.out.println(request.username() + "," + request.password());
         RegisterResponse registerResponse = authServiceImpl.register(request);
 
         return ResponseEntity

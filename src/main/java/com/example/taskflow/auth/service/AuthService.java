@@ -8,6 +8,7 @@ import com.example.taskflow.auth.repository.AuthRepository;
 import com.example.taskflow.common.enums.ErrorCode;
 import com.example.taskflow.common.exception.BusinessException;
 import com.example.taskflow.entity.User;
+import com.example.taskflow.security.JwtService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -16,10 +17,12 @@ public class AuthService implements AuthServiceImpl {
 
     private final AuthRepository authRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
 
-    public AuthService(AuthRepository authRepository, PasswordEncoder passwordEncoder) {
+    public AuthService(AuthRepository authRepository, PasswordEncoder passwordEncoder, JwtService jwtService) {
         this.authRepository = authRepository;
         this.passwordEncoder = passwordEncoder;
+        this.jwtService = jwtService;
     }
 
     @Override
@@ -29,11 +32,9 @@ public class AuthService implements AuthServiceImpl {
             throw new BusinessException(ErrorCode.USERNAME_ALREADY_EXISTS);
         }
 
-        User user = User
-                .builder()
-                .username(request.username())
-                .password(passwordEncoder.encode(request.password()))
-                .build();
+        User user = new User();
+        user.setUsername(request.username());
+        user.setPassword(passwordEncoder.encode(request.password()));
 
         User userSaved = authRepository.save(user);
         return new RegisterResponse(user.getId(), userSaved.getUsername());
@@ -50,7 +51,7 @@ public class AuthService implements AuthServiceImpl {
         boolean isMatchPassword = passwordEncoder.matches(request.password(), userRepo.getPassword());
 
         if(isMatchPassword) {
-            return new LoginResponse(request.username());
+            return new LoginResponse(request.username(), jwtService.generateToken(request.username()));
         }
         throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
     }
