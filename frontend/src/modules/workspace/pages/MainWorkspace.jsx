@@ -1,5 +1,5 @@
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Alert,
   Button,
@@ -9,52 +9,44 @@ import {
   Form,
   Modal,
   Row,
-  Spinner,
 } from "react-bootstrap";
+import { useNavigate } from "react-router-dom";
 import workspaceService from "../services/workspaceService";
 
-const emptyForm = {
-  name: "",
-  description: "",
-};
+const EMPTY_FORM = { name: "", description: "" };
 
 function MainWorkspace() {
+  const navigate = useNavigate();
+
   const [workspaces, setWorkspaces] = useState([]);
   const [search, setSearch] = useState("");
-  const [form, setForm] = useState(emptyForm);
+  const [form, setForm] = useState(EMPTY_FORM);
   const [editingId, setEditingId] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(true);
+
+  const loadWorkspaces = () => {
+    setWorkspaces(workspaceService.getAll());
+  };
 
   useEffect(() => {
-    try {
-      setWorkspaces(workspaceService.getAll());
-    } catch {
-      setError("Không thể tải danh sách Workspace.");
-    } finally {
-      setLoading(false);
-    }
+    loadWorkspaces();
   }, []);
 
-  const filteredWorkspaces = useMemo(() => {
-    const keyword = search.trim().toLowerCase();
+  const filteredWorkspaces = workspaces.filter((workspace) =>
+    `${workspace.name} ${workspace.description}`
+      .toLowerCase()
+      .includes(search.trim().toLowerCase())
+  );
 
-    return workspaces.filter(
-      (workspace) =>
-        workspace.name.toLowerCase().includes(keyword) ||
-        workspace.description.toLowerCase().includes(keyword)
-    );
-  }, [workspaces, search]);
-
-  const openCreateModal = () => {
-    setForm(emptyForm);
+  const openCreate = () => {
+    setForm(EMPTY_FORM);
     setEditingId(null);
     setError("");
     setShowModal(true);
   };
 
-  const openEditModal = (workspace) => {
+  const openEdit = (workspace) => {
     setForm({
       name: workspace.name,
       description: workspace.description,
@@ -66,7 +58,7 @@ function MainWorkspace() {
 
   const closeModal = () => {
     setShowModal(false);
-    setForm(emptyForm);
+    setForm(EMPTY_FORM);
     setEditingId(null);
     setError("");
   };
@@ -78,139 +70,95 @@ function MainWorkspace() {
     const description = form.description.trim();
 
     if (!name) {
-      setError("Tên Workspace không được để trống.");
+      setError("Workspace name is required.");
       return;
     }
 
-    const duplicated = workspaces.some(
+    const duplicate = workspaces.some(
       (workspace) =>
         workspace.name.toLowerCase() === name.toLowerCase() &&
         workspace.id !== editingId
     );
 
-    if (duplicated) {
-      setError("Tên Workspace này đã tồn tại.");
+    if (duplicate) {
+      setError("A Workspace with this name already exists.");
       return;
     }
 
     try {
       if (editingId) {
-        const updated = workspaceService.update(editingId, {
-          name,
-          description,
-        });
-
-        if (!updated) {
-          setError("Không tìm thấy Workspace cần sửa.");
-          return;
-        }
-
-        setWorkspaces((current) =>
-          current.map((workspace) =>
-            workspace.id === editingId ? updated : workspace
-          )
-        );
+        workspaceService.update(editingId, { name, description });
       } else {
-        const created = workspaceService.create({ name, description });
-        setWorkspaces((current) => [created, ...current]);
+        workspaceService.create({ name, description });
       }
 
+      loadWorkspaces();
       closeModal();
     } catch {
-      setError("Không thể lưu Workspace. Vui lòng thử lại.");
+      setError("Unable to save Workspace. Please try again.");
     }
   };
 
   const handleDelete = (workspace) => {
     const confirmed = window.confirm(
-      `Bạn có chắc muốn xóa Workspace "${workspace.name}" không?`
+      `Delete Workspace "${workspace.name}"?`
     );
 
     if (!confirmed) return;
 
     try {
       workspaceService.delete(workspace.id);
-      setWorkspaces((current) =>
-        current.filter((item) => item.id !== workspace.id)
-      );
+      loadWorkspaces();
     } catch {
-      setError("Không thể xóa Workspace. Vui lòng thử lại.");
+      setError("Unable to delete Workspace.");
     }
   };
 
   return (
-    <Container className="py-4 py-md-5">
+    <Container className="py-5">
       <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
         <div>
-          <h1 className="fw-bold mb-2">My Workspaces</h1>
+          <h2 className="fw-bold">My Workspaces</h2>
           <p className="text-secondary mb-0">
-            Quản lý các không gian làm việc của bạn trên TaskFlow.
+            Manage your workspaces in TaskFlow.
           </p>
         </div>
 
-        <Button variant="primary" onClick={openCreateModal}>
-          + Create Workspace
-        </Button>
+        <Button onClick={openCreate}>+ Create Workspace</Button>
       </div>
 
       {error && (
-        <Alert
-          variant="danger"
-          dismissible
-          onClose={() => setError("")}
-        >
+        <Alert variant="danger" dismissible onClose={() => setError("")}>
           {error}
         </Alert>
       )}
 
-      <Row className="mb-4">
-        <Col md={6} lg={5}>
-          <Form.Control
-            type="search"
-            placeholder="Search workspaces..."
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            aria-label="Search workspaces"
-          />
-        </Col>
-      </Row>
+      <Form.Control
+        className="mb-4"
+        style={{ maxWidth: 420 }}
+        placeholder="Search workspaces..."
+        value={search}
+        onChange={(event) => setSearch(event.target.value)}
+      />
 
-      {loading ? (
-        <div className="text-center py-5">
-          <Spinner animation="border" />
-        </div>
-      ) : filteredWorkspaces.length === 0 ? (
-        <div className="text-center border rounded-4 p-5">
-          <h5 className="fw-semibold">
-            {search ? "No workspaces found" : "No workspaces yet"}
-          </h5>
+      {filteredWorkspaces.length === 0 ? (
+        <div className="border rounded-4 text-center p-5">
+          <h5>{search ? "No matching workspaces" : "No workspaces yet"}</h5>
           <p className="text-secondary">
             {search
-              ? "Thử tìm kiếm bằng từ khóa khác."
-              : "Tạo Workspace đầu tiên để bắt đầu quản lý công việc."}
+              ? "Try another search keyword."
+              : "Create your first Workspace to get started."}
           </p>
-
           {!search && (
-            <Button variant="primary" onClick={openCreateModal}>
-              Create your first Workspace
-            </Button>
+            <Button onClick={openCreate}>Create Workspace</Button>
           )}
         </div>
       ) : (
-        <Row className="g-3">
+        <Row className="g-4">
           {filteredWorkspaces.map((workspace) => (
             <Col key={workspace.id} xs={12} md={6} xl={4}>
-              <Card className="h-100 shadow-sm border-0">
-                <Card.Body className="d-flex flex-column p-4">
-                  <div
-                    className="rounded-3 mb-3"
-                    style={{
-                      height: "8px",
-                      background:
-                        "linear-gradient(90deg, #635bff, #9b8cff)",
-                    }}
-                  />
-
+              <Card className="h-100 shadow-sm">
+                <Card.Body className="d-flex flex-column">
                   <Card.Title className="fw-bold">
                     {workspace.name}
                   </Card.Title>
@@ -224,11 +172,19 @@ function MainWorkspace() {
                     {new Date(workspace.createdAt).toLocaleDateString()}
                   </small>
 
-                  <div className="d-flex gap-2">
+                  <div className="d-flex flex-wrap gap-2">
+                    <Button
+                      className="flex-grow-1"
+                      onClick={() =>
+                        navigate(`/workspace/${workspace.id}`)
+                      }
+                    >
+                      Open Workspace
+                    </Button>
+
                     <Button
                       variant="outline-primary"
-                      className="flex-grow-1"
-                      onClick={() => openEditModal(workspace)}
+                      onClick={() => openEdit(workspace)}
                     >
                       Edit
                     </Button>
@@ -259,35 +215,29 @@ function MainWorkspace() {
             {error && <Alert variant="danger">{error}</Alert>}
 
             <Form.Group className="mb-3">
-              <Form.Label>
-                Workspace name <span className="text-danger">*</span>
-              </Form.Label>
-
+              <Form.Label>Workspace name *</Form.Label>
               <Form.Control
-                type="text"
-                placeholder="Enter workspace name"
-                value={form.name}
+                required
                 maxLength={100}
+                value={form.name}
+                placeholder="Enter workspace name"
                 onChange={(event) =>
                   setForm((current) => ({
                     ...current,
                     name: event.target.value,
                   }))
                 }
-                autoFocus
-                required
               />
             </Form.Group>
 
             <Form.Group>
               <Form.Label>Description</Form.Label>
-
               <Form.Control
                 as="textarea"
                 rows={3}
-                placeholder="Describe your workspace..."
-                value={form.description}
                 maxLength={500}
+                value={form.description}
+                placeholder="Enter description"
                 onChange={(event) =>
                   setForm((current) => ({
                     ...current,
@@ -299,12 +249,11 @@ function MainWorkspace() {
           </Modal.Body>
 
           <Modal.Footer>
-            <Button variant="light" onClick={closeModal}>
+            <Button variant="secondary" onClick={closeModal}>
               Cancel
             </Button>
-
-            <Button variant="primary" type="submit">
-              {editingId ? "Save changes" : "Create Workspace"}
+            <Button type="submit">
+              {editingId ? "Save changes" : "Create"}
             </Button>
           </Modal.Footer>
         </Form>

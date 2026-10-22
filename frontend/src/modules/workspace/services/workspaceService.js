@@ -5,26 +5,30 @@ const createId = () =>
   globalThis.crypto?.randomUUID?.() ??
   `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
-const readWorkspaces = () => {
+function readAll() {
   try {
     const data = localStorage.getItem(STORAGE_KEY);
     return data ? JSON.parse(data) : [];
   } catch {
     return [];
   }
-};
+}
 
-const saveWorkspaces = (workspaces) => {
+function saveAll(workspaces) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(workspaces));
-};
+}
 
 const workspaceService = {
   getAll() {
-    return readWorkspaces();
+    return readAll();
+  },
+
+  getById(id) {
+    return readAll().find((workspace) => workspace.id === id) ?? null;
   },
 
   create({ name, description }) {
-    const workspaces = readWorkspaces();
+    const workspaces = readAll();
 
     const workspace = {
       id: createId(),
@@ -33,32 +37,25 @@ const workspaceService = {
       createdAt: new Date().toISOString(),
     };
 
-    saveWorkspaces([workspace, ...workspaces]);
+    saveAll([workspace, ...workspaces]);
     return workspace;
   },
 
   update(id, { name, description }) {
-    const workspaces = readWorkspaces();
+    const workspaces = readAll();
 
     const updated = workspaces.map((workspace) =>
       workspace.id === id
-        ? {
-            ...workspace,
-            name: name.trim(),
-            description: description.trim(),
-          }
+        ? { ...workspace, name: name.trim(), description: description.trim() }
         : workspace
     );
 
-    saveWorkspaces(updated);
+    saveAll(updated);
     return updated.find((workspace) => workspace.id === id) ?? null;
   },
 
   delete(id) {
-    const workspaces = readWorkspaces();
-    const updated = workspaces.filter((workspace) => workspace.id !== id);
-
-    saveWorkspaces(updated);
+    saveAll(readAll().filter((workspace) => workspace.id !== id));
   },
 };
 

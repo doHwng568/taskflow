@@ -4,6 +4,7 @@ import Register from "../src/modules/auth/pages/Register";
 import Login from "../src/modules/auth/pages/Login";
 import Home from "./shared/components/Home";
 import MainWorkspace from "../src/modules/workspace/pages/MainWorkspace"
+import WorkspaceDetail from "./modules/workspace/pages/WorkspaceDetail";
 import Logout from "./modules/auth/pages/Logout";
 
 function App() {
@@ -16,6 +17,7 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
         <Route path="/workspace" element={<MainWorkspace />} />
+        <Route path="/workspace/:id" element={<WorkspaceDetail />} />
         <Route path="/logout" element={<Logout />} />
       </Routes>
     </>
