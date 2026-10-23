@@ -1,5 +1,6 @@
 package com.example.taskflow.entity;
 
+import com.example.taskflow.common.enums.Role;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -15,8 +16,6 @@ public class WorkspaceMember {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    private String role;
 
     private LocalDateTime joinedAt;
 

@@ -20,6 +20,9 @@ public class Workspace {
 
     private String name;
 
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;

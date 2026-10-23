@@ -30,6 +30,9 @@ public class Area {
     @JoinColumn(name = "workspace_id")
     private Workspace workspace;
 
+    @OneToMany(mappedBy = "area")
+    private List<Card> cardList = new ArrayList<>();
+
     @OneToMany(mappedBy = "fromArea")
     private List<CardMovement> fromAreaList = new ArrayList<>();
 

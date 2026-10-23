@@ -1,6 +1,6 @@
 package com.example.taskflow.entity;
 
-
+import com.example.taskflow.common.enums.Role;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -24,6 +24,13 @@ public class User {
     private String username;
 
     private String password;
+
+    private String fullName;
+
+    private String email;
+
+    @Enumerated(EnumType.STRING)
+    private Role role;
 
     @OneToMany(mappedBy = "user")
     private List<RefreshToken> refreshTokenList = new ArrayList<>();
