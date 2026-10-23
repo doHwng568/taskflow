@@ -1,581 +1,264 @@
+
 import { useEffect, useState } from "react";
-import { Button, Form, Modal } from "react-bootstrap";
-import "../styles/MainWorkspace.css";
+import {
+  Alert,
+  Button,
+  Card,
+  Col,
+  Container,
+  Form,
+  Modal,
+  Row,
+} from "react-bootstrap";
+import { useNavigate } from "react-router-dom";
+import workspaceService from "../services/workspaceService";
 
-const LISTS_STORAGE_KEY = "taskflow-demo-lists";
-const CARDS_STORAGE_KEY = "taskflow-demo-cards";
-const WORKSPACE_NAME_STORAGE_KEY = "taskflow-demo-workspace-name";
-
-const INITIAL_LISTS = [
-  { id: "todo", name: "Kế hoạch" },
-  { id: "in-progress", name: "Đang làm" },
-  { id: "done", name: "Đã xong" },
-];
-
-const INITIAL_CARDS = [
-  { id: "card-1", content: "Học SP", listId: "todo" },
-  { id: "card-2", content: "ngủ", listId: "todo" },
-  { id: "card-3", content: "đi bộ", listId: "in-progress" },
-  { id: "card-4", content: "ăn", listId: "done" },
-];
-
-function createId(prefix) {
-  return (
-    globalThis.crypto?.randomUUID?.() ??
-    `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}`
-  );
-}
-
-function readLists() {
-  try {
-    const savedLists = localStorage.getItem(LISTS_STORAGE_KEY);
-
-    if (savedLists === null) {
-      return INITIAL_LISTS;
-    }
-
-    const parsedLists = JSON.parse(savedLists);
-
-    if (!Array.isArray(parsedLists)) {
-      return INITIAL_LISTS;
-    }
-
-    return parsedLists.filter(
-      (list) =>
-        list &&
-        typeof list.id === "string" &&
-        typeof list.name === "string",
-    );
-  } catch {
-    return INITIAL_LISTS;
-  }
-}
-
-function readCards() {
-  try {
-    const savedCards = localStorage.getItem(CARDS_STORAGE_KEY);
-
-    if (savedCards === null) {
-      return INITIAL_CARDS;
-    }
-
-    const parsedCards = JSON.parse(savedCards);
-
-    if (!Array.isArray(parsedCards)) {
-      return INITIAL_CARDS;
-    }
-
-    return parsedCards
-      .filter(
-        (card) =>
-          card &&
-          (typeof card.id === "string" || typeof card.id === "number") &&
-          typeof card.content === "string",
-      )
-      .map((card) => ({
-        ...card,
-        listId: card.listId ?? card.status ?? "todo",
-      }));
-  } catch {
-    return INITIAL_CARDS;
-  }
-}
+const EMPTY_FORM = { name: "", description: "" };
 
 function MainWorkspace() {
-  const [lists, setLists] = useState(readLists);
-  const [cards, setCards] = useState(readCards);
+  const navigate = useNavigate();
 
-  const [workspaceName, setWorkspaceName] = useState(
-    () =>
-      localStorage.getItem(WORKSPACE_NAME_STORAGE_KEY) ||
-      "Workspace Trên lớp",
+  const [workspaces, setWorkspaces] = useState([]);
+  const [search, setSearch] = useState("");
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [editingId, setEditingId] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [error, setError] = useState("");
+
+  const loadWorkspaces = () => {
+    setWorkspaces(workspaceService.getAll());
+  };
+
+  useEffect(() => {
+    loadWorkspaces();
+  }, []);
+
+  const filteredWorkspaces = workspaces.filter((workspace) =>
+    `${workspace.name} ${workspace.description}`
+      .toLowerCase()
+      .includes(search.trim().toLowerCase())
   );
 
-  const [showCardModal, setShowCardModal] = useState(false);
-  const [editingCard, setEditingCard] = useState(null);
-  const [cardToDelete, setCardToDelete] = useState(null);
-  const [formData, setFormData] = useState({ content: "", listId: "todo" });
-  const [formError, setFormError] = useState("");
-
-  const [showListForm, setShowListForm] = useState(false);
-  const [newListName, setNewListName] = useState("");
-
-  const [openListMenuId, setOpenListMenuId] = useState(null);
-  const [listToRename, setListToRename] = useState(null);
-  const [listNameDraft, setListNameDraft] = useState("");
-  const [listNameError, setListNameError] = useState("");
-  const [listToDelete, setListToDelete] = useState(null);
-
-  useEffect(() => {
-    localStorage.setItem(LISTS_STORAGE_KEY, JSON.stringify(lists));
-  }, [lists]);
-
-  useEffect(() => {
-    localStorage.setItem(CARDS_STORAGE_KEY, JSON.stringify(cards));
-  }, [cards]);
-
-  useEffect(() => {
-    localStorage.setItem(WORKSPACE_NAME_STORAGE_KEY, workspaceName);
-  }, [workspaceName]);
-
-  const openCreateCard = (listId) => {
-    setEditingCard(null);
-    setFormData({ content: "", listId });
-    setFormError("");
-    setShowCardModal(true);
+  const openCreate = () => {
+    setForm(EMPTY_FORM);
+    setEditingId(null);
+    setError("");
+    setShowModal(true);
   };
 
-  const openEditCard = (card) => {
-    setEditingCard(card);
-    setFormData({
-      content: card.content,
-      listId: card.listId,
+  const openEdit = (workspace) => {
+    setForm({
+      name: workspace.name,
+      description: workspace.description,
     });
-    setFormError("");
-    setShowCardModal(true);
+    setEditingId(workspace.id);
+    setError("");
+    setShowModal(true);
   };
 
-  const closeCardModal = () => {
-    setShowCardModal(false);
-    setEditingCard(null);
-    setFormError("");
+  const closeModal = () => {
+    setShowModal(false);
+    setForm(EMPTY_FORM);
+    setEditingId(null);
+    setError("");
   };
 
-  const handleCardFormChange = (event) => {
-    const { name, value } = event.target;
-
-    setFormData((current) => ({
-      ...current,
-      [name]: value,
-    }));
-
-    setFormError("");
-  };
-
-  const handleSaveCard = (event) => {
+  const handleSubmit = (event) => {
     event.preventDefault();
 
-    const content = formData.content.trim();
-
-    if (!content) {
-      setFormError("Bạn hãy nhập nội dung cho thẻ.");
-      return;
-    }
-
-    if (editingCard) {
-      setCards((currentCards) =>
-        currentCards.map((card) =>
-          card.id === editingCard.id
-            ? {
-                ...card,
-                content,
-                listId: formData.listId,
-                status: formData.listId,
-              }
-            : card,
-        ),
-      );
-    } else {
-      const newCard = {
-        id: createId("card"),
-        content,
-        listId: formData.listId,
-        status: formData.listId,
-      };
-
-      setCards((currentCards) => [...currentCards, newCard]);
-    }
-
-    closeCardModal();
-  };
-
-  const handleDeleteCard = () => {
-    if (!cardToDelete) {
-      return;
-    }
-
-    setCards((currentCards) =>
-      currentCards.filter((card) => card.id !== cardToDelete.id),
-    );
-
-    setCardToDelete(null);
-  };
-
-  const handleAddList = (event) => {
-    event.preventDefault();
-
-    const name = newListName.trim();
+    const name = form.name.trim();
+    const description = form.description.trim();
 
     if (!name) {
+      setError("Workspace name is required.");
       return;
     }
 
-    setLists((currentLists) => [
-      ...currentLists,
-      { id: createId("list"), name },
-    ]);
+    const duplicate = workspaces.some(
+      (workspace) =>
+        workspace.name.toLowerCase() === name.toLowerCase() &&
+        workspace.id !== editingId
+    );
 
-    setNewListName("");
-    setShowListForm(false);
-  };
-
-  const openRenameList = (list) => {
-    setListToRename(list);
-    setListNameDraft(list.name);
-    setListNameError("");
-    setOpenListMenuId(null);
-  };
-
-  const handleRenameList = (event) => {
-    event.preventDefault();
-
-    const newName = listNameDraft.trim();
-
-    if (!newName) {
-      setListNameError("Bạn hãy nhập tên danh sách.");
+    if (duplicate) {
+      setError("A Workspace with this name already exists.");
       return;
     }
 
-    setLists((currentLists) =>
-      currentLists.map((list) =>
-        list.id === listToRename.id ? { ...list, name: newName } : list,
-      ),
-    );
+    try {
+      if (editingId) {
+        workspaceService.update(editingId, { name, description });
+      } else {
+        workspaceService.create({ name, description });
+      }
 
-    setListToRename(null);
-    setListNameDraft("");
-    setListNameError("");
+      loadWorkspaces();
+      closeModal();
+    } catch {
+      setError("Unable to save Workspace. Please try again.");
+    }
   };
 
-  const handleDeleteList = () => {
-    if (!listToDelete) {
-      return;
+  const handleDelete = (workspace) => {
+    const confirmed = window.confirm(
+      `Delete Workspace "${workspace.name}"?`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      workspaceService.delete(workspace.id);
+      loadWorkspaces();
+    } catch {
+      setError("Unable to delete Workspace.");
     }
-
-    const deletedListId = listToDelete.id;
-
-    setLists((currentLists) =>
-      currentLists.filter((list) => list.id !== deletedListId),
-    );
-
-    setCards((currentCards) =>
-      currentCards.filter((card) => card.listId !== deletedListId),
-    );
-
-    setListToDelete(null);
   };
 
   return (
-    <main className="workspace-page">
-      <div className="workspace-topbar">
-        <input
-          className="workspace-name-input"
-          type="text"
-          aria-label="Tên workspace"
-          value={workspaceName}
-          onChange={(event) => setWorkspaceName(event.target.value)}
-          onBlur={() =>
-            setWorkspaceName((name) => name.trim() || "Workspace Trên lớp")
-          }
-          placeholder="Nhập tên workspace"
-          maxLength={60}
-        />
+    <Container className="py-5">
+      <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+          <h2 className="fw-bold">My Workspaces</h2>
+          <p className="text-secondary mb-0">
+            Manage your workspaces in TaskFlow.
+          </p>
+        </div>
+
+        <Button onClick={openCreate}>+ Create Workspace</Button>
       </div>
 
-      <div className="workspace-board">
-        {lists.map((list) => {
-          const listCards = cards.filter((card) => card.listId === list.id);
-          const isMenuOpen = openListMenuId === list.id;
+      {error && (
+        <Alert variant="danger" dismissible onClose={() => setError("")}>
+          {error}
+        </Alert>
+      )}
 
-          return (
-            <section className="workspace-list" key={list.id}>
-              <div className="workspace-list-heading">
-                <h2>{list.name}</h2>
-                <span className="workspace-card-count">{listCards.length}</span>
+      <Form.Control
+        className="mb-4"
+        style={{ maxWidth: 420 }}
+        placeholder="Search workspaces..."
+        value={search}
+        onChange={(event) => setSearch(event.target.value)}
+      />
 
-                <div className="workspace-list-menu-wrap">
-                  <button
-                    className="workspace-list-menu"
-                    type="button"
-                    aria-label={`Tùy chọn danh sách ${list.name}`}
-                    aria-expanded={isMenuOpen}
-                    title="Tùy chọn danh sách"
-                    onClick={() =>
-                      setOpenListMenuId((currentId) =>
-                        currentId === list.id ? null : list.id,
-                      )
-                    }
-                  >
-                    ⋯
-                  </button>
-
-                  {isMenuOpen && (
-                    <div className="workspace-list-dropdown">
-                      <button
-                        type="button"
-                        onClick={() => openRenameList(list)}
-                      >
-                        Đổi tên danh sách
-                      </button>
-                      <button
-                        className="workspace-delete-list-option"
-                        type="button"
-                        onClick={() => {
-                          setListToDelete(list);
-                          setOpenListMenuId(null);
-                        }}
-                      >
-                        Xóa danh sách
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="workspace-list-cards">
-                {listCards.map((card) => (
-                  <article className="workspace-card" key={card.id}>
-                    <p>{card.content}</p>
-
-                    <div className="workspace-card-actions">
-                      <button
-                        type="button"
-                        onClick={() => openEditCard(card)}
-                        aria-label={`Sửa thẻ ${card.content}`}
-                        title="Sửa thẻ"
-                      >
-                        ✎
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setCardToDelete(card)}
-                        aria-label={`Xóa thẻ ${card.content}`}
-                        title="Xóa thẻ"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  </article>
-                ))}
-              </div>
-
-              <button
-                className="workspace-add-card"
-                type="button"
-                onClick={() => openCreateCard(list.id)}
-              >
-                <span aria-hidden="true">＋</span> Thêm thẻ
-              </button>
-            </section>
-          );
-        })}
-
-        <div className="workspace-add-list-area">
-          {showListForm ? (
-            <Form className="workspace-add-list-form" onSubmit={handleAddList}>
-              <Form.Control
-                autoFocus
-                value={newListName}
-                onChange={(event) => setNewListName(event.target.value)}
-                placeholder="Nhập tên danh sách"
-                aria-label="Tên danh sách mới"
-              />
-
-              <div className="workspace-add-list-actions">
-                <Button type="submit" size="sm">
-                  Thêm danh sách
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline-secondary"
-                  size="sm"
-                  onClick={() => {
-                    setShowListForm(false);
-                    setNewListName("");
-                  }}
-                >
-                  Hủy
-                </Button>
-              </div>
-            </Form>
-          ) : (
-            <button
-              className="workspace-add-list-button"
-              type="button"
-              onClick={() => setShowListForm(true)}
-            >
-              <span aria-hidden="true">＋</span> Thêm danh sách khác
-            </button>
+      {filteredWorkspaces.length === 0 ? (
+        <div className="border rounded-4 text-center p-5">
+          <h5>{search ? "No matching workspaces" : "No workspaces yet"}</h5>
+          <p className="text-secondary">
+            {search
+              ? "Try another search keyword."
+              : "Create your first Workspace to get started."}
+          </p>
+          {!search && (
+            <Button onClick={openCreate}>Create Workspace</Button>
           )}
         </div>
-      </div>
+      ) : (
+        <Row className="g-4">
+          {filteredWorkspaces.map((workspace) => (
+            <Col key={workspace.id} xs={12} md={6} xl={4}>
+              <Card className="h-100 shadow-sm">
+                <Card.Body className="d-flex flex-column">
+                  <Card.Title className="fw-bold">
+                    {workspace.name}
+                  </Card.Title>
 
-      <Modal show={showCardModal} onHide={closeCardModal} centered>
-        <Form onSubmit={handleSaveCard}>
+                  <Card.Text className="text-secondary flex-grow-1">
+                    {workspace.description || "No description provided."}
+                  </Card.Text>
+
+                  <small className="text-secondary mb-3">
+                    Created{" "}
+                    {new Date(workspace.createdAt).toLocaleDateString()}
+                  </small>
+
+                  <div className="d-flex flex-wrap gap-2">
+                    <Button
+                      className="flex-grow-1"
+                      onClick={() =>
+                        navigate(`/workspace/${workspace.id}`)
+                      }
+                    >
+                      Open Workspace
+                    </Button>
+
+                    <Button
+                      variant="outline-primary"
+                      onClick={() => openEdit(workspace)}
+                    >
+                      Edit
+                    </Button>
+
+                    <Button
+                      variant="outline-danger"
+                      onClick={() => handleDelete(workspace)}
+                    >
+                      Delete
+                    </Button>
+                  </div>
+                </Card.Body>
+              </Card>
+            </Col>
+          ))}
+        </Row>
+      )}
+
+      <Modal show={showModal} onHide={closeModal} centered>
+        <Form onSubmit={handleSubmit}>
           <Modal.Header closeButton>
             <Modal.Title>
-              {editingCard ? "Sửa thẻ" : "Thêm thẻ"}
+              {editingId ? "Update Workspace" : "Create Workspace"}
             </Modal.Title>
           </Modal.Header>
 
           <Modal.Body>
-            <Form.Group className="mb-3" controlId="card-content">
-              <Form.Label>Nội dung thẻ</Form.Label>
+            {error && <Alert variant="danger">{error}</Alert>}
+
+            <Form.Group className="mb-3">
+              <Form.Label>Workspace name *</Form.Label>
+              <Form.Control
+                required
+                maxLength={100}
+                value={form.name}
+                placeholder="Enter workspace name"
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    name: event.target.value,
+                  }))
+                }
+              />
+            </Form.Group>
+
+            <Form.Group>
+              <Form.Label>Description</Form.Label>
               <Form.Control
                 as="textarea"
-                rows={4}
-                name="content"
-                value={formData.content}
-                onChange={handleCardFormChange}
-                placeholder="Nhập nội dung thẻ"
-                autoFocus
+                rows={3}
+                maxLength={500}
+                value={form.description}
+                placeholder="Enter description"
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    description: event.target.value,
+                  }))
+                }
               />
             </Form.Group>
-
-            <Form.Group controlId="card-list">
-              <Form.Label>Danh sách</Form.Label>
-              <Form.Select
-                name="listId"
-                value={formData.listId}
-                onChange={handleCardFormChange}
-              >
-                {lists.map((list) => (
-                  <option key={list.id} value={list.id}>
-                    {list.name}
-                  </option>
-                ))}
-              </Form.Select>
-            </Form.Group>
-
-            {formError && (
-              <p className="workspace-form-error" role="alert">
-                {formError}
-              </p>
-            )}
           </Modal.Body>
 
           <Modal.Footer>
-            <Button
-              type="button"
-              variant="outline-secondary"
-              onClick={closeCardModal}
-            >
-              Hủy
+            <Button variant="secondary" onClick={closeModal}>
+              Cancel
             </Button>
-            <Button type="submit" variant="secondary">
-              {editingCard ? "Lưu thay đổi" : "Thêm thẻ"}
+            <Button type="submit">
+              {editingId ? "Save changes" : "Create"}
             </Button>
           </Modal.Footer>
         </Form>
       </Modal>
-
-      <Modal
-        show={Boolean(cardToDelete)}
-        onHide={() => setCardToDelete(null)}
-        centered
-      >
-        <Modal.Header closeButton>
-          <Modal.Title>Xóa thẻ?</Modal.Title>
-        </Modal.Header>
-
-        <Modal.Body>
-          Bạn có chắc muốn xóa thẻ “{cardToDelete?.content}” không?
-        </Modal.Body>
-
-        <Modal.Footer>
-          <Button
-            variant="outline-secondary"
-            onClick={() => setCardToDelete(null)}
-          >
-            Hủy
-          </Button>
-          <Button variant="danger" onClick={handleDeleteCard}>
-            Xóa thẻ
-          </Button>
-        </Modal.Footer>
-      </Modal>
-
-      <Modal
-        show={Boolean(listToRename)}
-        onHide={() => {
-          setListToRename(null);
-          setListNameError("");
-        }}
-        centered
-      >
-        <Form onSubmit={handleRenameList}>
-          <Modal.Header closeButton>
-            <Modal.Title>Đổi tên danh sách</Modal.Title>
-          </Modal.Header>
-
-          <Modal.Body>
-            <Form.Group controlId="new-list-name">
-              <Form.Label>Tên mới</Form.Label>
-              <Form.Control
-                autoFocus
-                value={listNameDraft}
-                onChange={(event) => {
-                  setListNameDraft(event.target.value);
-                  setListNameError("");
-                }}
-                placeholder="Nhập tên danh sách mới"
-                maxLength={60}
-              />
-            </Form.Group>
-
-            {listNameError && (
-              <p className="workspace-form-error" role="alert">
-                {listNameError}
-              </p>
-            )}
-          </Modal.Body>
-
-          <Modal.Footer>
-            <Button
-              type="button"
-              variant="outline-secondary"
-              onClick={() => {
-                setListToRename(null);
-                setListNameError("");
-              }}
-            >
-              Hủy
-            </Button>
-            <Button type="submit" variant="secondary">
-              Lưu tên
-            </Button>
-          </Modal.Footer>
-        </Form>
-      </Modal>
-
-      <Modal
-        show={Boolean(listToDelete)}
-        onHide={() => setListToDelete(null)}
-        centered
-      >
-        <Modal.Header closeButton>
-          <Modal.Title>Xóa danh sách?</Modal.Title>
-        </Modal.Header>
-
-        <Modal.Body>
-          Danh sách “{listToDelete?.name}” có{" "}
-          {cards.filter((card) => card.listId === listToDelete?.id).length} thẻ.
-          Xóa danh sách cũng sẽ xóa các thẻ bên trong.
-        </Modal.Body>
-
-        <Modal.Footer>
-          <Button
-            variant="outline-secondary"
-            onClick={() => setListToDelete(null)}
-          >
-            Hủy
-          </Button>
-          <Button variant="danger" onClick={handleDeleteList}>
-            Xóa danh sách
-          </Button>
-        </Modal.Footer>
-      </Modal>
-    </main>
+    </Container>
   );
 }
 
