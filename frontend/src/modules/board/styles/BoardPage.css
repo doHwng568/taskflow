@@ -170,6 +170,12 @@
   color: #dedede;
 }
 
+.board-column.is-drop-target {
+  outline: 2px dashed #579dff;
+  outline-offset: 2px;
+  background-color: rgb(87 157 255 / 14%);
+}
+
 .board-column-heading {
   display: flex;
   min-width: 0;
@@ -471,6 +477,819 @@
   font-weight: 600 !important;
 }
 
+.board-column-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 7px 1px 2px;
+}
+
+.board-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  width: 100%;
+  gap: 8px;
+  padding: 10px 11px;
+  border: 1px solid #dfe3e8;
+  border-radius: 9px;
+  color: #172b4d !important;
+  cursor: pointer;
+  text-align: left;
+  box-shadow: 0 1px 2px rgb(9 30 66 / 18%);
+  transition: box-shadow 120ms ease, transform 120ms ease;
+  cursor: grab;
+}
+
+.board-card.is-dragging {
+  opacity: 0.45;
+  cursor: grabbing;
+  transform: rotate(1deg);
+}
+
+.board-card:hover {
+  filter: brightness(0.99);
+  box-shadow: 0 3px 7px rgb(9 30 66 / 20%);
+  transform: translateY(-1px);
+}
+
+.board-card:focus-visible {
+  outline: 2px solid #388bff;
+  outline-offset: 1px;
+}
+
+.board-card-main:focus-visible {
+  outline: 2px solid #388bff;
+  outline-offset: 1px;
+}
+
+.board-card-topline {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+}
+
+.board-card-main {
+  display: flex;
+  flex: 1;
+  width: auto;
+  min-width: 0;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 0 23px 0 0;
+  border: 0;
+  background: transparent;
+  color: #172b4d !important;
+  cursor: pointer;
+  text-align: left;
+}
+
+.board-card-check {
+  display: grid;
+  box-sizing: border-box;
+  flex: 0 0 20px;
+  width: 20px;
+  height: 20px;
+  margin-top: 0;
+  place-items: center;
+  padding: 0;
+  border: 2px solid #7a869a;
+  border-radius: 50%;
+  background: #fff;
+  cursor: pointer;
+  transition: border-color 120ms ease, background-color 120ms ease, box-shadow 120ms ease;
+}
+
+.board-card-check:hover {
+  border-color: #61bd4f;
+  background: #f5fff2;
+}
+
+.board-card-check.is-complete {
+  border-color: #61bd4f;
+  background: #61bd4f;
+}
+
+.board-card-check.is-complete::after,
+.card-detail-check.is-complete::after {
+  width: 5px;
+  height: 9px;
+  border-right: 2px solid #fff;
+  border-bottom: 2px solid #fff;
+  content: "";
+  transform: translateY(-1px) rotate(45deg);
+}
+
+.board-card-main.is-complete .board-card-title {
+  color: #626f86 !important;
+}
+
+.board-card-title {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.board-card-edit {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  display: grid;
+  flex: 0 0 25px;
+  width: 25px;
+  height: 25px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: rgb(255 255 255 / 86%);
+  color: #44546f !important;
+  cursor: pointer;
+  font-size: 16px;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.board-card:hover .board-card-edit,
+.board-card:focus-visible .board-card-edit {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .board-card-edit {
+    opacity: 1;
+  }
+}
+
+.board-card-details {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 9px;
+  padding-left: 23px;
+  color: #626f86;
+  font-size: 11px;
+}
+
+.board-card-labels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding-left: 23px;
+}
+
+.board-card-label {
+  width: 40px;
+  height: 8px;
+  border-radius: 4px;
+}
+
+.board-add-card-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 5px 1px 2px;
+}
+
+.board-add-card-input {
+  box-sizing: border-box;
+  width: 100%;
+  height: 64px;
+  min-height: 64px;
+  max-height: 64px;
+  padding: 10px 12px;
+  border: 1px solid #dfe3e8;
+  border-radius: 10px;
+  outline: none;
+  background: #fff;
+  color: #172b4d;
+  box-shadow: 0 1px 2px rgb(9 30 66 / 18%);
+  font: inherit;
+  font-size: 15px;
+  line-height: 1.4;
+  resize: none;
+  overflow-y: auto;
+}
+
+.board-add-card-input::placeholder {
+  color: #626f86;
+}
+
+.board-add-card-input:focus {
+  border-color: #388bff;
+  box-shadow: 0 0 0 2px rgb(56 139 255 / 22%);
+}
+
+.board-add-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.board-add-card-submit,
+.board-add-card-cancel {
+  min-height: 34px;
+  padding: 6px 13px;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 14px;
+}
+
+.board-add-card-submit {
+  background: #0c66e4;
+  color: #fff !important;
+  font-weight: 600;
+}
+
+.board-add-card-submit:hover {
+  background: #0055cc;
+}
+
+.board-add-card-cancel {
+  display: grid;
+  width: 34px;
+  padding: 0;
+  place-items: center;
+  background: transparent;
+  color: #44546f !important;
+  font-size: 22px;
+}
+
+.board-add-card-cancel:hover {
+  background: rgb(255 255 255 / 16%);
+}
+
+.card-modal-backdrop {
+  position: fixed;
+  z-index: 20;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgb(0 0 0 / 58%);
+}
+
+.card-modal {
+  box-sizing: border-box;
+  width: min(100%, 500px);
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  padding: 18px;
+  border: 1px solid #d8dce0;
+  border-radius: 12px;
+  background: #fff;
+  color: #202124;
+  box-shadow: 0 12px 36px rgb(0 0 0 / 35%);
+}
+
+.card-modal-quick {
+  width: min(90vw, 660px);
+  max-height: none;
+  overflow: visible;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.card-quick-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 330px) minmax(150px, 1fr);
+  align-items: start;
+  gap: 10px;
+}
+
+.card-quick-editor {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 9px;
+}
+
+.card-quick-title-input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 96px;
+  padding: 12px;
+  border: 2px solid #388bff;
+  border-radius: 10px;
+  outline: none;
+  background: #fff;
+  color: #172b4d;
+  box-shadow: 0 8px 20px rgb(0 0 0 / 28%);
+  font: inherit;
+  font-size: 14px;
+  resize: vertical;
+}
+
+.card-quick-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 7px;
+  padding-top: 2px;
+}
+
+.card-quick-actions button,
+.card-detail-shortcuts > .card-popover-anchor > button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 7px 12px;
+  border: 1px solid #dfe3e8;
+  border-radius: 7px;
+  background: #fff;
+  color: #172b4d !important;
+  box-shadow: 0 2px 5px rgb(0 0 0 / 18%);
+  cursor: pointer;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.card-quick-actions button:hover,
+.card-detail-shortcuts > .card-popover-anchor > button:hover {
+  background: #f1f2f4;
+}
+
+.card-modal-back {
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: #44546f !important;
+  cursor: pointer;
+  font-size: 24px;
+}
+
+.card-modal-body {
+  color: #172b4d;
+}
+
+.card-detail-shortcuts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 15px;
+}
+
+.card-label-search {
+  margin-bottom: 8px;
+}
+
+.card-label-list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.card-label-row {
+  display: flex;
+  min-height: 36px;
+  align-items: center;
+  gap: 10px;
+}
+
+.card-label-row input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: #0c66e4;
+}
+
+.card-label-swatch {
+  flex: 1;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: 6px;
+  color: #172b4d;
+  line-height: 36px;
+}
+
+.card-label-edit {
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: #44546f !important;
+  cursor: pointer;
+  font-size: 17px;
+}
+
+.card-label-color-input {
+  width: 32px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.card-modal.card-modal-details {
+  width: min(92vw, 920px);
+  max-height: none;
+  overflow: visible;
+}
+
+.card-detail-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.9fr);
+  min-height: 340px;
+}
+
+.card-detail-main {
+  display: flex;
+  flex-direction: column;
+  padding: 4px 24px 0 4px;
+}
+
+.card-detail-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.card-detail-check {
+  display: grid;
+  box-sizing: border-box;
+  flex: 0 0 22px;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+  padding: 0;
+  border: 2px solid #7a869a;
+  border-radius: 50%;
+  background: #fff;
+  cursor: pointer;
+  transition: border-color 120ms ease, background-color 120ms ease, box-shadow 120ms ease;
+}
+
+.card-detail-check:hover {
+  border-color: #61bd4f;
+  box-shadow: 0 0 0 2px rgb(97 189 79 / 16%);
+}
+
+.card-detail-check.is-complete {
+  border-color: #61bd4f;
+  background: #61bd4f;
+}
+
+.card-detail-check:focus-visible {
+  outline: 2px solid #388bff;
+  outline-offset: 2px;
+}
+
+.card-detail-title-input {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: #172b4d;
+  font: inherit;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.card-detail-main .card-detail-shortcuts {
+  margin: 18px 0 26px 30px;
+}
+
+.card-popover-anchor {
+  position: relative;
+}
+
+.card-editor-popover {
+  position: fixed;
+  z-index: 30;
+  top: 12vh;
+  left: 50%;
+  box-sizing: border-box;
+  width: 360px;
+  max-width: calc(100vw - 36px);
+  max-height: min(64vh, 460px);
+  overflow-y: auto;
+  transform: translateX(-50%);
+  padding: 12px;
+  border: 1px solid #dfe3e8;
+  border-radius: 10px;
+  background: #fff;
+  color: #172b4d;
+  box-shadow: 0 8px 24px rgb(9 30 66 / 24%);
+}
+
+.card-editor-popover-header {
+  position: sticky;
+  top: -12px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  margin: -12px -12px 12px;
+  padding: 6px 12px;
+  border-bottom: 1px solid #dfe3e8;
+  background: #fff;
+}
+
+.card-editor-popover-header h3 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.card-editor-popover-header button {
+  position: absolute;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: #44546f !important;
+  box-shadow: none;
+  cursor: pointer;
+  font-size: 19px;
+  white-space: normal;
+}
+
+.card-editor-popover .card-label-search {
+  margin-bottom: 6px;
+}
+
+.card-editor-popover .card-modal-label {
+  margin: 8px 0;
+}
+
+.card-date-popover {
+  width: 320px;
+}
+
+.card-date-popover .card-modal-input {
+  margin-bottom: 8px;
+}
+
+.card-date-clear {
+  padding: 5px 0;
+  border: 0;
+  background: transparent;
+  color: #44546f !important;
+  cursor: pointer;
+  font: inherit;
+}
+
+.card-popover-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid #dfe3e8;
+}
+
+.card-detail-main > .card-modal-label {
+  margin: 0 0 8px 30px;
+  font-size: 15px;
+}
+
+.card-description-input {
+  min-height: 78px;
+  width: calc(100% - 30px);
+  margin-left: 30px;
+  resize: vertical;
+}
+
+.card-activity-panel {
+  min-width: 0;
+  padding: 18px;
+  border-left: 1px solid #dfe3e8;
+  background: #f4f5f7;
+}
+
+.card-activity-panel h3 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 2px 0 18px;
+  color: #172b4d;
+  font-size: 16px;
+}
+
+.card-comment-form {
+  display: flex;
+  gap: 8px;
+}
+
+.card-comment-form input {
+  box-sizing: border-box;
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  padding: 0 12px;
+  border: 1px solid #c8ccd0;
+  border-radius: 9px;
+  outline: none;
+  background: #fff;
+  color: #172b4d;
+  font: inherit;
+  font-size: 14px;
+}
+
+.card-comment-form input:focus {
+  border-color: #388bff;
+  box-shadow: 0 0 0 2px rgb(56 139 255 / 18%);
+}
+
+.card-comment-form button {
+  padding: 0 12px;
+  border: 0;
+  border-radius: 7px;
+  background: #0c66e4;
+  color: #fff !important;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+}
+
+.card-comment-form button:disabled {
+  background: #dfe3e8;
+  color: #7a869a !important;
+  cursor: default;
+}
+
+.card-comment-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.card-comment-empty {
+  margin: 0;
+  color: #626f86;
+  font-size: 13px;
+}
+
+.card-comment {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.card-comment-avatar {
+  display: grid;
+  flex: 0 0 34px;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border-radius: 50%;
+  background: #5e4db2;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.card-comment-content {
+  min-width: 0;
+  color: #172b4d;
+  font-size: 14px;
+}
+
+.card-comment-content strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.card-comment-content p {
+  margin: 0 0 4px;
+  overflow-wrap: anywhere;
+}
+
+.card-comment-content time {
+  color: #626f86;
+  font-size: 12px;
+}
+
+.card-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.card-modal-header h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.card-modal-close {
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: #444 !important;
+  cursor: pointer;
+}
+
+.card-modal-label {
+  display: block;
+  margin: 12px 0 6px;
+  color: #41464b;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.card-modal-input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 9px 10px;
+  border: 1px solid #c8ccd0;
+  border-radius: 6px;
+  background: #fff;
+  color: #202124;
+  font: inherit;
+  font-size: 14px;
+}
+
+.card-modal-input:focus {
+  border-color: #579dff;
+  outline: 2px solid rgb(87 157 255 / 20%);
+}
+
+.card-color-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+
+.card-color-option {
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgb(0 0 0 / 20%);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.card-color-option.is-selected {
+  outline: 3px solid #0c66e4;
+  outline-offset: 2px;
+}
+
+.card-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 7px;
+  margin-top: 20px;
+}
+
+.card-modal-footer-right {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-left: auto;
+}
+
+.card-save-button,
+.card-cancel-button,
+.card-delete-button {
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 5px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+}
+
+.card-save-button {
+  background: #0c66e4;
+  color: #fff !important;
+  font-weight: 600;
+}
+
+.card-cancel-button {
+  background: transparent;
+  color: #444 !important;
+}
+
+.card-delete-button {
+  background: #fff0ef;
+  color: #b42318 !important;
+}
+
 @media (max-width: 600px) {
   .board-header {
     padding: 0 8px;
@@ -493,5 +1312,496 @@
     left: 10px;
     max-width: calc(100% - 20px);
     transform: none;
+  }
+
+  .card-modal.card-modal-quick {
+    width: min(94vw, 420px);
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .card-quick-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .card-quick-actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .card-quick-actions button {
+    min-height: 36px;
+    padding: 6px 9px;
+    font-size: 12px;
+  }
+
+  .board-add-card-form {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    padding: 4px 2px 2px;
+  }
+
+  .board-add-card-input {
+    box-sizing: border-box;
+    width: 100%;
+    height: 64px;
+    min-height: 64px;
+    max-height: 64px;
+    padding: 10px 12px;
+    border: 1px solid #dfe3e8;
+    border-radius: 10px;
+    outline: none;
+    background: #fff;
+    color: #172b4d;
+    font: inherit;
+    font-size: 14px;
+    line-height: 1.4;
+    resize: none;
+    overflow-y: auto;
+  }
+
+  .board-add-card-actions,
+  .card-modal-footer,
+  .card-modal-footer-right {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  .board-add-card-submit,
+  .board-add-card-cancel,
+  .card-save-button,
+  .card-cancel-button,
+  .card-delete-button {
+    padding: 7px 10px;
+    border: 0;
+    border-radius: 5px;
+    cursor: pointer;
+    font: inherit;
+    font-size: 12px;
+  }
+
+  .board-add-card-submit,
+  .card-save-button {
+    background: #0c66e4;
+    color: #fff !important;
+    font-weight: 600;
+  }
+
+  .board-add-card-cancel,
+  .card-cancel-button {
+    background: transparent;
+    color: #444 !important;
+  }
+
+  .card-modal-backdrop {
+    position: fixed;
+    z-index: 20;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 16px;
+    background: rgb(0 0 0 / 58%);
+  }
+
+  .card-modal {
+    box-sizing: border-box;
+    width: min(100%, 500px);
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+    padding: 18px;
+    border: 1px solid #d8dce0;
+    border-radius: 12px;
+    background: #fff;
+    color: #202124;
+    box-shadow: 0 12px 36px rgb(0 0 0 / 35%);
+  }
+
+  .card-modal.card-modal-details {
+    width: min(96vw, 920px);
+    max-height: calc(100vh - 32px);
+    overflow: visible;
+  }
+
+  .card-detail-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .card-detail-main {
+    padding: 4px 0 16px;
+  }
+
+  .card-detail-title-input {
+    font-size: 20px;
+  }
+
+  .card-activity-panel {
+    border-top: 1px solid #dfe3e8;
+    border-left: 0;
+    margin: 0 -18px -18px;
+    max-height: 35vh;
+    overflow-y: auto;
+  }
+
+  .card-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  .card-modal-header h2 {
+    margin: 0;
+    font-size: 18px;
+  }
+
+  .card-modal-close {
+    width: 30px;
+    height: 30px;
+    border: 0;
+    border-radius: 5px;
+    background: transparent;
+    color: #444 !important;
+    cursor: pointer;
+  }
+
+  .card-modal-label {
+    display: block;
+    margin: 12px 0 6px;
+    color: #41464b;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .card-modal-input {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 9px 10px;
+    border: 1px solid #c8ccd0;
+    border-radius: 6px;
+    background: #fff;
+    color: #202124;
+    font: inherit;
+    font-size: 14px;
+  }
+
+  .card-modal-input:focus {
+    border-color: #579dff;
+    outline: 2px solid rgb(87 157 255 / 20%);
+  }
+
+  .card-color-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px;
+  }
+
+  .card-color-option {
+    width: 34px;
+    height: 34px;
+    border: 1px solid rgb(0 0 0 / 20%);
+    border-radius: 8px;
+    cursor: pointer;
+  }
+
+  .card-color-option.is-selected {
+    outline: 3px solid #0c66e4;
+    outline-offset: 2px;
+  }
+
+  .card-modal-footer {
+    justify-content: space-between;
+    margin-top: 20px;
+  }
+
+  .card-modal-footer-right {
+    margin-left: auto;
+  }
+
+  .card-delete-button {
+    background: #fff0ef;
+    color: #b42318 !important;
+  }
+}
+
+.card-date-popover {
+  top: 50%;
+  display: flex;
+  width: 380px;
+  max-width: calc(100vw - 24px);
+  max-height: calc(100vh - 20px);
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0;
+  transform: translate(-50%, -50%);
+}
+
+.card-date-popover .card-editor-popover-header {
+  position: relative;
+  top: auto;
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 7px 12px;
+}
+
+.card-date-editor {
+  min-height: 0;
+  color: #172b4d;
+}
+
+.card-date-popover > .card-date-editor {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 12px;
+}
+
+.card-date-calendar {
+  padding-bottom: 14px;
+  border-bottom: 1px solid #dfe3e8;
+}
+
+.card-calendar-header {
+  display: grid;
+  grid-template-columns: 32px 32px minmax(0, 1fr) 32px 32px;
+  align-items: center;
+  gap: 2px;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.card-calendar-header strong {
+  color: #292e34;
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.card-calendar-header button {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #626f86 !important;
+  cursor: pointer;
+  font-size: 21px !important;
+}
+
+.card-calendar-header button:hover {
+  background: #f1f2f4;
+  color: #172b4d !important;
+}
+
+.card-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  align-items: center;
+  text-align: center;
+}
+
+.card-calendar-weekdays {
+  margin-bottom: 4px;
+  color: #626f86;
+  font-size: 11px;
+}
+
+.card-calendar-weekdays span {
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.card-calendar-days button {
+  display: grid;
+  width: 100%;
+  height: 36px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #292e34 !important;
+  cursor: pointer;
+  font-size: 14px !important;
+}
+
+.card-calendar-days button:hover {
+  background: #f1f2f4;
+}
+
+.card-calendar-days button.is-outside-month {
+  color: #8993a4 !important;
+}
+
+.card-calendar-days button.is-today:not(.is-selected) {
+  color: #0c66e4 !important;
+  font-weight: 700 !important;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.card-calendar-days button.is-selected {
+  background: #e9f2ff;
+  color: #0c66e4 !important;
+  font-weight: 700 !important;
+}
+
+.card-date-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 14px;
+}
+
+.card-date-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.card-date-field-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #41464b;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.card-date-field-title input {
+  width: 17px;
+  height: 17px;
+  margin: 0;
+  accent-color: #0c66e4;
+}
+
+.card-date-field-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 116px;
+  gap: 8px;
+  padding-left: 25px;
+}
+
+.card-date-field-controls .card-modal-input,
+.card-date-fields > .card-modal-input {
+  min-width: 0;
+  height: 42px;
+  margin: 0;
+  border-radius: 8px;
+  color: #292e34;
+  font-size: 14px;
+}
+
+.card-date-field-controls .card-modal-input:disabled {
+  border-color: #f1f2f4;
+  background: #f1f2f4;
+  color: #8993a4;
+}
+
+.card-date-select-label {
+  margin: 2px 0 -5px;
+  color: #41464b;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.card-date-reminder-note {
+  margin: 0;
+  color: #626f86;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.card-date-popover-footer {
+  flex: 0 0 auto;
+  justify-content: space-between;
+  margin: 0;
+  padding: 10px 12px;
+  border-top: 1px solid #dfe3e8;
+  background: #fff;
+}
+
+.card-date-remove {
+  min-height: 36px;
+  padding: 6px 10px;
+  border: 1px solid #dfe3e8;
+  border-radius: 7px;
+  background: #fff;
+  color: #44546f !important;
+  cursor: pointer;
+  font: inherit;
+}
+
+.card-date-remove:hover {
+  background: #f1f2f4;
+}
+
+.card-date-popover-footer .card-save-button {
+  min-height: 36px;
+  padding: 6px 15px;
+  border-radius: 7px;
+}
+
+.card-modal-date {
+  display: flex;
+  width: min(100%, 410px);
+  max-height: calc(100vh - 16px);
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0;
+}
+
+.card-modal-date > .card-modal-header {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 10px 14px;
+  border-bottom: 1px solid #dfe3e8;
+}
+
+.card-date-panel {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 12px;
+}
+
+.card-date-panel > .card-date-editor {
+  flex: 1 0 auto;
+}
+
+.card-date-panel .card-modal-footer {
+  position: sticky;
+  bottom: -12px;
+  flex: 0 0 auto;
+  margin: 10px -12px -12px;
+  padding: 10px 12px;
+  border-top: 1px solid #dfe3e8;
+  background: #fff;
+}
+
+@media (max-width: 420px) {
+  .card-date-field-controls {
+    grid-template-columns: minmax(0, 1fr) 100px;
+    gap: 6px;
+    padding-left: 22px;
+  }
+
+  .card-calendar-header {
+    grid-template-columns: 26px 26px minmax(0, 1fr) 26px 26px;
+  }
+
+  .card-calendar-header button {
+    width: 26px;
+  }
+
+  .card-calendar-weekdays {
+    font-size: 10px;
   }
 }
