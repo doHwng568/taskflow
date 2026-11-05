@@ -1,7 +1,10 @@
 package com.example.taskflow.modules.card.Repositories;
 
+import com.example.taskflow.entity.Area;
 import com.example.taskflow.entity.Card;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -24,4 +27,9 @@ public interface CardRepository extends JpaRepository<Card, Long> {
     // cho card mới hoặc card vừa được move vào
     // Trả Optional<Double> để xử lý trường hợp area rỗng (sẽ dùng 0.0 làm mặc định)
     Optional<Double> findTopByArea_IdOrderByPositionDesc(Long areaId);
+
+
+
+
+
 }

@@ -2,6 +2,8 @@ package com.example.taskflow.modules.area.Repositories;
 
 import com.example.taskflow.entity.Area;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -17,5 +19,15 @@ public interface AreaRepository extends JpaRepository<Area, Long> {
     // Area.workspace là @ManyToOne → Workspace.id là field ID của workspace
     // Spring Data JPA suy ra: SELECT a FROM Area a WHERE a.workspace.id =
     // :workspaceId ORDER BY a.position ASC
+
     List<Area> findByWorkspace_IdOrderByPositionAsc(Long workspaceId);
+    @Query("""
+            select distinct a from Area a
+            left join fetch a.cardList
+            where a.workspace.id = :workspaceId and a.archived = false
+            order by a.position asc
+            """)
+    List<Area> findActiveWithCards(@Param("workspaceId") Long workspaceId);
+
+
 }

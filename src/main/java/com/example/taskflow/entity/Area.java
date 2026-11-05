@@ -22,6 +22,8 @@ public class Area {
 
     private Double position;
 
+    private boolean archived = false;
+
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;
@@ -30,6 +32,7 @@ public class Area {
     @JoinColumn(name = "workspace_id")
     private Workspace workspace;
 
+    @OrderBy("position ASC")
     @OneToMany(mappedBy = "area")
     private List<Card> cardList = new ArrayList<>();
 
