@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import BoardHeader from '../components/BoardHeader';
 import BoardColumn from '../components/BoardColumn';
-import CardDetailModal from '../components/CardDetailModal';
+import CardDetailModal from '../../card/components/CardDetailModal';
+import cardApi from '../../card/api/cardApi';
 import '../styles/BoardPage.css';
 
 export default function BoardPage() {
@@ -30,6 +31,8 @@ export default function BoardPage() {
         cards: [],
       },
     ]);
+    setNewListTitle('');
+    setIsAddingList(false);
   };
 
   const handleUpdateListTitle = (columnId, newTitle) => {
@@ -46,12 +49,46 @@ export default function BoardPage() {
     );
   };
 
-  //----Card-----
-  const handleCreateCard = (columnId, title) => {
+  const handleMoveColumn = (sourceColumnId, targetColumnId) => {
+    if (!sourceColumnId || !targetColumnId || sourceColumnId === targetColumnId) {
+      return;
+    }
+
+    setColumns((currentColumns) => {
+      const sourceIndex = currentColumns.findIndex((col) => col.id === sourceColumnId);
+      const targetIndex = currentColumns.findIndex((col) => col.id === targetColumnId);
+      if (sourceIndex === -1 || targetIndex === -1) return currentColumns;
+
+      const updatedColumns = [...currentColumns];
+      const [movedColumn] = updatedColumns.splice(sourceIndex, 1);
+      updatedColumns.splice(targetIndex, 0, movedColumn);
+      return updatedColumns;
+    });
+  };
+
+  //----Card (API + UI update)-----
+  const parseNumericId = (rawId) => {
+    const num = Number(String(rawId).replace(/\D/g, ''));
+    return Number.isFinite(num) && num > 0 ? num : null;
+  };
+
+  const handleCreateCard = async (columnId, title) => {
+    let createdFromServer = null;
+    try {
+      const res = await cardApi.createCardApi({
+        title,
+        content: '',
+        areaId: parseNumericId(columnId),
+      });
+      createdFromServer = res?.data?.data;
+    } catch {
+      // Fallback khi server chưa kết nối DB
+    }
+
     const newCard = {
-      id: `card-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      title,
-      description: '',
+      id: createdFromServer?.id ?? `card-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      title: createdFromServer?.title ?? title,
+      description: createdFromServer?.content ?? '',
       dueDate: '',
       color: '#ffffff',
     };
@@ -65,13 +102,41 @@ export default function BoardPage() {
     );
   };
 
-  const handleMoveCard = (sourceColumnId, targetColumnId, cardId) => {
-    if (sourceColumnId === targetColumnId) return;
+  const handleMoveCard = async (sourceColumnId, targetColumnId, cardId, targetCardId = null) => {
+    if (sourceColumnId === targetColumnId && (!targetCardId || cardId === targetCardId)) {
+      return;
+    }
+
+    const numericCardId = parseNumericId(cardId);
+    const numericTargetAreaId = parseNumericId(targetColumnId);
+    if (numericCardId && numericTargetAreaId) {
+      try {
+        await cardApi.moveCardApi(numericCardId, {
+          targetAreaId: numericTargetAreaId,
+        });
+      } catch {
+        // Fallback khi server chưa kết nối DB
+      }
+    }
 
     setColumns((currentColumns) => {
       const sourceColumn = currentColumns.find((column) => column.id === sourceColumnId);
       const movedCard = sourceColumn?.cards?.find((card) => card.id === cardId);
       if (!movedCard) return currentColumns;
+
+      if (sourceColumnId === targetColumnId) {
+        return currentColumns.map((column) => {
+          if (column.id !== sourceColumnId) return column;
+          const remainingCards = column.cards.filter((card) => card.id !== cardId);
+          const targetIndex = remainingCards.findIndex((card) => card.id === targetCardId);
+          if (targetIndex === -1) {
+            return { ...column, cards: [...remainingCards, movedCard] };
+          }
+          const updatedCards = [...remainingCards];
+          updatedCards.splice(targetIndex, 0, movedCard);
+          return { ...column, cards: updatedCards };
+        });
+      }
 
       return currentColumns.map((column) => {
         if (column.id === sourceColumnId) {
@@ -81,9 +146,18 @@ export default function BoardPage() {
           };
         }
         if (column.id === targetColumnId) {
+          const existingCards = column.cards || [];
+          if (targetCardId) {
+            const targetIndex = existingCards.findIndex((card) => card.id === targetCardId);
+            if (targetIndex !== -1) {
+              const updatedCards = [...existingCards];
+              updatedCards.splice(targetIndex, 0, movedCard);
+              return { ...column, cards: updatedCards };
+            }
+          }
           return {
             ...column,
-            cards: [...(column.cards || []), movedCard],
+            cards: [...existingCards, movedCard],
           };
         }
         return column;
@@ -99,7 +173,28 @@ export default function BoardPage() {
     setSelectedCard({ columnId, card, view: 'quick' });
   };
 
-  const handleSaveCard = (updatedCard) => {
+  const syncCardUpdateToBackend = async (updatedCard) => {
+    const numericCardId = parseNumericId(updatedCard.id);
+    if (!numericCardId) return;
+
+    const dueDateIso = updatedCard.dueDate
+      ? `${updatedCard.dueDate}T${updatedCard.dueTime || '17:00'}:00`
+      : null;
+
+    try {
+      await cardApi.updateCardApi(numericCardId, {
+        title: updatedCard.title,
+        content: updatedCard.description || '',
+        dueDate: dueDateIso,
+      });
+    } catch {
+      // Fallback khi server chưa kết nối DB
+    }
+  };
+
+  const handleSaveCard = async (updatedCard) => {
+    await syncCardUpdateToBackend(updatedCard);
+
     setColumns((currentColumns) =>
       currentColumns.map((column) =>
         column.id === selectedCard.columnId
@@ -116,8 +211,10 @@ export default function BoardPage() {
     setSelectedCard(null);
   };
 
-  const handleUpdateCard = (updatedCard) => {
+  const handleUpdateCard = async (updatedCard) => {
     if (!selectedCard) return;
+
+    await syncCardUpdateToBackend(updatedCard);
 
     setColumns((currentColumns) =>
       currentColumns.map((column) =>
@@ -151,8 +248,17 @@ export default function BoardPage() {
     );
   };
 
-  const handleDeleteCard = () => {
+  const handleDeleteCard = async () => {
     if (!selectedCard) return;
+
+    const numericCardId = parseNumericId(selectedCard.card.id);
+    if (numericCardId) {
+      try {
+        await cardApi.deleteCardApi(numericCardId);
+      } catch {
+        // Fallback khi server chưa kết nối DB
+      }
+    }
 
     setColumns((currentColumns) =>
       currentColumns.map((column) =>
@@ -184,6 +290,7 @@ export default function BoardPage() {
             column={col}
             onUpdateTitle={handleUpdateListTitle}
             onDeleteList={handleDeleteList}
+            onMoveColumn={handleMoveColumn}
             onCreateCard={handleCreateCard}
             onOpenCard={handleOpenCard}
             onEditCard={handleEditCard}

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import '../styles/Card.css';
 
 const getLocalDateString = (date = new Date()) => {
   const year = date.getFullYear();
@@ -16,6 +17,52 @@ const formatDateForDisplay = (dateString) => {
   if (!dateString) return '';
   const [year, month, day] = dateString.split('-');
   return `${day}/${month}/${year}`;
+};
+
+const formatShortDateVi = (dateString) => {
+  if (!dateString) return '';
+  const [year, month, day] = dateString.split('-');
+  const currentYear = new Date().getFullYear();
+  const base = `${Number(day)} thg ${Number(month)}`;
+  return Number(year) !== currentYear ? `${base}, ${year}` : base;
+};
+
+const getDueStatus = ({ dueDate, dueTime, dueEnabled, completed }) => {
+  if (!dueEnabled || !dueDate) return null;
+  if (completed) {
+    return { label: 'Hoàn tất', className: 'is-complete' };
+  }
+  const target = new Date(`${dueDate}T${dueTime || '23:59'}:00`);
+  const diffMs = target.getTime() - Date.now();
+  if (diffMs < 0) {
+    return { label: 'Quá hạn', className: 'is-overdue' };
+  }
+  if (diffMs <= 48 * 60 * 60 * 1000) {
+    return { label: 'Sắp hết hạn', className: 'is-due-soon' };
+  }
+  return null;
+};
+
+const formatCardDateSummary = ({
+  startDate,
+  startTime,
+  startEnabled,
+  dueDate,
+  dueTime,
+  dueEnabled,
+}) => {
+  const hasStart = startEnabled && Boolean(startDate);
+  const hasDue = dueEnabled && Boolean(dueDate);
+  if (hasStart && hasDue) {
+    return `${formatShortDateVi(startDate)} - ${dueTime || '17:00'} ${formatShortDateVi(dueDate)}`;
+  }
+  if (hasDue) {
+    return `${dueTime || '17:00'} ${formatShortDateVi(dueDate)}`;
+  }
+  if (hasStart) {
+    return `Bắt đầu: ${startTime || '09:00'} ${formatShortDateVi(startDate)}`;
+  }
+  return '';
 };
 
 const makeCalendarDays = (month) => {
@@ -64,9 +111,10 @@ function CardDateEditor({
   };
   const selectCalendarDate = (date) => {
     const value = getLocalDateString(date);
-    if (calendarTarget === 'start') {
+    if (calendarTarget === 'start' || (!startEnabled && !dueEnabled)) {
       setStartDate(value);
       setStartEnabled(true);
+      setCalendarTarget('due');
     } else {
       setDueDate(value);
       setDueEnabled(true);
@@ -77,10 +125,12 @@ function CardDateEditor({
       setStartEnabled(enabled);
       if (enabled && !startDate) setStartDate(today);
       if (!enabled) setStartDate('');
+      setCalendarTarget(enabled ? 'start' : 'due');
     } else {
       setDueEnabled(enabled);
-      if (enabled && !dueDate) setDueDate(today);
+      if (enabled && !dueDate) setDueDate(startDate || today);
       if (!enabled) setDueDate('');
+      setCalendarTarget('due');
     }
   };
 
@@ -131,25 +181,45 @@ function CardDateEditor({
             />
             <span>Ngày bắt đầu</span>
           </label>
-          <div className="card-date-field-controls">
+          <div className={`card-date-field-controls ${!startEnabled ? 'is-inactive' : ''}`.trim()}>
             <input
-              type="text"
+              type="date"
               className="card-modal-input"
-              value={formatDateForDisplay(startDate)}
-              placeholder="dd/mm/yyyy"
-              readOnly
-              disabled={!startEnabled}
-              onFocus={() => setCalendarTarget('start')}
-              onClick={() => setCalendarTarget('start')}
+              value={startDate}
+              onFocus={() => {
+                setCalendarTarget('start');
+                if (!startEnabled) toggleDate('start', true);
+              }}
+              onClick={() => {
+                setCalendarTarget('start');
+                if (!startEnabled) toggleDate('start', true);
+              }}
+              onChange={(event) => {
+                const nextDate = event.target.value;
+                setCalendarTarget('start');
+                setStartDate(nextDate);
+                setStartEnabled(Boolean(nextDate));
+                if (nextDate) {
+                  setCalendarMonth(getMonthForDate(nextDate));
+                }
+              }}
               aria-label="Ngày bắt đầu"
             />
             <input
               type="time"
-              step="60"
               className="card-modal-input card-date-time"
               value={startTime}
-              disabled={!startEnabled}
-              onChange={(event) => setStartTime(event.target.value)}
+              onFocus={() => {
+                setCalendarTarget('start');
+                if (!startEnabled) toggleDate('start', true);
+              }}
+              onClick={() => {
+                if (!startEnabled) toggleDate('start', true);
+              }}
+              onChange={(event) => {
+                if (!startEnabled) toggleDate('start', true);
+                setStartTime(event.target.value);
+              }}
               aria-label="Giờ bắt đầu"
             />
           </div>
@@ -166,25 +236,45 @@ function CardDateEditor({
             />
             <span>Ngày hết hạn</span>
           </label>
-          <div className="card-date-field-controls">
+          <div className={`card-date-field-controls ${!dueEnabled ? 'is-inactive' : ''}`.trim()}>
             <input
-              type="text"
+              type="date"
               className="card-modal-input"
-              value={formatDateForDisplay(dueDate)}
-              placeholder="dd/mm/yyyy"
-              readOnly
-              disabled={!dueEnabled}
-              onFocus={() => setCalendarTarget('due')}
-              onClick={() => setCalendarTarget('due')}
+              value={dueDate}
+              onFocus={() => {
+                setCalendarTarget('due');
+                if (!dueEnabled) toggleDate('due', true);
+              }}
+              onClick={() => {
+                setCalendarTarget('due');
+                if (!dueEnabled) toggleDate('due', true);
+              }}
+              onChange={(event) => {
+                const nextDate = event.target.value;
+                setCalendarTarget('due');
+                setDueDate(nextDate);
+                setDueEnabled(Boolean(nextDate));
+                if (nextDate) {
+                  setCalendarMonth(getMonthForDate(nextDate));
+                }
+              }}
               aria-label="Ngày hết hạn"
             />
             <input
               type="time"
-              step="60"
               className="card-modal-input card-date-time"
               value={dueTime}
-              disabled={!dueEnabled}
-              onChange={(event) => setDueTime(event.target.value)}
+              onFocus={() => {
+                setCalendarTarget('due');
+                if (!dueEnabled) toggleDate('due', true);
+              }}
+              onClick={() => {
+                if (!dueEnabled) toggleDate('due', true);
+              }}
+              onChange={(event) => {
+                if (!dueEnabled) toggleDate('due', true);
+                setDueTime(event.target.value);
+              }}
               aria-label="Giờ hết hạn"
             />
           </div>
@@ -258,7 +348,7 @@ export default function CardDetailModal({
   const [recurrence, setRecurrence] = useState(card.recurrence || 'none');
   const [reminder, setReminder] = useState(card.reminder || '1-day');
   const [calendarMonth, setCalendarMonth] = useState(() => getMonthForDate(card.dueDate || card.startDate));
-  const [calendarTarget, setCalendarTarget] = useState('due');
+  const [calendarTarget, setCalendarTarget] = useState(() => (card.startDate ? 'due' : 'start'));
   const [labels, setLabels] = useState(Array.isArray(card.labels) ? card.labels : []);
   const [popoverSnapshot, setPopoverSnapshot] = useState(null);
   const [comments, setComments] = useState(Array.isArray(card.comments) ? card.comments : []);
@@ -339,6 +429,9 @@ export default function CardDetailModal({
       recurrence,
       reminder,
     });
+    if (popover === 'date') {
+      setCalendarTarget(!startEnabled ? 'start' : 'due');
+    }
     setActivePopover(popover);
   };
 
@@ -566,6 +659,7 @@ export default function CardDetailModal({
                                     <span
                                       className="card-label-swatch"
                                       style={{ backgroundColor: color }}
+                                      onClick={() => toggleLabel(option)}
                                       aria-label={option.name}
                                       title={option.name}
                                     />
@@ -633,6 +727,86 @@ export default function CardDetailModal({
                       )}
                     </div>
                   </div>
+
+                  {(labels.length > 0 || (startEnabled && startDate) || (dueEnabled && dueDate)) && (
+                    <div className="card-detail-meta">
+                      {labels.length > 0 && (
+                        <div className="card-detail-meta-group">
+                          <span className="card-detail-meta-title">Nhãn</span>
+                          <div className="card-detail-labels-row">
+                            {labels.map((label) => (
+                              <button
+                                type="button"
+                                key={label.id}
+                                className="card-detail-label-pill"
+                                style={{ backgroundColor: label.color }}
+                                title={label.name}
+                                aria-label={`Nhãn ${label.name}`}
+                                onClick={() => openPopover('labels')}
+                              />
+                            ))}
+                            <button
+                              type="button"
+                              className="card-detail-label-add"
+                              aria-label="Thêm nhãn"
+                              onClick={() => openPopover('labels')}
+                            >
+                              ＋
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {((startEnabled && startDate) || (dueEnabled && dueDate)) && (() => {
+                        const dueStatus = getDueStatus({
+                          dueDate,
+                          dueTime,
+                          dueEnabled,
+                          completed,
+                        });
+                        const summaryText = formatCardDateSummary({
+                          startDate,
+                          startTime,
+                          startEnabled,
+                          dueDate,
+                          dueTime,
+                          dueEnabled,
+                        });
+
+                        return (
+                          <div className="card-detail-meta-group">
+                            <span className="card-detail-meta-title">Ngày</span>
+                            <button
+                              type="button"
+                              className="card-detail-date-badge"
+                              onClick={() => openPopover('date')}
+                            >
+                              <span className="card-detail-date-text">{summaryText}</span>
+                              {dueStatus && (
+                                <span className={`card-due-status ${dueStatus.className}`}>
+                                  {dueStatus.label}
+                                </span>
+                              )}
+                              <span className="card-detail-date-caret" aria-hidden="true">
+                                <svg
+                                  width="16"
+                                  height="16"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="2.2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                >
+                                  <polyline points="6 9 12 15 18 9" />
+                                </svg>
+                              </span>
+                            </button>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  )}
 
                   <label className="card-modal-label" htmlFor="card-description">
                     Mô tả
@@ -733,6 +907,7 @@ export default function CardDetailModal({
                           <span
                             className="card-label-swatch"
                             style={{ backgroundColor: color }}
+                            onClick={() => toggleLabel(option)}
                             aria-label={option.name}
                             title={option.name}
                           />
