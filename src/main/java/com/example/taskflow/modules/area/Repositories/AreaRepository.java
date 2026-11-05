@@ -29,5 +29,6 @@ public interface AreaRepository extends JpaRepository<Area, Long> {
             """)
     List<Area> findActiveWithCards(@Param("workspaceId") Long workspaceId);
 
-
+    @Query("select max(a.position) from Area a where a.workspace.id = :workspaceId")
+    Optional<Double> findMaxPositionByWorkspaceId(@Param("workspaceId") Long workspaceId);
 }
