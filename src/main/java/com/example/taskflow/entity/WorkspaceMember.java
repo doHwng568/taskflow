@@ -1,6 +1,7 @@
+
 package com.example.taskflow.entity;
 
-import com.example.taskflow.common.enums.Role;
+import com.example.taskflow.common.enums.WorkspaceRole;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -8,7 +9,15 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "workspace_members")
+@Table(
+        name = "workspace_members",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_workspace_member",
+                        columnNames = {"workspace_id", "member_id"}
+                )
+        }
+)
 @Getter
 @Setter
 public class WorkspaceMember {
@@ -19,11 +28,15 @@ public class WorkspaceMember {
 
     private LocalDateTime joinedAt;
 
-    @ManyToOne
-    @JoinColumn(name = "member_id")
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private WorkspaceRole role;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "member_id", nullable = false)
     private User member;
 
-    @ManyToOne
-    @JoinColumn(name = "workspace_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "workspace_id", nullable = false)
     private Workspace workspace;
 }

@@ -1,19 +1,42 @@
 package com.example.taskflow.modules.workspace.Repositories;
 
+import com.example.taskflow.common.enums.WorkspaceRole;
 import com.example.taskflow.entity.User;
 import com.example.taskflow.entity.Workspace;
 import com.example.taskflow.entity.WorkspaceMember;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-@Repository
-public interface WorkspaceMemberRepository extends JpaRepository<WorkspaceMember, Long> {
+import java.util.List;
+import java.util.Optional;
 
-    // Kiểm tra user có phải member của workspace hay không – dùng để authorize
-    // moveCard
-    // WorkspaceMember.member là @ManyToOne User, WorkspaceMember.workspace là
-    // @ManyToOne Workspace
-    // Spring Data JPA suy ra: SELECT COUNT(*) > 0 FROM workspace_members WHERE
-    // member_id = ? AND workspace_id = ?
-    boolean existsByMemberAndWorkspace(User member, Workspace workspace);
+@Repository
+public interface WorkspaceMemberRepository
+        extends JpaRepository<WorkspaceMember, Long> {
+
+    boolean existsByMemberAndWorkspace(
+            User member, Workspace workspace
+    );
+
+    Optional<WorkspaceMember> findByMemberAndWorkspace(
+            User member, Workspace workspace
+    );
+
+    List<WorkspaceMember> findByWorkspace_Id(Long workspaceId);
+
+    List<WorkspaceMember> findByMember_Id(Long memberId);
+
+    Optional<WorkspaceMember> findByWorkspace_IdAndMember_Id(
+            Long workspaceId, Long memberId
+    );
+
+    boolean existsByWorkspace_IdAndMember_Id(
+            Long workspaceId, Long memberId
+    );
+
+    long countByWorkspace_IdAndRole(
+            Long workspaceId, WorkspaceRole role
+    );
+
+    void deleteAllByWorkspace_Id(Long workspaceId);
 }

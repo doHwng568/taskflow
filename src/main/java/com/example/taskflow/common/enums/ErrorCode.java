@@ -16,7 +16,11 @@ public enum ErrorCode {
 
     // Workspace
     WORKSPACE_NOT_FOUND("WS_001", "Workspace not found", HttpStatus.NOT_FOUND),
-
+    WORKSPACE_HAS_AREAS(
+            "WS_002",
+            "Cannot delete workspace because it contains areas",
+            HttpStatus.CONFLICT
+    ),
     // Area
     AREA_NOT_FOUND("AREA_001", "Area not found", HttpStatus.NOT_FOUND),
 
