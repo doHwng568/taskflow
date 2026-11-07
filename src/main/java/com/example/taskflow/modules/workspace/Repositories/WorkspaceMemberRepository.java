@@ -1,3 +1,4 @@
+
 package com.example.taskflow.modules.workspace.Repositories;
 
 import com.example.taskflow.common.enums.WorkspaceRole;
@@ -15,11 +16,13 @@ public interface WorkspaceMemberRepository
         extends JpaRepository<WorkspaceMember, Long> {
 
     boolean existsByMemberAndWorkspace(
-            User member, Workspace workspace
+            User member,
+            Workspace workspace
     );
 
     Optional<WorkspaceMember> findByMemberAndWorkspace(
-            User member, Workspace workspace
+            User member,
+            Workspace workspace
     );
 
     List<WorkspaceMember> findByWorkspace_Id(Long workspaceId);
@@ -27,15 +30,20 @@ public interface WorkspaceMemberRepository
     List<WorkspaceMember> findByMember_Id(Long memberId);
 
     Optional<WorkspaceMember> findByWorkspace_IdAndMember_Id(
-            Long workspaceId, Long memberId
+            Long workspaceId,
+            Long memberId
     );
 
     boolean existsByWorkspace_IdAndMember_Id(
-            Long workspaceId, Long memberId
+            Long workspaceId,
+            Long memberId
     );
 
+    long countByWorkspace_Id(Long workspaceId);
+
     long countByWorkspace_IdAndRole(
-            Long workspaceId, WorkspaceRole role
+            Long workspaceId,
+            WorkspaceRole role
     );
 
     void deleteAllByWorkspace_Id(Long workspaceId);

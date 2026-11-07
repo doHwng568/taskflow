@@ -1,62 +1,91 @@
 
-const STORAGE_KEY = "taskflow_workspaces";
-
-const createId = () =>
-  globalThis.crypto?.randomUUID?.() ??
-  `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-
-function readAll() {
-  try {
-    const data = localStorage.getItem(STORAGE_KEY);
-    return data ? JSON.parse(data) : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveAll(workspaces) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(workspaces));
-}
+import api from "../../../services/api";
 
 const workspaceService = {
-  getAll() {
-    return readAll();
-  },
+    // Lấy danh sách Workspace
+    async getAll() {
+        const response = await api.get("/api/workspaces");
+        return response.data.data;
+    },
 
-  getById(id) {
-    return readAll().find((workspace) => workspace.id === id) ?? null;
-  },
+    // Lấy chi tiết Workspace
+    async getById(id) {
+        const response = await api.get(`/api/workspaces/${id}`);
+        return response.data.data;
+    },
 
-  create({ name, description }) {
-    const workspaces = readAll();
+    // Tạo Workspace
+    async create(data) {
+        const response = await api.post("/api/workspaces", data);
+        return response.data.data;
+    },
 
-    const workspace = {
-      id: createId(),
-      name: name.trim(),
-      description: description.trim(),
-      createdAt: new Date().toISOString(),
-    };
+    // Cập nhật Workspace
+    async update(id, data) {
+        const response = await api.put(
+            `/api/workspaces/${id}`,
+            data
+        );
 
-    saveAll([workspace, ...workspaces]);
-    return workspace;
-  },
+        return response.data.data;
+    },
 
-  update(id, { name, description }) {
-    const workspaces = readAll();
+    // Xóa Workspace
+    async delete(id) {
+        const response = await api.delete(
+            `/api/workspaces/${id}`
+        );
 
-    const updated = workspaces.map((workspace) =>
-      workspace.id === id
-        ? { ...workspace, name: name.trim(), description: description.trim() }
-        : workspace
-    );
+        return response.data.data;
+    },
 
-    saveAll(updated);
-    return updated.find((workspace) => workspace.id === id) ?? null;
-  },
+    // Lấy danh sách thành viên
+    async getMembers(id) {
+        const response = await api.get(
+            `/api/workspaces/${id}/members`
+        );
 
-  delete(id) {
-    saveAll(readAll().filter((workspace) => workspace.id !== id));
-  },
+        return response.data.data;
+    },
+
+    // Thêm thành viên
+    async addMember(id, data) {
+        const response = await api.post(
+            `/api/workspaces/${id}/members`,
+            data
+        );
+
+        return response.data.data;
+    },
+
+    // Cập nhật role thành viên
+    async updateMemberRole(id, userId, role) {
+        const response = await api.put(
+            `/api/workspaces/${id}/members/${userId}/role`,
+            { role }
+        );
+
+        return response.data.data;
+    },
+
+    // Xóa thành viên
+    async removeMember(id, userId) {
+        const response = await api.delete(
+            `/api/workspaces/${id}/members/${userId}`
+        );
+
+        return response.data.data;
+    },
+
+    // Chuyển quyền OWNER
+    async transferOwnership(id, newOwnerId) {
+        const response = await api.post(
+            `/api/workspaces/${id}/transfer-ownership`,
+            { newOwnerId }
+        );
+
+        return response.data.data;
+    },
 };
 
 export default workspaceService;
