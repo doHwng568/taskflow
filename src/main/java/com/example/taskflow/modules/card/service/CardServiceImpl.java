@@ -65,6 +65,7 @@ public class CardServiceImpl implements CardService {
         Card card = new Card();
         card.setTitle(request.getTitle().trim());
         card.setContent(request.getContent() != null ? request.getContent().trim() : "");
+        card.setCoverImage(request.getCoverImage());
         card.setPriority(request.getPriority() != null ? request.getPriority() : TaskPriority.MEDIUM);
         card.setType(request.getType() != null ? request.getType() : TaskType.DOCUMENTATION);
         card.setDueDate(request.getDueDate());
@@ -113,6 +114,10 @@ public class CardServiceImpl implements CardService {
         if (request.getContent() != null) {
             card.setContent(request.getContent().trim());
         }
+        card.setCoverImage(request.getCoverImage());
+        if (request.getComments() != null) {
+            card.setComments(request.getComments());
+        }
         if (request.getPosition() != null) {
             card.setPosition(request.getPosition());
         }
@@ -148,10 +153,22 @@ public class CardServiceImpl implements CardService {
         Area fromArea = card.getArea();
         card.setArea(targetArea);
 
+        LocalDateTime now = LocalDateTime.now();
+        card.setUpdatedAt(now);
+
+        List<Card> targetCards = new java.util.ArrayList<>(
+                cardRepository.findByArea_IdOrderByPositionAsc(targetArea.getId())
+        );
+        targetCards.removeIf(c -> c.getId().equals(card.getId()));
+
         if (request.getPosition() != null) {
-            card.setPosition(request.getPosition());
+            int insertIndex = Math.max(0, Math.min(request.getPosition().intValue() - 1, targetCards.size()));
+            targetCards.add(insertIndex, card);
+            for (int i = 0; i < targetCards.size(); i++) {
+                targetCards.get(i).setPosition((double) (i + 1));
+            }
+            cardRepository.saveAll(targetCards);
         } else {
-            List<Card> targetCards = cardRepository.findByArea_IdOrderByPositionAsc(targetArea.getId());
             double nextPos = targetCards.isEmpty()
                     ? 1.0
                     : (targetCards.get(targetCards.size() - 1).getPosition() != null
@@ -160,8 +177,6 @@ public class CardServiceImpl implements CardService {
             card.setPosition(nextPos);
         }
 
-        LocalDateTime now = LocalDateTime.now();
-        card.setUpdatedAt(now);
         Card savedCard = cardRepository.save(card);
 
         CardMovement movement = new CardMovement();
@@ -180,6 +195,10 @@ public class CardServiceImpl implements CardService {
     public void deleteCard(Long cardId) {
         Card card = cardRepository.findById(cardId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.CARD_NOT_FOUND));
+        List<CardMovement> movements = cardMovementRepository.findByCard_IdOrderByMovedAtDesc(cardId);
+        if (!movements.isEmpty()) {
+            cardMovementRepository.deleteAll(movements);
+        }
         cardRepository.delete(card);
     }
 }

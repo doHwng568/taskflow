@@ -25,6 +25,13 @@ public class Card {
     @Column(columnDefinition = "TEXT")
     private String content;
 
+    @Column(name = "cover_image", columnDefinition = "LONGTEXT")
+    private String coverImage;
+
+    /** Danh sách bình luận của thẻ, lưu dạng chuỗi JSON. */
+    @Column(name = "comments", columnDefinition = "LONGTEXT")
+    private String comments;
+
     private Double position;
 
     @Enumerated(EnumType.STRING)

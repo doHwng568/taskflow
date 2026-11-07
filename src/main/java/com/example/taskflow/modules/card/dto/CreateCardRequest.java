@@ -17,6 +17,8 @@ public class CreateCardRequest {
 
     private String content;
 
+    private String coverImage;
+
     private Long areaId;
 
     private Double position;

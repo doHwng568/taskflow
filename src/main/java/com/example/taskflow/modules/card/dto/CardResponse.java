@@ -19,6 +19,8 @@ public class CardResponse {
     private Long id;
     private String title;
     private String content;
+    private String coverImage;
+    private String comments;
     private Double position;
     private TaskPriority priority;
     private TaskType type;
@@ -35,6 +37,8 @@ public class CardResponse {
                 .id(card.getId())
                 .title(card.getTitle())
                 .content(card.getContent())
+                .coverImage(card.getCoverImage())
+                .comments(card.getComments())
                 .position(card.getPosition())
                 .priority(card.getPriority())
                 .type(card.getType())

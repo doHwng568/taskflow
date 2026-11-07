@@ -17,6 +17,10 @@ public class UpdateCardRequest {
 
     private String content;
 
+    private String coverImage;
+
+    private String comments;
+
     private Double position;
 
     private TaskPriority priority;
