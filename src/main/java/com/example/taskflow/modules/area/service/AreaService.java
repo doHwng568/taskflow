@@ -6,6 +6,7 @@ import com.example.taskflow.entity.Area;
 import com.example.taskflow.entity.Workspace;
 import com.example.taskflow.modules.area.Repositories.AreaRepository;
 import com.example.taskflow.modules.area.dto.request.CreateAreaRequest;
+import com.example.taskflow.modules.area.dto.request.UpdateAreaRequest;
 import com.example.taskflow.modules.area.dto.response.AreaResponse;
 import com.example.taskflow.modules.workspace.Repositories.WorkspaceRepository;
 import org.springframework.stereotype.Service;
@@ -59,6 +60,18 @@ public class AreaService {
         area.setWorkspace(workspace);
         area.setCreatedAt(now);
         area.setUpdatedAt(now);
+
+        return AreaResponse.from(areaRepository.save(area));
+    }
+
+    // Đổi tên area
+    @Transactional
+    public AreaResponse updateArea(Long areaId, UpdateAreaRequest request) {
+        Area area = areaRepository.findById(areaId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.AREA_NOT_FOUND));
+
+        area.setName(request.name().trim());
+        area.setUpdatedAt(LocalDateTime.now());
 
         return AreaResponse.from(areaRepository.save(area));
     }

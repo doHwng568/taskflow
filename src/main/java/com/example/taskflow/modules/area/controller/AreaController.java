@@ -2,6 +2,7 @@ package com.example.taskflow.modules.area.controller;
 
 import com.example.taskflow.common.dto.ApiResponse;
 import com.example.taskflow.modules.area.dto.request.CreateAreaRequest;
+import com.example.taskflow.modules.area.dto.request.UpdateAreaRequest;
 import com.example.taskflow.modules.area.dto.response.AreaResponse;
 import com.example.taskflow.modules.area.service.AreaService;
 import jakarta.validation.Valid;
@@ -11,8 +12,10 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+// Không đặt @RequestMapping ở cấp class vì có hai nhóm đường dẫn:
+//  - /workspaces/{workspaceId}/areas : thao tác theo workspace (lấy danh sách, tạo)
+//  - /areas/{areaId}                 : thao tác trên một area cụ thể (sửa, xóa...)
 @RestController
-@RequestMapping("/workspaces/{workspaceId}/areas")
 public class AreaController {
 
     private final AreaService areaService;
@@ -22,7 +25,7 @@ public class AreaController {
     }
 
     // GET /workspaces/{workspaceId}/areas
-    @GetMapping
+    @GetMapping("/workspaces/{workspaceId}/areas")
     public ResponseEntity<ApiResponse<List<AreaResponse>>> getAreas(@PathVariable Long workspaceId) {
         List<AreaResponse> areas = areaService.getAreasByWorkspace(workspaceId);
 
@@ -30,7 +33,7 @@ public class AreaController {
     }
 
     // POST /workspaces/{workspaceId}/areas   body: { "name": "Tên area" }
-    @PostMapping
+    @PostMapping("/workspaces/{workspaceId}/areas")
     public ResponseEntity<ApiResponse<AreaResponse>> createArea(
             @PathVariable Long workspaceId,
             @Valid @RequestBody CreateAreaRequest request) {
@@ -39,5 +42,15 @@ public class AreaController {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(ApiResponse.success(area, "Create area successfully"));
+    }
+
+    // PATCH /areas/{areaId}   body: { "name": "Tên mới" }
+    @PatchMapping("/areas/{areaId}")
+    public ResponseEntity<ApiResponse<AreaResponse>> updateArea(
+            @PathVariable Long areaId,
+            @Valid @RequestBody UpdateAreaRequest request) {
+        AreaResponse area = areaService.updateArea(areaId, request);
+
+        return ResponseEntity.ok(ApiResponse.success(area, "Update area successfully"));
     }
 }

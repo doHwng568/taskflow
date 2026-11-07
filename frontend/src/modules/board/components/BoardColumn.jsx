@@ -39,12 +39,22 @@ export default function BoardColumn({ column, onUpdateTitle, onDeleteList, onCre
 
   const handleTitleSubmit = (e) => {
     e.preventDefault();
-    if (title.trim()) {
-      onUpdateTitle(column.id, title);
-    } else {
-      setTitle(column.title);
-    }
+
+    const trimmedTitle = title.trim();
     setIsEditingTitle(false);
+
+    // Trống hoặc không đổi gì thì không gọi API, trả ô nhập về tên hiện tại
+    if (!trimmedTitle || trimmedTitle === column.title) {
+      setTitle(column.title);
+      return;
+    }
+
+    onUpdateTitle(column.id, trimmedTitle);
+  };
+
+  const startEditingTitle = () => {
+    setTitle(column.title); // luôn bắt đầu từ tên hiện tại (kể cả khi vừa bị hoàn lại do lỗi)
+    setIsEditingTitle(true);
   };
 
   const handleCreateCard = (event) => {
@@ -89,7 +99,7 @@ export default function BoardColumn({ column, onUpdateTitle, onDeleteList, onCre
           </form>
         ) : (
           <h2
-            onClick={() => setIsEditingTitle(true)}
+            onClick={startEditingTitle}
             className="board-column-title"
           >
             {column.title}

@@ -76,15 +76,38 @@ export default function BoardPage() {
     }
   };
 
-  // Các thao tác dưới đây vẫn chỉ đổi state trên trình duyệt,
-  // sẽ được nối với API ở các tính năng sau.
-  const handleUpdateListTitle = (columnId, newTitle) => {
+  // Tính năng 3: đổi tên area, lưu vào database.
+  // Cập nhật giao diện ngay (optimistic), nếu API lỗi thì trả lại tên cũ.
+  const handleUpdateListTitle = async (columnId, newTitle) => {
+    const previousTitle = columns.find((column) => column.id === columnId)?.title;
+
     setColumns((currentColumns) =>
       currentColumns.map((column) =>
         column.id === columnId ? { ...column, title: newTitle } : column
       )
     );
+
+    try {
+      const area = await areaService.rename(columnId, newTitle);
+      // Đồng bộ với tên server đã lưu (đã cắt khoảng trắng thừa)
+      setColumns((currentColumns) =>
+        currentColumns.map((column) =>
+          column.id === columnId ? { ...column, title: area.name } : column
+        )
+      );
+      setError('');
+    } catch (err) {
+      setColumns((currentColumns) =>
+        currentColumns.map((column) =>
+          column.id === columnId ? { ...column, title: previousTitle } : column
+        )
+      );
+      setError(err.response?.data?.message ?? 'Không đổi được tên danh sách');
+    }
   };
+
+  // Các thao tác dưới đây vẫn chỉ đổi state trên trình duyệt,
+  // sẽ được nối với API ở các tính năng sau.
 
   const handleDeleteList = (columnId) => {
     setColumns((currentColumns) =>

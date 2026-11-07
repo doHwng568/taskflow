@@ -12,6 +12,12 @@ const areaService = {
     const response = await api.post(`/workspaces/${workspaceId}/areas`, { name })
     return response.data.data
   },
+
+  // PATCH /areas/{areaId} -> area sau khi đổi tên
+  async rename(areaId, name) {
+    const response = await api.patch(`/areas/${areaId}`, { name })
+    return response.data.data
+  },
 }
 
 export default areaService
