@@ -1,49 +1,225 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import BoardHeader from '../components/BoardHeader';
 import BoardColumn from '../components/BoardColumn';
 import CardDetailModal from '../../card/components/CardDetailModal';
 import cardApi from '../../card/api/cardApi';
 import '../styles/BoardPage.css';
 
-export default function BoardPage() {
-  const [columns, setColumns] = useState([
+const BOARD_STORAGE_KEY = 'taskflow_board_columns';
+
+const DEFAULT_COLUMNS = [
   { id: 'col-1', title: 'Cần làm', cards: [] },
   { id: 'col-2', title: 'Đang làm', cards: [] },
   { id: 'col-3', title: 'Đã xong', cards: [] },
-]);
+];
 
+const loadColumnsFromStorage = () => {
+  try {
+    const raw = localStorage.getItem(BOARD_STORAGE_KEY);
+    if (!raw) return DEFAULT_COLUMNS;
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) && parsed.length > 0 ? parsed : DEFAULT_COLUMNS;
+  } catch {
+    return DEFAULT_COLUMNS;
+  }
+};
+
+const parseServerComments = (rawComments) => {
+  if (!rawComments) return null;
+  try {
+    const parsed = JSON.parse(rawComments);
+    return Array.isArray(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+};
+
+const mapCardFromServer = (serverCard, existingLocalCard = null) => {
+  let dueDate = '';
+  let dueTime = existingLocalCard?.dueTime || '17:00';
+  if (serverCard.dueDate) {
+    const [datePart, timePart] = String(serverCard.dueDate).split('T');
+    dueDate = datePart || '';
+    if (timePart) {
+      dueTime = timePart.slice(0, 5);
+    }
+  }
+
+  const serverComments = parseServerComments(serverCard.comments);
+  const localComments = Array.isArray(existingLocalCard?.comments)
+    ? existingLocalCard.comments
+    : [];
+  let comments = serverComments ?? localComments;
+
+  // Dữ liệu cũ: bình luận từng bị lưu nhầm vào content -> không coi là mô tả
+  const legacyCommentText = comments
+    .map((c) => (typeof c === 'string' ? c : c?.text))
+    .filter(Boolean)
+    .join('\n');
+  let description = serverCard.content ?? existingLocalCard?.description ?? '';
+  if (
+    description &&
+    legacyCommentText &&
+    description.trim() === legacyCommentText.trim() &&
+    !existingLocalCard?.description
+  ) {
+    description = '';
+  }
+
+  // Thẻ cũ: local không có mô tả và chưa có bình luận, nhưng server có content
+  // -> content đó là bình luận bị lưu nhầm, chuyển lại thành bình luận
+  if (
+    description &&
+    existingLocalCard &&
+    !existingLocalCard.description &&
+    comments.length === 0 &&
+    !serverComments
+  ) {
+    comments = description
+      .split('\n')
+      .map((text) => text.trim())
+      .filter(Boolean)
+      .map((text, idx) => ({
+        id: `comment-legacy-${serverCard.id}-${idx}`,
+        text,
+        createdAt: serverCard.updatedAt || new Date().toISOString(),
+      }));
+    description = '';
+  }
+
+  return {
+    ...existingLocalCard,
+    id: serverCard.id,
+    title: serverCard.title || '',
+    description,
+    comments,
+    coverImage: serverCard.coverImage ?? existingLocalCard?.coverImage ?? '',
+    dueDate,
+    dueTime,
+    dueDateEnabled: Boolean(dueDate),
+    color: existingLocalCard?.color || '#ffffff',
+  };
+};
+
+export default function BoardPage() {
+  const [columns, setColumns] = useState(loadColumnsFromStorage);
   const [isAddingList, setIsAddingList] = useState(false);
   const [newListTitle, setNewListTitle] = useState('');
   const [selectedCard, setSelectedCard] = useState(null);
 
+  const parseNumericId = (rawId) => {
+    if (typeof rawId === 'number' && Number.isFinite(rawId) && rawId > 0) {
+      return rawId;
+    }
+    const num = Number(String(rawId).replace(/\D/g, ''));
+    return Number.isFinite(num) && num > 0 ? num : null;
+  };
 
-  const handleCreateList = (event) => {
+  useEffect(() => {
+    try {
+      localStorage.setItem(BOARD_STORAGE_KEY, JSON.stringify(columns));
+    } catch {
+      // Ignore storage quota errors
+    }
+  }, [columns]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchBoardData = async () => {
+      try {
+        const res = await cardApi.getAreasApi();
+        const serverAreas = res?.data?.data;
+        if (isMounted && Array.isArray(serverAreas) && serverAreas.length > 0) {
+          setColumns((currentColumns) => {
+            const localCardsById = new Map();
+            currentColumns.forEach((col) => {
+              (col.cards || []).forEach((c) => {
+                localCardsById.set(String(c.id), c);
+              });
+            });
+
+            return serverAreas.map((area) => ({
+              id: area.id,
+              title: area.name,
+              cards: (area.cards || []).map((serverCard) =>
+                mapCardFromServer(serverCard, localCardsById.get(String(serverCard.id)))
+              ),
+            }));
+          });
+        }
+      } catch {
+        // Khi Backend chưa chạy hoặc lỗi kết nối, giữ nguyên dữ liệu từ localStorage
+      }
+    };
+
+    fetchBoardData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const handleCreateList = async (event) => {
     event.preventDefault();
 
     const title = newListTitle.trim();
     if (!title) return;
 
+    setNewListTitle('');
+    setIsAddingList(false);
+
+    let createdArea = null;
+    try {
+      const res = await cardApi.createAreaApi({
+        name: title,
+        position: columns.length + 1,
+      });
+      createdArea = res?.data?.data;
+    } catch {
+      // Fallback khi server chưa kết nối DB
+    }
+
     setColumns((currentColumns) => [
       ...currentColumns,
       {
-        id: `col-${Date.now()}`,
-        title,
+        id: createdArea?.id ?? `col-${Date.now()}`,
+        title: createdArea?.name ?? title,
         cards: [],
       },
     ]);
-    setNewListTitle('');
-    setIsAddingList(false);
   };
 
-  const handleUpdateListTitle = (columnId, newTitle) => {
+  const handleUpdateListTitle = async (columnId, newTitle) => {
+    const trimmedTitle = newTitle.trim();
+    if (!trimmedTitle) return;
+
+    const numericAreaId = parseNumericId(columnId);
+    if (numericAreaId) {
+      try {
+        await cardApi.updateAreaApi(numericAreaId, { name: trimmedTitle });
+      } catch {
+        // Fallback khi server chưa kết nối DB
+      }
+    }
+
     setColumns((currentColumns) =>
       currentColumns.map((column) =>
-        column.id === columnId ? { ...column, title: newTitle } : column
+        column.id === columnId ? { ...column, title: trimmedTitle } : column
       )
     );
   };
 
-  const handleDeleteList = (columnId) => {
+  const handleDeleteList = async (columnId) => {
+    const numericAreaId = parseNumericId(columnId);
+    if (numericAreaId) {
+      try {
+        await cardApi.deleteAreaApi(numericAreaId);
+      } catch {
+        // Fallback khi server chưa kết nối DB
+      }
+    }
+
     setColumns((currentColumns) =>
       currentColumns.filter((column) => column.id !== columnId)
     );
@@ -62,16 +238,19 @@ export default function BoardPage() {
       const updatedColumns = [...currentColumns];
       const [movedColumn] = updatedColumns.splice(sourceIndex, 1);
       updatedColumns.splice(targetIndex, 0, movedColumn);
+
+      updatedColumns.forEach((col, index) => {
+        const numericAreaId = parseNumericId(col.id);
+        if (numericAreaId) {
+          cardApi.updateAreaApi(numericAreaId, { position: index + 1 }).catch(() => {});
+        }
+      });
+
       return updatedColumns;
     });
   };
 
   //----Card (API + UI update)-----
-  const parseNumericId = (rawId) => {
-    const num = Number(String(rawId).replace(/\D/g, ''));
-    return Number.isFinite(num) && num > 0 ? num : null;
-  };
-
   const handleCreateCard = async (columnId, title) => {
     let createdFromServer = null;
     try {
@@ -85,13 +264,15 @@ export default function BoardPage() {
       // Fallback khi server chưa kết nối DB
     }
 
-    const newCard = {
-      id: createdFromServer?.id ?? `card-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      title: createdFromServer?.title ?? title,
-      description: createdFromServer?.content ?? '',
-      dueDate: '',
-      color: '#ffffff',
-    };
+    const newCard = createdFromServer
+      ? mapCardFromServer(createdFromServer)
+      : {
+          id: `card-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          title,
+          description: '',
+          dueDate: '',
+          color: '#ffffff',
+        };
 
     setColumns((currentColumns) =>
       currentColumns.map((column) =>
@@ -102,8 +283,23 @@ export default function BoardPage() {
     );
   };
 
-  const handleMoveCard = async (sourceColumnId, targetColumnId, cardId, targetCardId = null) => {
-    if (sourceColumnId === targetColumnId && (!targetCardId || cardId === targetCardId)) {
+  const handleMoveCard = async (
+    sourceColumnId,
+    targetColumnId,
+    cardId,
+    targetCardId = null,
+    targetPosition = null
+  ) => {
+    const hasExplicitPosition =
+      targetPosition !== null &&
+      targetPosition !== undefined &&
+      Number.isFinite(Number(targetPosition));
+
+    if (
+      String(sourceColumnId) === String(targetColumnId) &&
+      !hasExplicitPosition &&
+      (!targetCardId || String(cardId) === String(targetCardId))
+    ) {
       return;
     }
 
@@ -113,6 +309,7 @@ export default function BoardPage() {
       try {
         await cardApi.moveCardApi(numericCardId, {
           targetAreaId: numericTargetAreaId,
+          ...(hasExplicitPosition ? { position: Number(targetPosition) } : {}),
         });
       } catch {
         // Fallback khi server chưa kết nối DB
@@ -120,15 +317,32 @@ export default function BoardPage() {
     }
 
     setColumns((currentColumns) => {
-      const sourceColumn = currentColumns.find((column) => column.id === sourceColumnId);
-      const movedCard = sourceColumn?.cards?.find((card) => card.id === cardId);
+      const sourceColumn = currentColumns.find(
+        (column) => String(column.id) === String(sourceColumnId)
+      );
+      const movedCard = sourceColumn?.cards?.find(
+        (card) => String(card.id) === String(cardId)
+      );
       if (!movedCard) return currentColumns;
 
-      if (sourceColumnId === targetColumnId) {
+      if (String(sourceColumnId) === String(targetColumnId)) {
         return currentColumns.map((column) => {
-          if (column.id !== sourceColumnId) return column;
-          const remainingCards = column.cards.filter((card) => card.id !== cardId);
-          const targetIndex = remainingCards.findIndex((card) => card.id === targetCardId);
+          if (String(column.id) !== String(sourceColumnId)) return column;
+          const remainingCards = column.cards.filter(
+            (card) => String(card.id) !== String(cardId)
+          );
+          if (hasExplicitPosition) {
+            const insertIdx = Math.max(
+              0,
+              Math.min(Number(targetPosition) - 1, remainingCards.length)
+            );
+            const updatedCards = [...remainingCards];
+            updatedCards.splice(insertIdx, 0, movedCard);
+            return { ...column, cards: updatedCards };
+          }
+          const targetIndex = remainingCards.findIndex(
+            (card) => String(card.id) === String(targetCardId)
+          );
           if (targetIndex === -1) {
             return { ...column, cards: [...remainingCards, movedCard] };
           }
@@ -139,16 +353,27 @@ export default function BoardPage() {
       }
 
       return currentColumns.map((column) => {
-        if (column.id === sourceColumnId) {
+        if (String(column.id) === String(sourceColumnId)) {
           return {
             ...column,
-            cards: column.cards.filter((card) => card.id !== cardId),
+            cards: column.cards.filter((card) => String(card.id) !== String(cardId)),
           };
         }
-        if (column.id === targetColumnId) {
+        if (String(column.id) === String(targetColumnId)) {
           const existingCards = column.cards || [];
+          if (hasExplicitPosition) {
+            const insertIdx = Math.max(
+              0,
+              Math.min(Number(targetPosition) - 1, existingCards.length)
+            );
+            const updatedCards = [...existingCards];
+            updatedCards.splice(insertIdx, 0, movedCard);
+            return { ...column, cards: updatedCards };
+          }
           if (targetCardId) {
-            const targetIndex = existingCards.findIndex((card) => card.id === targetCardId);
+            const targetIndex = existingCards.findIndex(
+              (card) => String(card.id) === String(targetCardId)
+            );
             if (targetIndex !== -1) {
               const updatedCards = [...existingCards];
               updatedCards.splice(targetIndex, 0, movedCard);
@@ -166,11 +391,23 @@ export default function BoardPage() {
   };
 
   const handleOpenCard = (columnId, card) => {
-    setSelectedCard({ columnId, card, view: 'details' });
+    setSelectedCard({ columnId, card, view: 'details', anchorRect: null });
   };
 
-  const handleEditCard = (columnId, card) => {
-    setSelectedCard({ columnId, card, view: 'quick' });
+  const handleEditCard = (columnId, card, rect = null) => {
+    setSelectedCard({
+      columnId,
+      card,
+      view: 'quick',
+      anchorRect: rect
+        ? {
+            top: rect.top,
+            left: rect.left,
+            width: rect.width,
+            height: rect.height,
+          }
+        : null,
+    });
   };
 
   const syncCardUpdateToBackend = async (updatedCard) => {
@@ -181,10 +418,14 @@ export default function BoardPage() {
       ? `${updatedCard.dueDate}T${updatedCard.dueTime || '17:00'}:00`
       : null;
 
+    const commentList = Array.isArray(updatedCard.comments) ? updatedCard.comments : [];
+
     try {
       await cardApi.updateCardApi(numericCardId, {
         title: updatedCard.title,
-        content: updatedCard.description || '',
+        content: updatedCard.description?.trim() || '',
+        coverImage: updatedCard.coverImage || null,
+        comments: JSON.stringify(commentList),
         dueDate: dueDateIso,
       });
     } catch {
@@ -354,10 +595,23 @@ export default function BoardPage() {
         <CardDetailModal
           key={selectedCard.card.id}
           card={selectedCard.card}
+          columns={columns}
+          currentColumnId={selectedCard.columnId}
           initialView={selectedCard.view}
+          anchorRect={selectedCard.anchorRect}
           onClose={() => setSelectedCard(null)}
           onSave={handleSaveCard}
           onUpdateCard={handleUpdateCard}
+          onMoveCard={(targetColumnId, targetPosition) => {
+            handleMoveCard(
+              selectedCard.columnId,
+              targetColumnId,
+              selectedCard.card.id,
+              null,
+              targetPosition
+            );
+            setSelectedCard(null);
+          }}
           onDelete={handleDeleteCard}
         />
       )}

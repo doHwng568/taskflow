@@ -139,7 +139,7 @@ export default function BoardColumn({ column, onUpdateTitle, onDeleteList, onMov
             card={card}
             columnId={column.id}
             onClick={() => onOpenCard(column.id, card)}
-            onEdit={() => onEditCard(column.id, card)}
+            onEdit={(rect) => onEditCard(column.id, card, rect)}
             onToggleComplete={onToggleCardComplete}
             onDropOnCard={(sourceColId, targetColId, draggedCardId, targetCardId) => {
               setIsDragOver(false);
