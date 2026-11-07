@@ -44,7 +44,7 @@ export default function ListActionMenu({ onClose, onAddCard, onDeleteList }) {
           onClick={onDeleteList}
           className="board-list-menu-option is-danger"
         >
-          Lưu trữ/Xóa danh sách này
+          Xóa danh sách này
         </button>
       </div>
     </div>

@@ -53,4 +53,12 @@ public class AreaController {
 
         return ResponseEntity.ok(ApiResponse.success(area, "Update area successfully"));
     }
+
+    // DELETE /areas/{areaId}  -> 204 No Content
+    @DeleteMapping("/areas/{areaId}")
+    public ResponseEntity<Void> deleteArea(@PathVariable Long areaId) {
+        areaService.deleteArea(areaId);
+
+        return ResponseEntity.noContent().build();
+    }
 }

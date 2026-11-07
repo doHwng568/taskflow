@@ -124,8 +124,17 @@ export default function BoardColumn({ column, onUpdateTitle, onDeleteList, onCre
           onClose={() => setShowMenu(false)}
           onAddCard={showCardForm}
           onDeleteList={() => {
-            onDeleteList(column.id);
             setShowMenu(false);
+
+            const cardCount = column.cards.length;
+            const message =
+              cardCount > 0
+                ? `Xóa danh sách "${column.title}"?\n\nDanh sách có ${cardCount} thẻ, các thẻ này cũng sẽ bị xóa vĩnh viễn.`
+                : `Xóa danh sách "${column.title}"?`;
+
+            if (window.confirm(message)) {
+              onDeleteList(column.id);
+            }
           }}
         />
       )}

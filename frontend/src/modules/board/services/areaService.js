@@ -18,6 +18,11 @@ const areaService = {
     const response = await api.patch(`/areas/${areaId}`, { name })
     return response.data.data
   },
+
+  // DELETE /areas/{areaId} -> 204, xóa area cùng toàn bộ thẻ trong area
+  async remove(areaId) {
+    await api.delete(`/areas/${areaId}`)
+  },
 }
 
 export default areaService

@@ -109,10 +109,18 @@ export default function BoardPage() {
   // Các thao tác dưới đây vẫn chỉ đổi state trên trình duyệt,
   // sẽ được nối với API ở các tính năng sau.
 
-  const handleDeleteList = (columnId) => {
-    setColumns((currentColumns) =>
-      currentColumns.filter((column) => column.id !== columnId)
-    );
+  // Tính năng 4: xóa area. Thao tác không hoàn tác được nên chờ server xóa xong
+  // rồi mới bỏ cột khỏi giao diện (không dùng optimistic update).
+  const handleDeleteList = async (columnId) => {
+    try {
+      await areaService.remove(columnId);
+      setColumns((currentColumns) =>
+        currentColumns.filter((column) => column.id !== columnId)
+      );
+      setError('');
+    } catch (err) {
+      setError(err.response?.data?.message ?? 'Không xóa được danh sách');
+    }
   };
 
   //----Card-----
