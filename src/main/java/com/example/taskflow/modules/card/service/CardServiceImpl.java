@@ -10,11 +10,13 @@ import com.example.taskflow.entity.CardMovement;
 import com.example.taskflow.entity.User;
 import com.example.taskflow.modules.area.Repositories.AreaRepository;
 import com.example.taskflow.modules.card.repositories.CardRepository;
+import com.example.taskflow.modules.card.dto.CardMovementResponse;
 import com.example.taskflow.modules.card.dto.CreateCardRequest;
 import com.example.taskflow.modules.card.dto.MoveCardRequest;
 import com.example.taskflow.modules.card.dto.UpdateCardRequest;
 import com.example.taskflow.modules.card.dto.CardResponse;
 import com.example.taskflow.modules.cardmovement.Repositories.CardMovementRepository;
+import com.example.taskflow.modules.workspace.Repositories.WorkspaceMemberRepository;
 import com.example.taskflow.user.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,17 +31,20 @@ public class CardServiceImpl implements CardService {
     private final AreaRepository areaRepository;
     private final CardMovementRepository cardMovementRepository;
     private final UserRepository userRepository;
+    private final WorkspaceMemberRepository workspaceMemberRepository;
 
     public CardServiceImpl(
             CardRepository cardRepository,
             AreaRepository areaRepository,
             CardMovementRepository cardMovementRepository,
-            UserRepository userRepository
+            UserRepository userRepository,
+            WorkspaceMemberRepository workspaceMemberRepository
     ) {
         this.cardRepository = cardRepository;
         this.areaRepository = areaRepository;
         this.cardMovementRepository = cardMovementRepository;
         this.userRepository = userRepository;
+        this.workspaceMemberRepository = workspaceMemberRepository;
     }
 
     @Override
@@ -146,25 +151,63 @@ public class CardServiceImpl implements CardService {
 
     @Override
     @Transactional
-    public CardResponse moveCard(Long cardId, MoveCardRequest request) {
+    public CardResponse moveCard(Long cardId, MoveCardRequest request, String username) {
+        // 1. Xác thực người dùng
+        if (username == null || username.isBlank() || "anonymousUser".equals(username)) {
+            throw new BusinessException(ErrorCode.ACCESS_DENIED);
+        }
+
+        // 2. Tìm card
         Card card = cardRepository.findById(cardId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.CARD_NOT_FOUND));
 
+        // 3. Lấy Area hiện tại và kiểm tra membership
+        Area fromArea = card.getArea();
+
+        User currentUser = userRepository.findByUsername(username)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+        if (fromArea != null && fromArea.getWorkspace() != null) {
+            Long workspaceId = fromArea.getWorkspace().getId();
+            Long userId = currentUser.getId();
+            boolean isMember = workspaceMemberRepository.existsByWorkspace_IdAndMember_Id(workspaceId, userId);
+            if (!isMember) {
+                throw new BusinessException(ErrorCode.NOT_WORKSPACE_MEMBER);
+            }
+        }
+
+        // 4. Tìm Area đích
         Area targetArea = areaRepository.findById(request.getTargetAreaId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.AREA_NOT_FOUND));
 
-        Area fromArea = card.getArea();
+        // 5. Chặn di chuyển vào chính Area hiện tại
+        if (fromArea != null && fromArea.getId().equals(targetArea.getId())) {
+            throw new BusinessException(ErrorCode.CARD_ALREADY_IN_TARGET_AREA);
+        }
+
+        // 6. Kiểm tra Area đích thuộc cùng Workspace với Area hiện tại
+        if (fromArea != null
+                && fromArea.getWorkspace() != null
+                && targetArea.getWorkspace() != null
+                && !fromArea.getWorkspace().getId().equals(targetArea.getWorkspace().getId())) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR);
+        }
+
+        // 7. Cập nhật Area của Card
         card.setArea(targetArea);
 
         LocalDateTime now = LocalDateTime.now();
         card.setUpdatedAt(now);
 
+        // 9. Xử lý position trong Area đích
+        // Lấy danh sách card hiện có trong Area đích (loại trừ card đang di chuyển nếu có)
         List<Card> targetCards = new java.util.ArrayList<>(
                 cardRepository.findByArea_IdOrderByPositionAsc(targetArea.getId())
         );
         targetCards.removeIf(c -> c.getId().equals(card.getId()));
 
         if (request.getPosition() != null) {
+            // Chèn card vào vị trí yêu cầu rồi renumber toàn bộ
             int insertIndex = Math.max(0, Math.min(request.getPosition().intValue() - 1, targetCards.size()));
             targetCards.add(insertIndex, card);
             for (int i = 0; i < targetCards.size(); i++) {
@@ -172,6 +215,7 @@ public class CardServiceImpl implements CardService {
             }
             cardRepository.saveAll(targetCards);
         } else {
+            // Không có position → đặt card vào cuối
             double nextPos = targetCards.isEmpty()
                     ? 1.0
                     : (targetCards.get(targetCards.size() - 1).getPosition() != null
@@ -182,15 +226,31 @@ public class CardServiceImpl implements CardService {
 
         Card savedCard = cardRepository.save(card);
 
+        // 10. Lưu lịch sử CardMovement (phải thực hiện trong cùng @Transactional)
         CardMovement movement = new CardMovement();
         movement.setCard(savedCard);
         movement.setFromArea(fromArea);
         movement.setToArea(targetArea);
+        movement.setMovedBy(currentUser);
         movement.setMovedAt(now);
         movement.setComment(request.getComment());
         cardMovementRepository.save(movement);
 
         return CardResponse.fromEntity(savedCard);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CardMovementResponse> getCardMovements(Long cardId) {
+        // Kiểm tra card có tồn tại không
+        if (!cardRepository.existsById(cardId)) {
+            throw new BusinessException(ErrorCode.CARD_NOT_FOUND);
+        }
+
+        return cardMovementRepository.findByCard_IdOrderByMovedAtDesc(cardId)
+                .stream()
+                .map(CardMovementResponse::fromEntity)
+                .toList();
     }
 
     @Override
