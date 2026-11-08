@@ -4,8 +4,11 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import Register from "./modules/auth/pages/Register";
 import Login from "./modules/auth/pages/Login";
 import Home from "./shared/components/Home";
+import MainWorkspace from "./modules/workspace/pages/MainWorkspace";
+import WorkspaceDetail from "./modules/workspace/pages/WorkspaceDetail";
 import Logout from "./modules/auth/pages/Logout";
 import BoardPage from "./modules/board/pages/BoardPage";
+import PermissionMatrix from "./modules/permission/pages/PermissionMatrix";
 
 function App() {
   return (
@@ -13,12 +16,16 @@ function App() {
       {/* KHÔNG ĐƯỢC ĐỂ THẺ <Header /> Ở ĐÂY NỮA */}
 
       <Routes>
-        <Route path="/" element={<Navigate to="/board" replace />} />
+        <Route path="/" element={<Navigate to="/home" replace />} />
         <Route path="/home" element={<Home />} />
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/workspace" element={<MainWorkspace />} />
+        <Route path="/workspace/:id" element={<WorkspaceDetail />} />
         <Route path="/logout" element={<Logout />} />
         <Route path="/board" element={<BoardPage />} />
+        <Route path="/board/:workspaceId" element={<BoardPage />} />
+        <Route path="/permissions" element={<PermissionMatrix />} />
       </Routes>
     </>
   );

@@ -1,22 +1,32 @@
 package com.example.taskflow.security;
 
+import com.example.taskflow.common.enums.Role;
+import com.example.taskflow.entity.RolePermission;
 import com.example.taskflow.entity.User;
+import com.example.taskflow.modules.permission.repository.RolePermissionRepository;
 import com.example.taskflow.user.UserRepository;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 
-// cầu nối giữa entity User và Spring Security
 @Service
 public class CustomUserDetailsService implements UserDetailsService {
 
     private final UserRepository userRepository;
+    private final RolePermissionRepository rolePermissionRepository;
 
-    public CustomUserDetailsService(UserRepository userRepository) {
+    public CustomUserDetailsService(
+            UserRepository userRepository,
+            RolePermissionRepository rolePermissionRepository
+    ) {
         this.userRepository = userRepository;
+        this.rolePermissionRepository = rolePermissionRepository;
     }
 
     @Override
@@ -24,10 +34,24 @@ public class CustomUserDetailsService implements UserDetailsService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
 
+        Role role = user.getRole();
+        List<SimpleGrantedAuthority> authorities = new ArrayList<>();
+
+        if (role != null) {
+            // 1. Nạp Role (ROLE_PM, ROLE_LEADER, ROLE_DEV...)
+            authorities.add(new SimpleGrantedAuthority("ROLE_" + role.name()));
+
+            // 2. Nạp toàn bộ Permissions từ Database mà Role này được gán
+            List<RolePermission> rolePermissions = rolePermissionRepository.findByRole(role);
+            for (RolePermission rp : rolePermissions) {
+                authorities.add(new SimpleGrantedAuthority(rp.getPermission().getName()));
+            }
+        }
+
         return new org.springframework.security.core.userdetails.User(
                 user.getUsername(),
                 user.getPassword(),
-                Collections.emptyList()
+                authorities
         );
     }
 }

@@ -6,9 +6,14 @@ import com.example.taskflow.auth.dto.response.LoginResponse;
 import com.example.taskflow.auth.dto.response.RegisterResponse;
 import com.example.taskflow.auth.repository.AuthRepository;
 import com.example.taskflow.common.enums.ErrorCode;
+import com.example.taskflow.common.enums.Role;
 import com.example.taskflow.common.exception.BusinessException;
 import com.example.taskflow.entity.User;
 import com.example.taskflow.security.JwtService;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -18,11 +23,14 @@ public class AuthService implements AuthServiceImpl {
     private final AuthRepository authRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final AuthenticationManager authenticationManager;
 
-    public AuthService(AuthRepository authRepository, PasswordEncoder passwordEncoder, JwtService jwtService) {
+    public AuthService(AuthRepository authRepository, PasswordEncoder passwordEncoder, JwtService jwtService,
+                       AuthenticationManager authenticationManager) {
         this.authRepository = authRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.authenticationManager = authenticationManager;
     }
 
     @Override
@@ -35,6 +43,7 @@ public class AuthService implements AuthServiceImpl {
         User user = new User();
         user.setUsername(request.username());
         user.setPassword(passwordEncoder.encode(request.password()));
+        user.setRole(Role.MEMBER);
 
         User userSaved = authRepository.save(user);
         return new RegisterResponse(user.getId(), userSaved.getUsername());
@@ -42,17 +51,23 @@ public class AuthService implements AuthServiceImpl {
 
     @Override
     public LoginResponse login(LoginRequest request) {
-        if(!authRepository.existsByUsername(request.username())){
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(request.username(), request.password())
+            );
+
+            // Chỉ lọc lấy Authority bắt đầu bằng "ROLE_" để lấy đúng chức danh
+            String role = authentication.getAuthorities().stream()
+                    .map(GrantedAuthority::getAuthority)
+                    .filter(auth -> auth.startsWith("ROLE_"))
+                    .findFirst()
+                    .map(auth -> auth.substring(5)) // Bỏ prefix "ROLE_" -> "PM", "LEADER", "DEV"...
+                    .orElse("MEMBER");
+
+            String token = jwtService.generateToken(authentication.getName(), role);
+            return new LoginResponse(authentication.getName(), role, token);
+        } catch (Exception e) {
             throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
         }
-
-        User userRepo = authRepository.findByUsername(request.username());
-
-        boolean isMatchPassword = passwordEncoder.matches(request.password(), userRepo.getPassword());
-
-        if(isMatchPassword) {
-            return new LoginResponse(request.username(), jwtService.generateToken(request.username()));
-        }
-        throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
     }
 }

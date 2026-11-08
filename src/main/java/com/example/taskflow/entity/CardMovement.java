@@ -18,6 +18,8 @@ public class CardMovement {
 
     private LocalDateTime movedAt;
 
+    private String comment;
+
     @ManyToOne
     @JoinColumn(name = "moved_by")
     private User movedBy;

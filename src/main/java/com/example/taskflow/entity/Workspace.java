@@ -1,3 +1,4 @@
+
 package com.example.taskflow.entity;
 
 import jakarta.persistence.*;
@@ -18,14 +19,18 @@ public class Workspace {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false, length = 150)
     private String name;
+
+    @Column(columnDefinition = "TEXT")
+    private String description;
 
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;
 
-    @ManyToOne
-    @JoinColumn(name = "owner_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "owner_id", nullable = false)
     private User owner;
 
     @OneToMany(mappedBy = "workspace")
@@ -33,5 +38,4 @@ public class Workspace {
 
     @OneToMany(mappedBy = "workspace")
     private List<Area> areaList = new ArrayList<>();
-
 }
