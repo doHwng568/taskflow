@@ -9,6 +9,7 @@ import com.example.taskflow.modules.card.service.CardService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -39,6 +40,8 @@ public class CardController {
                 .body(ApiResponse.success(card, "Get card detail successfully"));
     }
 
+    // PM, LEADER, DEV, TESTER đều có thể tạo Card (Task/Bug). MEMBER chỉ có quyền xem.
+    @PreAuthorize("hasAnyRole('PM', 'LEADER', 'DEV', 'TESTER')")
     @PostMapping
     public ResponseEntity<ApiResponse<CardResponse>> createCard(@Valid @RequestBody CreateCardRequest request) {
         CardResponse createdCard = cardService.createCard(request);
@@ -47,6 +50,8 @@ public class CardController {
                 .body(ApiResponse.success(createdCard, "Create card successfully"));
     }
 
+    // PM, LEADER, DEV, TESTER có quyền cập nhật Card. MEMBER không được sửa.
+    @PreAuthorize("hasAnyRole('PM', 'LEADER', 'DEV', 'TESTER')")
     @PutMapping("/{cardId}")
     public ResponseEntity<ApiResponse<CardResponse>> updateCard(
             @PathVariable Long cardId,
@@ -58,6 +63,8 @@ public class CardController {
                 .body(ApiResponse.success(updatedCard, "Update card successfully"));
     }
 
+    // PM, LEADER, DEV, TESTER có quyền di chuyển (kéo thả) Card. MEMBER không được di chuyển.
+    @PreAuthorize("hasAnyRole('PM', 'LEADER', 'DEV', 'TESTER')")
     @PutMapping("/{cardId}/move")
     public ResponseEntity<ApiResponse<CardResponse>> moveCard(
             @PathVariable Long cardId,
@@ -69,6 +76,8 @@ public class CardController {
                 .body(ApiResponse.success(movedCard, "Move card successfully"));
     }
 
+    // Chỉ PM và LEADER mới có quyền xóa Card. DEV, TESTER, MEMBER không được xóa.
+    @PreAuthorize("hasAnyRole('PM', 'LEADER')")
     @DeleteMapping("/{cardId}")
     public ResponseEntity<ApiResponse<Void>> deleteCard(@PathVariable Long cardId) {
         cardService.deleteCard(cardId);

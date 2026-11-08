@@ -30,18 +30,28 @@ public class JwtService {
         this.EXPIRATION = expiration;
         this.secretKey = Keys.hmacShaKeyFor(this.SECRET.getBytes(StandardCharsets.UTF_8));
     }
-    // generate token from username
-    public String generateToken(String username) {
+    // generate token from username and role
+    public String generateToken(String username, String role) {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime expiry = now.plusMinutes(EXPIRATION);
 
         return Jwts
                 .builder()
                 .subject(username)
+                .claim("role", role)
                 .issuedAt(Date.from(now.atZone(ZoneId.systemDefault()).toInstant()))
                 .expiration(Date.from(expiry.atZone(ZoneId.systemDefault()).toInstant()))
                 .signWith(secretKey)
                 .compact();
+    }
+
+    public String generateToken(String username) {
+        return generateToken(username, "MEMBER");
+    }
+
+    // get role from token
+    public String extractRole(String token) {
+        return parseClaims(token).getPayload().get("role", String.class);
     }
 
     // get username from token

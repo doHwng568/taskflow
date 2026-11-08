@@ -13,6 +13,7 @@ import com.example.taskflow.security.JwtService;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -55,11 +56,16 @@ public class AuthService implements AuthServiceImpl {
                     new UsernamePasswordAuthenticationToken(request.username(), request.password())
             );
 
-            String token = jwtService.generateToken(authentication.getName());
-            return new LoginResponse(authentication.getName(), token);
+            String role = authentication.getAuthorities().stream()
+                    .findFirst()
+                    .map(GrantedAuthority::getAuthority)
+                    .orElse("ROLE_MEMBER")
+                    .replace("ROLE_", "");
+
+            String token = jwtService.generateToken(authentication.getName(), role);
+            return new LoginResponse(authentication.getName(), role, token);
         } catch (Exception e) {
             throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
         }
-
     }
 }

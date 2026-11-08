@@ -8,6 +8,7 @@ import com.example.taskflow.modules.area.service.AreaService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -42,6 +43,8 @@ public class AreaController {
                 .body(ApiResponse.success(areas, "Get areas by workspace successfully"));
     }
 
+    // Chỉ PM và LEADER mới được tạo cột Kanban mới
+    @PreAuthorize("hasAnyRole('PM', 'LEADER')")
     @PostMapping
     public ResponseEntity<ApiResponse<AreaResponse>> createArea(
             @Valid @RequestBody CreateAreaRequest request
@@ -52,6 +55,8 @@ public class AreaController {
                 .body(ApiResponse.success(createdArea, "Create area successfully"));
     }
 
+    // Chỉ PM và LEADER mới được cập nhật cột Kanban (đổi tên, vị trí)
+    @PreAuthorize("hasAnyRole('PM', 'LEADER')")
     @PutMapping("/{areaId}")
     public ResponseEntity<ApiResponse<AreaResponse>> updateArea(
             @PathVariable Long areaId,
@@ -63,6 +68,8 @@ public class AreaController {
                 .body(ApiResponse.success(updatedArea, "Update area successfully"));
     }
 
+    // Chỉ PM mới có quyền xóa cột Kanban (để tránh mất mát card dữ liệu)
+    @PreAuthorize("hasRole('PM')")
     @DeleteMapping("/{areaId}")
     public ResponseEntity<ApiResponse<Void>> deleteArea(@PathVariable Long areaId) {
         areaService.deleteArea(areaId);

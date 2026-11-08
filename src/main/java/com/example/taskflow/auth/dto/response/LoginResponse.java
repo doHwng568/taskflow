@@ -1,4 +1,4 @@
 package com.example.taskflow.auth.dto.response;
 
-public record LoginResponse(String username, String accessToken) {
+public record LoginResponse(String username, String role, String accessToken) {
 }
