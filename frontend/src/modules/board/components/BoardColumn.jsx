@@ -9,9 +9,9 @@ const AREA_DRAG_TYPE = 'application/x-area-id';
 const isAreaDrag = (event) =>
   Array.from(event.dataTransfer.types).includes(AREA_DRAG_TYPE);
 
-export default function BoardColumn({ column, onUpdateTitle, onDeleteList, onCreateCard,
+export default function BoardColumn({ column, columnIndex = 0, totalColumns = 1, onUpdateTitle, onDeleteList, onCreateCard,
   onOpenCard, onEditCard, onMoveCard, onToggleCardComplete,
-  onArchiveList, onChangeColor, onMoveArea,
+  onArchiveList, onChangeColor, onMoveArea, onMoveListPosition,
   workspaceId, onTogglePin, onCopyList, onMoveToWorkspace,
   draggingAreaId, onAreaDragStart, onAreaDragEnd, }) {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -119,6 +119,8 @@ export default function BoardColumn({ column, onUpdateTitle, onDeleteList, onCre
     setShowMenu(false);
   };
 
+  const visibleCards = (column.cards || []).filter((card) => !card.archived);
+
   return (
     <section
       ref={sectionRef}
@@ -164,7 +166,7 @@ export default function BoardColumn({ column, onUpdateTitle, onDeleteList, onCre
           {column.pinned && (
             <span className="board-column-pin-badge" title="Đã ghim" aria-label="Đã ghim">📌</span>
           )}
-          <span className="board-card-count">{column.cards.length}</span>
+          <span className="board-card-count">{visibleCards.length}</span>
           <button
             onClick={() => setShowMenu((isOpen) => !isOpen)}
             className="board-column-menu-button"
@@ -192,6 +194,12 @@ export default function BoardColumn({ column, onUpdateTitle, onDeleteList, onCre
             onCopyList(column.id);
           }}
           currentWorkspaceId={workspaceId}
+          totalColumns={totalColumns}
+          currentPosition={columnIndex + 1}
+          onMovePosition={(targetPosition) => {
+            setShowMenu(false);
+            onMoveListPosition?.(column.id, targetPosition);
+          }}
           onMoveToWorkspace={(workspace) => {
             setShowMenu(false);
             if (window.confirm(`Chuyển danh sách "${column.title}" (kèm ${column.cards.length} thẻ) sang workspace "${workspace.name}"?`)) {
@@ -219,7 +227,7 @@ export default function BoardColumn({ column, onUpdateTitle, onDeleteList, onCre
       )}
 
       <div className="board-column-cards">
-        {column.cards.map((card) => (
+        {visibleCards.map((card) => (
           <CardItem
             key={card.id}
             card={card}

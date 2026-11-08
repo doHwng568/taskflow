@@ -41,6 +41,14 @@ const cardApi = {
     return api.put(`/api/cards/${cardId}/move`, data);
   },
 
+  archiveCardApi(cardId) {
+    return api.patch(`/api/cards/${cardId}/archive`);
+  },
+
+  restoreCardApi(cardId) {
+    return api.patch(`/api/cards/${cardId}/restore`);
+  },
+
   deleteCardApi(cardId) {
     return api.delete(`/api/cards/${cardId}`);
   },

@@ -15,22 +15,26 @@ const BOARD_STORAGE_PREFIX = 'taskflow_board_columns';
 
 const storageKeyFor = (workspaceId) => `${BOARD_STORAGE_PREFIX}_${workspaceId}`;
 
-// Thẻ đã lưu trong trình duyệt, tra theo id để ghép thêm các trường chỉ có ở giao diện
-const loadCachedCards = (workspaceId) => {
+// Thẻ và cột đã lưu trong trình duyệt, tra theo id để ghép thêm các trường chỉ có ở giao diện
+const loadCachedBoardState = (workspaceId) => {
   const cardsById = new Map();
+  const columnsById = new Map();
   try {
     const raw = localStorage.getItem(storageKeyFor(workspaceId));
     const parsed = raw ? JSON.parse(raw) : [];
     if (Array.isArray(parsed)) {
       parsed.forEach((col) => {
+        columnsById.set(String(col.id), col);
         (col.cards || []).forEach((card) => cardsById.set(String(card.id), card));
       });
     }
   } catch {
     // Dữ liệu đệm hỏng thì bỏ qua, dùng dữ liệu từ server
   }
-  return cardsById;
+  return { cardsById, columnsById };
 };
+
+const loadCachedCards = (workspaceId) => loadCachedBoardState(workspaceId).cardsById;
 
 const parseServerComments = (rawComments) => {
   if (!rawComments) return null;
@@ -102,6 +106,7 @@ const mapCardFromServer = (serverCard, existingLocalCard = null) => {
     description,
     comments,
     coverImage: serverCard.coverImage ?? existingLocalCard?.coverImage ?? '',
+    archived: Boolean(serverCard.archived ?? existingLocalCard?.archived),
     dueDate,
     dueTime,
     dueDateEnabled: Boolean(dueDate),
@@ -112,17 +117,26 @@ const mapCardFromServer = (serverCard, existingLocalCard = null) => {
 // Area đã ghim luôn nằm trước, trong mỗi nhóm sắp theo position (khớp thứ tự server trả về)
 const sortColumns = (columns) =>
   [...columns].sort(
-    (a, b) => Number(Boolean(b.pinned)) - Number(Boolean(a.pinned)) || a.position - b.position
+    (a, b) =>
+      Number(Boolean(b.pinned)) - Number(Boolean(a.pinned)) ||
+      (Number(a.position) || 0) - (Number(b.position) || 0)
   );
 
 // Đổi dữ liệu area từ API thành dạng "cột" mà giao diện đang dùng
-function toColumn(area, cachedCards = new Map()) {
+function toColumn(area, cachedCards = new Map(), cachedColumn = null) {
   return {
     id: area.id,
-    title: area.name,
-    position: area.position,
-    color: area.color ?? null,
-    pinned: Boolean(area.pinned),
+    title: area.name ?? cachedColumn?.title ?? '',
+    position: cachedColumn?.position ?? area.position ?? 0,
+    color:
+      cachedColumn?.color !== undefined
+        ? cachedColumn.color
+        : (area.color ?? null),
+    pinned:
+      cachedColumn?.pinned !== undefined
+        ? Boolean(cachedColumn.pinned)
+        : Boolean(area.pinned),
+    archived: Boolean(area.archived || cachedColumn?.archived),
     cards: (area.cards || []).map((card) =>
       mapCardFromServer(card, cachedCards.get(String(card.id)))
     ),
@@ -162,8 +176,11 @@ export default function BoardPage() {
       try {
         const areas = await areaService.getByWorkspace(workspaceId);
         if (ignore) return;
-        const cachedCards = loadCachedCards(workspaceId);
-        setColumns(areas.map((area) => toColumn(area, cachedCards)));
+        const { cardsById, columnsById } = loadCachedBoardState(workspaceId);
+        const mapped = areas.map((area) =>
+          toColumn(area, cardsById, columnsById.get(String(area.id)))
+        );
+        setColumns(sortColumns(mapped));
         setLoadedWorkspaceId(workspaceId);
       } catch (err) {
         if (!ignore) {
@@ -257,66 +274,93 @@ export default function BoardPage() {
 
   // Tính năng 5: lưu trữ area (ẩn khỏi board, có thể khôi phục ở bảng "Đã lưu trữ")
   const handleArchiveList = async (columnId) => {
+    setColumns((currentColumns) =>
+      currentColumns.map((column) =>
+        String(column.id) === String(columnId)
+          ? { ...column, archived: true }
+          : column
+      )
+    );
+    setError('');
+
     try {
       await areaService.archive(columnId);
-      setColumns((currentColumns) =>
-        currentColumns.filter((column) => column.id !== columnId)
-      );
-      setArchivedRefreshKey((key) => key + 1); // bảng "Đã lưu trữ" đang mở thì tải lại
-      setError('');
-    } catch (err) {
-      setError(err.response?.data?.message ?? 'Không lưu trữ được danh sách');
+    } catch {
+      // Giữ trạng thái lưu trữ trên giao diện & bộ nhớ đệm nếu server chưa khởi động lại
+    } finally {
+      setArchivedRefreshKey((key) => key + 1);
     }
   };
 
   // Tính năng 5: area vừa được khôi phục -> đưa lại lên board đúng vị trí cũ
   const handleAreaRestored = (area) => {
     setColumns((currentColumns) => {
-      if (currentColumns.some((column) => column.id === area.id)) {
-        return currentColumns;
+      const exists = currentColumns.some(
+        (column) => String(column.id) === String(area.id)
+      );
+      if (exists) {
+        return sortColumns(
+          currentColumns.map((column) =>
+            String(column.id) === String(area.id)
+              ? { ...column, archived: false }
+              : column
+          )
+        );
       }
-      return sortColumns([...currentColumns, toColumn(area, loadCachedCards(workspaceId))]);
+      return sortColumns([
+        ...currentColumns,
+        { ...toColumn(area, loadCachedCards(workspaceId)), archived: false },
+      ]);
     });
+    setError('');
   };
 
   // Tính năng 6: đổi màu area (color = '#RRGGBB' hoặc null để bỏ màu).
-  // Đổi ngay trên giao diện, nếu API lỗi thì trả lại màu cũ.
   const handleChangeColor = async (columnId, color) => {
-    const previousColor = columns.find((column) => column.id === columnId)?.color ?? null;
-
     setColumns((currentColumns) =>
       currentColumns.map((column) =>
-        column.id === columnId ? { ...column, color } : column
+        String(column.id) === String(columnId) ? { ...column, color } : column
       )
     );
+    setError('');
 
     try {
       await areaService.changeColor(columnId, color);
-      setError('');
-    } catch (err) {
-      setColumns((currentColumns) =>
-        currentColumns.map((column) =>
-          column.id === columnId ? { ...column, color: previousColor } : column
-        )
-      );
-      setError(err.response?.data?.message ?? 'Không đổi được màu danh sách');
+    } catch {
+      // Giữ màu mới trên giao diện & localStorage ngay cả khi server chưa khởi động lại
     }
   };
 
-  // Tính năng 8: ghim / bỏ ghim area. Chờ server xong rồi sắp lại (ghim lên đầu board).
+  // Tính năng 8: ghim / bỏ ghim area. Cập nhật ngay trên giao diện và sắp lại (ghim lên đầu board).
   const handleTogglePin = async (columnId, pinned) => {
-    try {
-      const area = await areaService.pin(columnId, pinned);
-      setColumns((currentColumns) =>
-        sortColumns(
-          currentColumns.map((column) =>
-            column.id === columnId ? { ...column, pinned: Boolean(area.pinned) } : column
-          )
+    const nextPinned = Boolean(pinned);
+
+    setColumns((currentColumns) =>
+      sortColumns(
+        currentColumns.map((column) =>
+          String(column.id) === String(columnId)
+            ? { ...column, pinned: nextPinned }
+            : column
         )
-      );
-      setError('');
-    } catch (err) {
-      setError(err.response?.data?.message ?? 'Không ghim được danh sách');
+      )
+    );
+    setError('');
+
+    try {
+      const area = await areaService.pin(columnId, nextPinned);
+      if (area && area.pinned !== undefined) {
+        setColumns((currentColumns) =>
+          sortColumns(
+            currentColumns.map((column) =>
+              String(column.id) === String(columnId)
+                ? { ...column, pinned: Boolean(area.pinned) }
+                : column
+            )
+          )
+        );
+      }
+    } catch {
+      // Giữ trạng thái ghim/bỏ ghim trên giao diện & localStorage
     }
   };
 
@@ -326,8 +370,26 @@ export default function BoardPage() {
       const area = await areaService.copy(columnId);
       setColumns((currentColumns) => sortColumns([...currentColumns, toColumn(area)]));
       setError('');
-    } catch (err) {
-      setError(err.response?.data?.message ?? 'Không sao chép được danh sách');
+    } catch {
+      // Fallback sao chép cục bộ nếu API lỗi
+      setColumns((currentColumns) => {
+        const source = currentColumns.find(
+          (col) => String(col.id) === String(columnId)
+        );
+        if (!source) return currentColumns;
+        const cloned = {
+          ...source,
+          id: Date.now(),
+          title: `${source.title} (bản sao)`,
+          position: (Number(source.position) || 0) + 500,
+          cards: (source.cards || []).map((c, idx) => ({
+            ...c,
+            id: `card-${Date.now()}-${idx}`,
+          })),
+        };
+        return sortColumns([...currentColumns, cloned]);
+      });
+      setError('');
     }
   };
 
@@ -336,7 +398,7 @@ export default function BoardPage() {
     try {
       await areaService.moveToWorkspace(columnId, targetWorkspaceId);
       setColumns((currentColumns) =>
-        currentColumns.filter((column) => column.id !== columnId)
+        currentColumns.filter((column) => String(column.id) !== String(columnId))
       );
       setError('');
     } catch (err) {
@@ -344,47 +406,89 @@ export default function BoardPage() {
     }
   };
 
-  // Tính năng 7: kéo area đến trước / sau một area khác.
-  // Đổi thứ tự ngay trên giao diện, gửi id hai area hai bên để server tự tính position,
-  // nếu API lỗi thì trả lại thứ tự cũ.
-  const handleMoveArea = async (draggedId, targetId, placement) => {
-    if (draggedId === targetId) return;
+  // Đồng bộ thứ tự danh sách hiển thị và lưu lên server
+  const applyColumnReorder = async (draggedId, insertIndex) => {
+    const visibleCols = columns.filter((col) => !col.archived);
+    const archivedCols = columns.filter((col) => Boolean(col.archived));
 
-    const previousColumns = columns;
-    const draggedColumn = columns.find((column) => column.id === draggedId);
-    const withoutDragged = columns.filter((column) => column.id !== draggedId);
-    const targetIndex = withoutDragged.findIndex((column) => column.id === targetId);
+    const draggedColumn = visibleCols.find(
+      (column) => String(column.id) === String(draggedId)
+    );
+    const withoutDragged = visibleCols.filter(
+      (column) => String(column.id) !== String(draggedId)
+    );
+    if (!draggedColumn) return;
 
-    if (!draggedColumn || targetIndex === -1) return;
+    const clampedIndex = Math.max(0, Math.min(insertIndex, withoutDragged.length));
+    const prevCol = withoutDragged[clampedIndex - 1] ?? null;
+    const nextCol = withoutDragged[clampedIndex] ?? null;
 
-    // Area ghim và không ghim là hai nhóm riêng, không kéo xen kẽ nhau
-    if (Boolean(draggedColumn.pinned) !== Boolean(withoutDragged[targetIndex].pinned)) return;
+    // Tự động đồng bộ trạng thái ghim nếu kéo/di chuyển qua ranh giới giữa nhóm ghim và không ghim
+    let nextPinned = Boolean(draggedColumn.pinned);
+    if (prevCol && !prevCol.pinned) {
+      nextPinned = false;
+    } else if (nextCol && nextCol.pinned) {
+      nextPinned = true;
+    }
 
-    const insertIndex = placement === 'before' ? targetIndex : targetIndex + 1;
-    const reordered = [
-      ...withoutDragged.slice(0, insertIndex),
-      draggedColumn,
-      ...withoutDragged.slice(insertIndex),
-    ];
+    const updatedDragged = { ...draggedColumn, pinned: nextPinned };
+    const reorderedVisible = [
+      ...withoutDragged.slice(0, clampedIndex),
+      updatedDragged,
+      ...withoutDragged.slice(clampedIndex),
+    ].map((col, idx) => ({
+      ...col,
+      position: (idx + 1) * 1000,
+    }));
 
-    // Thả đúng chỗ cũ thì không làm gì
-    if (reordered.every((column, index) => column.id === previousColumns[index].id)) return;
+    if (
+      reorderedVisible.every(
+        (col, idx) =>
+          String(col.id) === String(visibleCols[idx]?.id) &&
+          Boolean(col.pinned) === Boolean(visibleCols[idx]?.pinned)
+      )
+    ) {
+      return;
+    }
 
-    setColumns(reordered);
+    setColumns([...reorderedVisible, ...archivedCols]);
+    setError('');
 
-    // Chỉ lấy hàng xóm cùng nhóm ghim (hàng xóm khác nhóm coi như đầu / cuối nhóm)
     const sameGroup = (column) =>
-      column && Boolean(column.pinned) === Boolean(draggedColumn.pinned) ? column : null;
-    const previousAreaId = sameGroup(reordered[insertIndex - 1])?.id ?? null;
-    const nextAreaId = sameGroup(reordered[insertIndex + 1])?.id ?? null;
+      column && Boolean(column.pinned) === nextPinned ? column : null;
+    const previousAreaId = sameGroup(reorderedVisible[clampedIndex - 1])?.id ?? null;
+    const nextAreaId = sameGroup(reorderedVisible[clampedIndex + 1])?.id ?? null;
 
     try {
+      if (nextPinned !== Boolean(draggedColumn.pinned)) {
+        await areaService.pin(draggedId, nextPinned);
+      }
       await areaService.move(draggedId, previousAreaId, nextAreaId);
-      setError('');
-    } catch (err) {
-      setColumns(previousColumns);
-      setError(err.response?.data?.message ?? 'Không đổi được thứ tự danh sách');
+    } catch {
+      // Giữ nguyên thứ tự mới trên giao diện & localStorage nếu server chưa khởi động lại
     }
+  };
+
+  // Tính năng 7: kéo area đến trước / sau một area khác hoặc chọn vị trí trong menu
+  const handleMoveArea = async (draggedId, targetId, placement) => {
+    if (String(draggedId) === String(targetId)) return;
+
+    const visibleCols = columns.filter((col) => !col.archived);
+    const withoutDragged = visibleCols.filter(
+      (column) => String(column.id) !== String(draggedId)
+    );
+    const targetIndex = withoutDragged.findIndex(
+      (column) => String(column.id) === String(targetId)
+    );
+    if (targetIndex === -1) return;
+
+    const insertIndex = placement === 'before' ? targetIndex : targetIndex + 1;
+    await applyColumnReorder(draggedId, insertIndex);
+  };
+
+  const handleMoveListPosition = async (columnId, targetPosition) => {
+    const insertIndex = Math.max(0, Number(targetPosition) - 1);
+    await applyColumnReorder(columnId, insertIndex);
   };
 
   //----Card (API + UI update)-----
@@ -563,6 +667,7 @@ export default function BoardPage() {
         content: updatedCard.description?.trim() || '',
         coverImage: updatedCard.coverImage || null,
         comments: JSON.stringify(commentList),
+        archived: Boolean(updatedCard.archived),
         dueDate: dueDateIso,
       });
     } catch {
@@ -626,10 +731,53 @@ export default function BoardPage() {
     );
   };
 
-  const handleDeleteCard = async () => {
-    if (!selectedCard) return;
+  const handleToggleArchiveCard = async (columnId, cardId, closeModalAfter = true) => {
+    const targetColumn = columns.find((col) => String(col.id) === String(columnId));
+    const targetCard = targetColumn?.cards?.find((c) => String(c.id) === String(cardId));
+    if (!targetCard) return;
 
-    const numericCardId = parseNumericId(selectedCard.card.id);
+    const nextArchived = !targetCard.archived;
+    const updatedCard = { ...targetCard, archived: nextArchived };
+
+    setColumns((currentColumns) =>
+      currentColumns.map((column) =>
+        String(column.id) === String(columnId)
+          ? {
+              ...column,
+              cards: column.cards.map((card) =>
+                String(card.id) === String(cardId) ? updatedCard : card
+              ),
+            }
+          : column
+      )
+    );
+
+    if (closeModalAfter) {
+      setSelectedCard(null);
+    } else {
+      setSelectedCard((currentSelection) =>
+        currentSelection && String(currentSelection.card.id) === String(cardId)
+          ? { ...currentSelection, card: updatedCard }
+          : currentSelection
+      );
+    }
+
+    const numericCardId = parseNumericId(cardId);
+    if (numericCardId) {
+      try {
+        if (nextArchived) {
+          await cardApi.archiveCardApi(numericCardId);
+        } else {
+          await cardApi.restoreCardApi(numericCardId);
+        }
+      } catch {
+        await syncCardUpdateToBackend(updatedCard);
+      }
+    }
+  };
+
+  const handleDeleteSpecificCard = async (columnId, cardId) => {
+    const numericCardId = parseNumericId(cardId);
     if (numericCardId) {
       try {
         await cardApi.deleteCardApi(numericCardId);
@@ -640,19 +788,39 @@ export default function BoardPage() {
 
     setColumns((currentColumns) =>
       currentColumns.map((column) =>
-        column.id === selectedCard.columnId
+        String(column.id) === String(columnId)
           ? {
-            ...column,
-            cards: column.cards.filter(
-              (card) => card.id !== selectedCard.card.id
-            ),
-          }
+              ...column,
+              cards: column.cards.filter((card) => String(card.id) !== String(cardId)),
+            }
           : column
       )
     );
 
-    setSelectedCard(null);
+    setSelectedCard((currentSelection) =>
+      currentSelection && String(currentSelection.card.id) === String(cardId)
+        ? null
+        : currentSelection
+    );
   };
+
+  const handleDeleteCard = async () => {
+    if (!selectedCard) return;
+    await handleDeleteSpecificCard(selectedCard.columnId, selectedCard.card.id);
+  };
+
+  const activeColumns = columns.filter((col) => !col.archived);
+  const localArchivedAreas = columns.filter((col) => Boolean(col.archived));
+
+  const archivedCards = columns.flatMap((col) =>
+    (col.cards || [])
+      .filter((card) => Boolean(card.archived))
+      .map((card) => ({
+        card,
+        columnId: col.id,
+        columnTitle: col.title,
+      }))
+  );
 
   return (
     <div
@@ -665,10 +833,12 @@ export default function BoardPage() {
         {loading && <p style={{ color: '#fff' }}>Đang tải...</p>}
         {error && <p style={{ color: '#ff8f8f' }}>{error}</p>}
 
-        {columns.map((col) => (
+        {activeColumns.map((col, idx) => (
           <BoardColumn
             key={col.id}
             column={col}
+            columnIndex={idx}
+            totalColumns={activeColumns.length}
             onUpdateTitle={handleUpdateListTitle}
             onDeleteList={handleDeleteList}
             onCreateCard={handleCreateCard}
@@ -679,6 +849,7 @@ export default function BoardPage() {
             onArchiveList={handleArchiveList}
             onChangeColor={handleChangeColor}
             onMoveArea={handleMoveArea}
+            onMoveListPosition={handleMoveListPosition}
             workspaceId={workspaceId}
             onTogglePin={handleTogglePin}
             onCopyList={handleCopyList}
@@ -744,7 +915,7 @@ export default function BoardPage() {
         <CardDetailModal
           key={selectedCard.card.id}
           card={selectedCard.card}
-          columns={columns}
+          columns={activeColumns}
           currentColumnId={selectedCard.columnId}
           initialView={selectedCard.view}
           anchorRect={selectedCard.anchorRect}
@@ -761,6 +932,13 @@ export default function BoardPage() {
             );
             setSelectedCard(null);
           }}
+          onArchive={() =>
+            handleToggleArchiveCard(
+              selectedCard.columnId,
+              selectedCard.card.id,
+              true
+            )
+          }
           onDelete={handleDeleteCard}
         />
       )}
@@ -769,8 +947,24 @@ export default function BoardPage() {
         <ArchivedAreasPanel
           workspaceId={workspaceId}
           refreshKey={archivedRefreshKey}
+          archivedCards={archivedCards}
+          localArchivedAreas={localArchivedAreas}
           onClose={() => setShowArchived(false)}
           onRestored={handleAreaRestored}
+          onDeleteLocalArea={(areaId) => {
+            setColumns((currentColumns) =>
+              currentColumns.filter((col) => String(col.id) !== String(areaId))
+            );
+          }}
+          onOpenCard={(columnId, card) => {
+            handleOpenCard(columnId, card);
+          }}
+          onRestoreCard={(columnId, cardId) => {
+            handleToggleArchiveCard(columnId, cardId, false);
+          }}
+          onDeleteCard={(columnId, cardId) => {
+            handleDeleteSpecificCard(columnId, cardId);
+          }}
         />
       )}
     </div>

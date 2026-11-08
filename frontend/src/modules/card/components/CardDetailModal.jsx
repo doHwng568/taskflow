@@ -236,6 +236,26 @@ function CoverImageIcon() {
   );
 }
 
+function ArchiveIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <rect x="2" y="4" width="20" height="5" rx="1" />
+      <path d="M4 9v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9" />
+      <line x1="10" y1="13" x2="14" y2="13" />
+    </svg>
+  );
+}
+
 const readImageFileAsDataUrl = (file) =>
   new Promise((resolve, reject) => {
     if (!file || !file.type.startsWith('image/')) {
@@ -680,6 +700,7 @@ export default function CardDetailModal({
   onSave,
   onUpdateCard,
   onMoveCard,
+  onArchive,
   onDelete,
 }) {
   const [activePanel, setActivePanel] = useState(initialView);
@@ -1256,6 +1277,11 @@ export default function CardDetailModal({
                   </div>
                 )}
               </div>
+              {onArchive && (
+                <button type="button" onClick={onArchive}>
+                  <ArchiveIcon /> {card.archived ? 'Bỏ lưu trữ' : 'Lưu trữ'}
+                </button>
+              )}
               <button type="button" onClick={onDelete}>
                 <TrashIcon /> Xóa thẻ
               </button>
@@ -1289,6 +1315,22 @@ export default function CardDetailModal({
             {activePanel === 'details' && (
               <div className="card-detail-layout">
                 <div className="card-modal-body card-detail-main">
+                  {card.archived && (
+                    <div className="card-detail-archived-banner">
+                      <span className="card-detail-archived-text">
+                        <ArchiveIcon /> Thẻ này đã được lưu trữ.
+                      </span>
+                      {onArchive && (
+                        <button
+                          type="button"
+                          className="card-detail-unarchive-btn"
+                          onClick={onArchive}
+                        >
+                          Bỏ lưu trữ
+                        </button>
+                      )}
+                    </div>
+                  )}
                   {coverImage && (
                     <div
                       className={`card-detail-cover-banner ${isColorCover(coverImage) ? 'is-color' : ''}`}
@@ -1544,9 +1586,20 @@ export default function CardDetailModal({
                   />
 
                   <footer className="card-modal-footer">
-                    <button type="button" className="card-delete-button" onClick={onDelete}>
-                      <TrashIcon /> Xóa thẻ
-                    </button>
+                    <div className="card-modal-footer-left">
+                      {onArchive && (
+                        <button
+                          type="button"
+                          className="card-archive-button"
+                          onClick={onArchive}
+                        >
+                          <ArchiveIcon /> {card.archived ? 'Bỏ lưu trữ' : 'Lưu trữ'}
+                        </button>
+                      )}
+                      <button type="button" className="card-delete-button" onClick={onDelete}>
+                        <TrashIcon /> Xóa thẻ
+                      </button>
+                    </div>
                     <div className="card-modal-footer-right">
                       <button type="button" className="card-cancel-button" onClick={onClose}>
                         Hủy
