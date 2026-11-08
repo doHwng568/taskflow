@@ -56,11 +56,13 @@ public class AuthService implements AuthServiceImpl {
                     new UsernamePasswordAuthenticationToken(request.username(), request.password())
             );
 
+            // Chỉ lọc lấy Authority bắt đầu bằng "ROLE_" để lấy đúng chức danh
             String role = authentication.getAuthorities().stream()
-                    .findFirst()
                     .map(GrantedAuthority::getAuthority)
-                    .orElse("ROLE_MEMBER")
-                    .replace("ROLE_", "");
+                    .filter(auth -> auth.startsWith("ROLE_"))
+                    .findFirst()
+                    .map(auth -> auth.substring(5)) // Bỏ prefix "ROLE_" -> "PM", "LEADER", "DEV"...
+                    .orElse("MEMBER");
 
             String token = jwtService.generateToken(authentication.getName(), role);
             return new LoginResponse(authentication.getName(), role, token);

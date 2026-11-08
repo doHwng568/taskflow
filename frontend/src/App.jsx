@@ -8,6 +8,7 @@ import MainWorkspace from "./modules/workspace/pages/MainWorkspace";
 import WorkspaceDetail from "./modules/workspace/pages/WorkspaceDetail";
 import Logout from "./modules/auth/pages/Logout";
 import BoardPage from "./modules/board/pages/BoardPage";
+import PermissionMatrix from "./modules/permission/pages/PermissionMatrix";
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
         <Route path="/workspace/:id" element={<WorkspaceDetail />} />
         <Route path="/logout" element={<Logout />} />
         <Route path="/board" element={<BoardPage />} />
+        <Route path="/permissions" element={<PermissionMatrix />} />
       </Routes>
     </>
   );

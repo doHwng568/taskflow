@@ -9,20 +9,21 @@ function getInitialAuth() {
   const token = localStorage.getItem('accessToken');
   if (token) {
     try {
-      const { sub, exp } = jwtDecode(token);
+      const { sub, exp, role } = jwtDecode(token);
       if (exp > Date.now() / 1000) {
-        return { isLogged: true, username: sub || '' };
+        const cleanRole = role ? (role.startsWith('ROLE_') ? role.substring(5) : role) : '';
+        return { isLogged: true, username: sub || '', role: cleanRole };
       }
       localStorage.removeItem('accessToken');
     } catch {
       localStorage.removeItem('accessToken');
     }
   }
-  return { isLogged: false, username: '' };
+  return { isLogged: false, username: '', role: '' };
 }
 
 function Header() {
-  const [{ isLogged, username }] = useState(getInitialAuth);
+  const [{ isLogged, username, role }] = useState(getInitialAuth);
 
   return (
     <Navbar expand="lg" className="bg-white border-bottom shadow-sm py-2">
@@ -45,8 +46,13 @@ function Header() {
             ) : (
               <>
                 <span className="navbar-text me-2 text-muted">
-                  Hello, <strong className="text-dark">{username}</strong>
+                  Hello, <strong className="text-dark">{username}</strong> {role && <span className="badge bg-secondary ms-1">{role}</span>}
                 </span>
+                {role === 'PM' && (
+                  <Nav.Link as={Link} to="/permissions" className="btn btn-outline-primary btn-sm px-3">
+                    Phân quyền
+                  </Nav.Link>
+                )}
                 <Nav.Link as={Link} to="/logout" className="btn btn-outline-danger btn-sm px-3">
                   Logout
                 </Nav.Link>
