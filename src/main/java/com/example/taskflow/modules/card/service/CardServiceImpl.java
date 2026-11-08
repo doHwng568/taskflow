@@ -118,6 +118,9 @@ public class CardServiceImpl implements CardService {
         if (request.getComments() != null) {
             card.setComments(request.getComments());
         }
+        if (request.getArchived() != null) {
+            card.setArchived(request.getArchived());
+        }
         if (request.getPosition() != null) {
             card.setPosition(request.getPosition());
         }
@@ -188,6 +191,26 @@ public class CardServiceImpl implements CardService {
         cardMovementRepository.save(movement);
 
         return CardResponse.fromEntity(savedCard);
+    }
+
+    @Override
+    @Transactional
+    public CardResponse archiveCard(Long cardId) {
+        Card card = cardRepository.findById(cardId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.CARD_NOT_FOUND));
+        card.setArchived(true);
+        card.setUpdatedAt(LocalDateTime.now());
+        return CardResponse.fromEntity(cardRepository.save(card));
+    }
+
+    @Override
+    @Transactional
+    public CardResponse restoreCard(Long cardId) {
+        Card card = cardRepository.findById(cardId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.CARD_NOT_FOUND));
+        card.setArchived(false);
+        card.setUpdatedAt(LocalDateTime.now());
+        return CardResponse.fromEntity(cardRepository.save(card));
     }
 
     @Override

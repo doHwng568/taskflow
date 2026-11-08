@@ -1,6 +1,5 @@
 package com.example.taskflow.config;
 
-import com.example.taskflow.entity.User;
 import com.example.taskflow.security.CustomUserDetailsService;
 import com.example.taskflow.security.JwtAuthenticationFilter;
 import com.example.taskflow.security.JwtService;
@@ -48,7 +47,9 @@ public class SecurityConfig {
                                 "/api/users",
                                 "/api/cards/**",
                                 "/api/areas/**",
-                                "/workspaces/**"
+                                "/areas/**",
+                                "/workspaces/**",
+                                "/api/workspaces/**"
                         ).permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .anyRequest().authenticated())

@@ -58,7 +58,7 @@ public class WorkspaceController {
     ) {
         List<WorkspaceResponse> response =
                 workspaceService.getMyWorkspaces(
-                        authentication.getName()
+                        authentication != null ? authentication.getName() : null
                 );
 
         return ResponseEntity.ok(

@@ -32,6 +32,9 @@ public class Card {
     @Column(name = "comments", columnDefinition = "LONGTEXT")
     private String comments;
 
+    @Column(nullable = false)
+    private boolean archived = false;
+
     private Double position;
 
     @Enumerated(EnumType.STRING)

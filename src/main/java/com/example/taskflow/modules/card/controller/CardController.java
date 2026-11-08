@@ -69,6 +69,22 @@ public class CardController {
                 .body(ApiResponse.success(movedCard, "Move card successfully"));
     }
 
+    @PatchMapping("/{cardId}/archive")
+    public ResponseEntity<ApiResponse<CardResponse>> archiveCard(@PathVariable Long cardId) {
+        CardResponse archivedCard = cardService.archiveCard(cardId);
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(ApiResponse.success(archivedCard, "Archive card successfully"));
+    }
+
+    @PatchMapping("/{cardId}/restore")
+    public ResponseEntity<ApiResponse<CardResponse>> restoreCard(@PathVariable Long cardId) {
+        CardResponse restoredCard = cardService.restoreCard(cardId);
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(ApiResponse.success(restoredCard, "Restore card successfully"));
+    }
+
     @DeleteMapping("/{cardId}")
     public ResponseEntity<ApiResponse<Void>> deleteCard(@PathVariable Long cardId) {
         cardService.deleteCard(cardId);

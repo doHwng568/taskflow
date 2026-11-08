@@ -19,5 +19,9 @@ public interface CardService {
 
     CardResponse moveCard(Long cardId, MoveCardRequest request);
 
+    CardResponse archiveCard(Long cardId);
+
+    CardResponse restoreCard(Long cardId);
+
     void deleteCard(Long cardId);
 }
