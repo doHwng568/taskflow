@@ -51,6 +51,9 @@ public enum ErrorCode {
     ),
     // Area
     AREA_NOT_FOUND("AREA_001", "Area not found", HttpStatus.NOT_FOUND),
+    AREA_INVALID_POSITION("AREA_002", "Invalid area position", HttpStatus.BAD_REQUEST),
+    AREA_SAME_WORKSPACE("AREA_003", "Area is already in the target workspace", HttpStatus.BAD_REQUEST),
+    AREA_NO_WORKSPACE("AREA_004", "Area does not belong to any workspace", HttpStatus.BAD_REQUEST),
 
     // Card
     CARD_NOT_FOUND("CARD_001", "Card not found", HttpStatus.NOT_FOUND),

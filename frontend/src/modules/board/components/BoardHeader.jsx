@@ -1,4 +1,4 @@
-export default function BoardHeader() {
+export default function BoardHeader({ onOpenArchived }) {
   return (
     <header className="board-header">
       <div className="board-header-left">
@@ -9,6 +9,13 @@ export default function BoardHeader() {
       </div>
 
       <div className="board-header-actions">
+        <button
+          type="button"
+          className="board-archive-button"
+          onClick={onOpenArchived}
+        >
+          Đã lưu trữ
+        </button>
         <div className="board-avatar" aria-label="Người dùng LN">
           LN
         </div>
