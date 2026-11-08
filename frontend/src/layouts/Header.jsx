@@ -32,9 +32,6 @@ function Header() {
         </Navbar.Brand>
         <Navbar.Toggle aria-controls="basic-navbar-nav" />
         <Navbar.Collapse id="basic-navbar-nav">
-          <Nav className="me-auto">
-            <Nav.Link as={Link} to="/home">Home</Nav.Link>
-          </Nav>
           <Nav className="ms-auto align-items-center gap-2">
             {!isLogged ? (
               <>

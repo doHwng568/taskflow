@@ -5,6 +5,8 @@ import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.JwsHeader;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.PropertySource;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
@@ -16,15 +18,22 @@ import java.util.Date;
 @Service
 public class JwtService {
 
-    private static final String SECRET = "day-la-secret-tam-thoi-toi-thieu-256-bit-se-doi-o-level-5";
-    private static final long EXPIRATION_MS = 15; // 15 phút
+    private final String SECRET;
+    private final long EXPIRATION;
+    private final SecretKey secretKey;
 
-    private static final SecretKey secretKey = Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8));
-
+    // Spring sẽ đọc @Value và truyền thẳng vào tham số của Constructor lúc khởi tạo
+    public JwtService(
+            @Value("${jwt.secret}") String secret,
+            @Value("${jwt.expiration}") long expiration) {
+        this.SECRET = secret;
+        this.EXPIRATION = expiration;
+        this.secretKey = Keys.hmacShaKeyFor(this.SECRET.getBytes(StandardCharsets.UTF_8));
+    }
     // generate token from username
     public String generateToken(String username) {
         LocalDateTime now = LocalDateTime.now();
-        LocalDateTime expiry = now.plusMinutes(EXPIRATION_MS);
+        LocalDateTime expiry = now.plusMinutes(EXPIRATION);
 
         return Jwts
                 .builder()
