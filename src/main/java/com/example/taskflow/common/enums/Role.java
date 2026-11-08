@@ -4,5 +4,6 @@ public enum Role {
     PM,
     LEADER,
     DEV,
-    TESTER
+    TESTER,
+    MEMBER
 }

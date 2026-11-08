@@ -14,6 +14,7 @@ import com.example.taskflow.modules.area.service.AreaService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -55,6 +56,7 @@ public class AreaController {
                 .body(ApiResponse.success(areas, "Get areas by workspace successfully"));
     }
 
+    @PreAuthorize("hasAuthority('AREA_CREATE')")
     @PostMapping("/api/areas")
     public ResponseEntity<ApiResponse<AreaResponse>> createArea(
             @Valid @RequestBody CreateAreaRequest request
@@ -65,8 +67,9 @@ public class AreaController {
                 .body(ApiResponse.success(createdArea, "Create area successfully"));
     }
 
+    @PreAuthorize("hasAuthority('AREA_UPDATE')")
     @PutMapping("/api/areas/{areaId}")
-    public ResponseEntity<ApiResponse<AreaResponse>> updateAreaLegacy(
+    public ResponseEntity<ApiResponse<AreaResponse>> updateArea(
             @PathVariable Long areaId,
             @Valid @RequestBody UpdateAreaRequest request
     ) {
@@ -76,13 +79,6 @@ public class AreaController {
                 .body(ApiResponse.success(updatedArea, "Update area successfully"));
     }
 
-    @DeleteMapping("/api/areas/{areaId}")
-    public ResponseEntity<ApiResponse<Void>> deleteAreaLegacy(@PathVariable Long areaId) {
-        areaService.deleteArea(areaId);
-        return ResponseEntity
-                .status(HttpStatus.OK)
-                .body(ApiResponse.success(null, "Delete area successfully"));
-    }
 
     // =====================================================================
     // 2) /workspaces/{workspaceId}/areas và /areas/{areaId}  (feature)

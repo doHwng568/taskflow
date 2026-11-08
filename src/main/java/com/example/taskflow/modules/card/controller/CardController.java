@@ -9,6 +9,7 @@ import com.example.taskflow.modules.card.service.CardService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -39,6 +40,7 @@ public class CardController {
                 .body(ApiResponse.success(card, "Get card detail successfully"));
     }
 
+    @PreAuthorize("hasAuthority('CARD_CREATE')")
     @PostMapping
     public ResponseEntity<ApiResponse<CardResponse>> createCard(@Valid @RequestBody CreateCardRequest request) {
         CardResponse createdCard = cardService.createCard(request);
@@ -47,6 +49,7 @@ public class CardController {
                 .body(ApiResponse.success(createdCard, "Create card successfully"));
     }
 
+    @PreAuthorize("hasAuthority('CARD_UPDATE')")
     @PutMapping("/{cardId}")
     public ResponseEntity<ApiResponse<CardResponse>> updateCard(
             @PathVariable Long cardId,
@@ -58,6 +61,7 @@ public class CardController {
                 .body(ApiResponse.success(updatedCard, "Update card successfully"));
     }
 
+    @PreAuthorize("hasAuthority('CARD_UPDATE')")
     @PutMapping("/{cardId}/move")
     public ResponseEntity<ApiResponse<CardResponse>> moveCard(
             @PathVariable Long cardId,
@@ -69,6 +73,7 @@ public class CardController {
                 .body(ApiResponse.success(movedCard, "Move card successfully"));
     }
 
+    @PreAuthorize("hasAuthority('CARD_DELETE')")
     @DeleteMapping("/{cardId}")
     public ResponseEntity<ApiResponse<Void>> deleteCard(@PathVariable Long cardId) {
         cardService.deleteCard(cardId);
