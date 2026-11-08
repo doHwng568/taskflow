@@ -70,6 +70,9 @@ export default function BoardColumn({ column, onUpdateTitle, onDeleteList, onCre
     try {
       const dragData = JSON.parse(event.dataTransfer.getData('text/plain'));
       if (dragData.cardId && dragData.sourceColumnId) {
+        if (String(dragData.sourceColumnId) === String(column.id)) {
+          return;
+        }
         onMoveCard(dragData.sourceColumnId, column.id, dragData.cardId);
       }
     } catch {
@@ -229,6 +232,9 @@ export default function BoardColumn({ column, onUpdateTitle, onDeleteList, onCre
             onToggleComplete={onToggleCardComplete}
             onDropOnCard={(sourceColId, targetColId, draggedCardId, targetCardId) => {
               setIsDragOver(false);
+              if (String(sourceColId) === String(targetColId)) {
+                return;
+              }
               onMoveCard(sourceColId, targetColId, draggedCardId, targetCardId);
             }}
           />

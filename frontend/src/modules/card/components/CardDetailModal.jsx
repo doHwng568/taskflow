@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { CommentIcon, DescriptionIcon } from './CardIcons';
+import cardApi from '../api/cardApi';
 import '../styles/Card.css';
 
 const getLocalDateString = (date = new Date()) => {
@@ -14,11 +15,11 @@ const getMonthForDate = (dateString) => {
   return new Date(date.getFullYear(), date.getMonth(), 1);
 };
 
-const formatDateForDisplay = (dateString) => {
-  if (!dateString) return '';
-  const [year, month, day] = dateString.split('-');
-  return `${day}/${month}/${year}`;
-};
+const createNewCommentItem = (text) => ({
+  id: `comment-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+  text,
+  createdAt: new Date().toISOString(),
+});
 
 const formatShortDateVi = (dateString) => {
   if (!dateString) return '';
@@ -714,6 +715,12 @@ export default function CardDetailModal({
   );
   const initialColumnPosition = currentColumnIndex >= 0 ? currentColumnIndex + 1 : 1;
 
+  const [movements, setMovements] = useState([]);
+  const [loadingMovements, setLoadingMovements] = useState(false);
+  const [movementError, setMovementError] = useState('');
+  const [activityTab, setActivityTab] = useState('all');
+  const [moveComment, setMoveComment] = useState('');
+
   const [isQuickMoveOpen, setIsQuickMoveOpen] = useState(false);
   const [openMoveDropdown, setOpenMoveDropdown] = useState(null);
   const [selectedBoardName, setSelectedBoardName] = useState('Bảng SBA');
@@ -721,6 +728,74 @@ export default function CardDetailModal({
     () => String(currentColumnId ?? columns[0]?.id ?? '')
   );
   const [moveTargetPosition, setMoveTargetPosition] = useState(() => initialColumnPosition);
+
+  const parseNumericId = (rawId) => {
+    if (typeof rawId === 'number' && Number.isFinite(rawId) && rawId > 0) {
+      return rawId;
+    }
+    const num = Number(String(rawId).replace(/\D/g, ''));
+    return Number.isFinite(num) && num > 0 ? num : null;
+  };
+
+  const fetchMovements = useCallback(async () => {
+    const numericCardId = parseNumericId(card.id);
+    if (!numericCardId) {
+      setMovements([]);
+      return;
+    }
+    try {
+      setLoadingMovements(true);
+      setMovementError('');
+      const res = await cardApi.getCardMovementsApi(numericCardId);
+      const data = res?.data?.data;
+      if (Array.isArray(data)) {
+        const deduped = Array.from(new Map(data.map((m) => [m.id, m])).values());
+        deduped.sort(
+          (a, b) => new Date(b.movedAt || 0).getTime() - new Date(a.movedAt || 0).getTime()
+        );
+        setMovements(deduped);
+      } else {
+        setMovements([]);
+      }
+    } catch (err) {
+      setMovementError(err?.response?.data?.message || 'Không thể tải lịch sử di chuyển.');
+    } finally {
+      setLoadingMovements(false);
+    }
+  }, [card.id]);
+
+  useEffect(() => {
+    let active = true;
+    const loadMovements = async () => {
+      const numericCardId = parseNumericId(card.id);
+      if (!numericCardId) {
+        if (active) setMovements([]);
+        return;
+      }
+      try {
+        const res = await cardApi.getCardMovementsApi(numericCardId);
+        if (!active) return;
+        const data = res?.data?.data;
+        if (Array.isArray(data)) {
+          const deduped = Array.from(new Map(data.map((m) => [m.id, m])).values());
+          deduped.sort(
+            (a, b) => new Date(b.movedAt || 0).getTime() - new Date(a.movedAt || 0).getTime()
+          );
+          setMovements(deduped);
+        } else {
+          setMovements([]);
+        }
+      } catch (err) {
+        if (active) {
+          setMovementError(err?.response?.data?.message || 'Không thể tải lịch sử di chuyển.');
+        }
+      }
+    };
+    loadMovements();
+    return () => {
+      active = false;
+    };
+  }, [card.id]);
 
   const targetColumnObj =
     columns.find((col) => String(col.id) === String(moveTargetColumnId)) || columns[0];
@@ -745,12 +820,25 @@ export default function CardDetailModal({
     setOpenMoveDropdown(null);
   };
 
-  const handleExecuteMove = () => {
+  const handleExecuteMove = async () => {
     const matchedCol =
       columns.find((col) => String(col.id) === String(moveTargetColumnId)) ||
       columns[moveTargetPosition - 1];
     const resolvedColId = matchedCol ? matchedCol.id : moveTargetColumnId;
-    onMoveCard?.(resolvedColId, null);
+
+    if (String(resolvedColId) === String(currentColumnId)) {
+      alert('Thẻ đã ở trong danh sách này. Vui lòng chọn danh sách khác.');
+      return;
+    }
+
+    const commentToSend = moveComment.trim() ? moveComment.trim() : null;
+    const success = await onMoveCard?.(resolvedColId, moveTargetPosition, commentToSend);
+    if (success) {
+      setMoveComment('');
+      setIsQuickMoveOpen(false);
+      setActivePopover(null);
+      await fetchMovements();
+    }
   };
 
   const handleUploadCover = (dataUrl) => {
@@ -875,11 +963,7 @@ export default function CardDetailModal({
 
     const updatedComments = [
       ...comments,
-      {
-        id: `comment-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-        text,
-        createdAt: new Date().toISOString(),
-      },
+      createNewCommentItem(text),
     ];
     setComments(updatedComments);
     setCommentDraft('');
@@ -934,6 +1018,164 @@ export default function CardDetailModal({
     setEditingCommentKey(null);
     setEditingCommentText('');
     onUpdateCard?.(getUpdatedCard({ comments: updatedComments }));
+  };
+
+  const combinedActivities = useMemo(() => {
+    const list = [];
+    comments.forEach((comment, index) => {
+      const commentText = typeof comment === 'string' ? comment : comment.text;
+      const createdAt = typeof comment === 'string' ? null : comment.createdAt;
+      const commentKey = comment.id || `c-${index}-${commentText}`;
+      list.push({
+        itemType: 'comment',
+        id: commentKey,
+        rawComment: comment,
+        index,
+        timestamp: createdAt ? new Date(createdAt).getTime() : 0,
+      });
+    });
+    movements.forEach((m) => {
+      list.push({
+        itemType: 'movement',
+        id: `movement-${m.id}`,
+        movement: m,
+        timestamp: m.movedAt ? new Date(m.movedAt).getTime() : 0,
+      });
+    });
+    list.sort((a, b) => b.timestamp - a.timestamp);
+    return list;
+  }, [comments, movements]);
+
+  const renderMovementItem = (movement) => (
+    <article className="card-comment card-movement-record" key={`movement-${movement.id}`}>
+      <span className="card-comment-avatar is-movement" aria-hidden="true" title="Di chuyển thẻ">
+        ⇄
+      </span>
+      <div className="card-comment-content">
+        <div className="card-comment-header">
+          <strong>{movement.movedByName || `Người dùng #${movement.movedById || ''}`}</strong>
+        </div>
+        <p className="card-movement-text">
+          Đã chuyển thẻ từ{' '}
+          <span className="card-movement-area-badge">
+            {movement.fromAreaName || (movement.fromAreaId ? `Cột #${movement.fromAreaId}` : 'Chưa phân cột')}
+          </span>{' '}
+          sang{' '}
+          <span className="card-movement-area-badge">
+            {movement.toAreaName || (movement.toAreaId ? `Cột #${movement.toAreaId}` : 'Cột đích')}
+          </span>
+        </p>
+        {movement.comment && (
+          <div className="card-movement-comment-quote">
+            “{movement.comment}”
+          </div>
+        )}
+        {movement.movedAt && (
+          <time dateTime={movement.movedAt}>
+            {new Date(movement.movedAt).toLocaleString('vi-VN')}
+          </time>
+        )}
+      </div>
+    </article>
+  );
+
+  const renderCommentItem = (comment, index) => {
+    const commentText = typeof comment === 'string' ? comment : comment.text;
+    const createdAt = typeof comment === 'string' ? null : comment.createdAt;
+    const commentKey = comment.id || `${index}-${commentText}`;
+    const isMenuOpen = openCommentMenuKey === commentKey;
+    const isEditing = editingCommentKey === commentKey;
+
+    return (
+      <article className="card-comment" key={commentKey}>
+        <span className="card-comment-avatar" aria-hidden="true">T</span>
+        <div className="card-comment-content">
+          <div className="card-comment-header">
+            <strong>Bạn</strong>
+            <div className="card-comment-menu-wrapper">
+              <button
+                type="button"
+                className="card-comment-menu-button"
+                onClick={() =>
+                  setOpenCommentMenuKey((current) =>
+                    current === commentKey ? null : commentKey
+                  )
+                }
+                aria-label="Tùy chọn nhận xét"
+                aria-expanded={isMenuOpen}
+              >
+                •••
+              </button>
+              {isMenuOpen && (
+                <div className="card-comment-dropdown" role="menu">
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="card-comment-dropdown-item"
+                    onClick={() => handleStartEditComment(commentKey, commentText)}
+                  >
+                    Sửa
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="card-comment-dropdown-item is-danger"
+                    onClick={() => handleDeleteComment(index, comment.id)}
+                  >
+                    Xóa
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {isEditing ? (
+            <div className="card-comment-edit-box">
+              <input
+                type="text"
+                className="card-modal-input card-comment-edit-input"
+                value={editingCommentText}
+                onChange={(event) => setEditingCommentText(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault();
+                    handleSaveEditComment(index, comment.id);
+                  } else if (event.key === 'Escape') {
+                    handleCancelEditComment();
+                  }
+                }}
+                autoFocus
+              />
+              <div className="card-comment-edit-actions">
+                <button
+                  type="button"
+                  className="card-save-button"
+                  onClick={() => handleSaveEditComment(index, comment.id)}
+                >
+                  Lưu
+                </button>
+                <button
+                  type="button"
+                  className="card-cancel-button"
+                  onClick={handleCancelEditComment}
+                >
+                  Hủy
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <p>{commentText}</p>
+              {createdAt && (
+                <time dateTime={createdAt}>
+                  {new Date(createdAt).toLocaleString('vi-VN')}
+                </time>
+              )}
+            </>
+          )}
+        </div>
+      </article>
+    );
   };
 
   const toggleLabel = (option) => {
@@ -1245,6 +1487,15 @@ export default function CardDetailModal({
                         </div>
                       </div>
 
+                      <span className="card-move-field-label">Lý do / Bình luận (tùy chọn)</span>
+                      <input
+                        type="text"
+                        className="card-modal-input card-move-comment-input"
+                        placeholder="Nhập lý do di chuyển thẻ..."
+                        value={moveComment}
+                        onChange={(e) => setMoveComment(e.target.value)}
+                      />
+
                       <button
                         type="button"
                         className="card-move-submit-btn"
@@ -1449,6 +1700,146 @@ export default function CardDetailModal({
                         />
                       )}
                     </div>
+
+                    <div className="card-popover-anchor">
+                      <button
+                        type="button"
+                        aria-expanded={activePopover === 'move'}
+                        onClick={() => openPopover('move')}
+                      >
+                        <MoveArrowIcon /> Di chuyển
+                      </button>
+                      {activePopover === 'move' && (
+                        <div className="card-editor-popover card-move-popover" role="dialog" aria-label="Di chuyển thẻ">
+                          <header className="card-editor-popover-header">
+                            <h3>Di chuyển thẻ</h3>
+                            <button type="button" onClick={cancelPopoverChanges} aria-label="Đóng di chuyển thẻ">
+                              ×
+                            </button>
+                          </header>
+
+                          <div className="card-move-body">
+                            <span className="card-move-subtitle">Chọn đích đến</span>
+
+                            <span className="card-move-field-label">Bảng</span>
+                            <div className="card-move-dropdown-wrapper">
+                              <button
+                                type="button"
+                                className={`card-move-select-trigger ${openMoveDropdown === 'board' ? 'is-open' : ''}`}
+                                onClick={() =>
+                                  setOpenMoveDropdown((cur) => (cur === 'board' ? null : 'board'))
+                                }
+                              >
+                                <span>{selectedBoardName}</span>
+                                <DropdownChevron />
+                              </button>
+                              {openMoveDropdown === 'board' && (
+                                <div className="card-move-select-menu" role="listbox">
+                                  <button
+                                    type="button"
+                                    className="card-move-select-option is-selected"
+                                    onClick={() => {
+                                      setSelectedBoardName('Bảng SBA');
+                                      setOpenMoveDropdown(null);
+                                    }}
+                                  >
+                                    Bảng SBA
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="card-move-row">
+                              <div className="card-move-col-list">
+                                <span className="card-move-field-label">Danh sách</span>
+                                <div className="card-move-dropdown-wrapper">
+                                  <button
+                                    type="button"
+                                    className={`card-move-select-trigger ${openMoveDropdown === 'list' ? 'is-open' : ''}`}
+                                    onClick={() =>
+                                      setOpenMoveDropdown((cur) => (cur === 'list' ? null : 'list'))
+                                    }
+                                  >
+                                    <span>{targetColumnObj?.title || ''}</span>
+                                    <DropdownChevron />
+                                  </button>
+                                  {openMoveDropdown === 'list' && (
+                                    <div className="card-move-select-menu" role="listbox">
+                                      {columns.map((col) => {
+                                        const isSelected =
+                                          String(col.id) === String(moveTargetColumnId);
+                                        return (
+                                          <button
+                                            type="button"
+                                            key={col.id}
+                                            className={`card-move-select-option ${isSelected ? 'is-selected' : ''}`}
+                                            onClick={() => handleMoveColumnSelect(col.id)}
+                                          >
+                                            {col.title}
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="card-move-col-pos">
+                                <span className="card-move-field-label">Vị trí</span>
+                                <div className="card-move-dropdown-wrapper">
+                                  <button
+                                    type="button"
+                                    className={`card-move-select-trigger ${openMoveDropdown === 'pos' ? 'is-open' : ''}`}
+                                    onClick={() =>
+                                      setOpenMoveDropdown((cur) => (cur === 'pos' ? null : 'pos'))
+                                    }
+                                  >
+                                    <span>{moveTargetPosition}</span>
+                                    <DropdownChevron />
+                                  </button>
+                                  {openMoveDropdown === 'pos' && (
+                                    <div className="card-move-select-menu" role="listbox">
+                                      {Array.from({ length: totalBoardColumns }, (_, idx) => idx + 1).map(
+                                        (pos) => {
+                                          const isSelected = pos === Number(moveTargetPosition);
+                                          return (
+                                            <button
+                                              type="button"
+                                              key={pos}
+                                              className={`card-move-select-option ${isSelected ? 'is-selected' : ''}`}
+                                              onClick={() => handleMovePositionSelect(pos)}
+                                            >
+                                              {pos}
+                                            </button>
+                                          );
+                                        }
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            <span className="card-move-field-label">Lý do / Bình luận (tùy chọn)</span>
+                            <input
+                              type="text"
+                              className="card-modal-input card-move-comment-input"
+                              placeholder="Nhập lý do di chuyển thẻ..."
+                              value={moveComment}
+                              onChange={(e) => setMoveComment(e.target.value)}
+                            />
+
+                            <button
+                              type="button"
+                              className="card-move-submit-btn"
+                              onClick={handleExecuteMove}
+                            >
+                              Di chuyển
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   {(labels.length > 0 || (startEnabled && startDate) || (dueEnabled && dueDate)) && (
@@ -1560,120 +1951,91 @@ export default function CardDetailModal({
 
                 <aside className="card-activity-panel">
                   <h3><CommentIcon size={18} /> Nhận xét và hoạt động</h3>
-                  <form className="card-comment-form" onSubmit={handleCommentSubmit}>
-                    <input
-                      type="text"
-                      value={commentDraft}
-                      onChange={(event) => setCommentDraft(event.target.value)}
-                      placeholder="Viết bình luận..."
-                      aria-label="Viết bình luận"
-                    />
-                    <button type="submit" disabled={!commentDraft.trim()}>
-                      Gửi
+                  <div className="card-activity-tabs" role="tablist" aria-label="Bộ lọc hoạt động">
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={activityTab === 'all'}
+                      className={`card-activity-tab-btn ${activityTab === 'all' ? 'is-active' : ''}`}
+                      onClick={() => setActivityTab('all')}
+                    >
+                      Tất cả
                     </button>
-                  </form>
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={activityTab === 'movements'}
+                      className={`card-activity-tab-btn ${activityTab === 'movements' ? 'is-active' : ''}`}
+                      onClick={() => setActivityTab('movements')}
+                    >
+                      Lịch sử di chuyển
+                    </button>
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={activityTab === 'comments'}
+                      className={`card-activity-tab-btn ${activityTab === 'comments' ? 'is-active' : ''}`}
+                      onClick={() => setActivityTab('comments')}
+                    >
+                      Nhận xét
+                    </button>
+                  </div>
+
+                  {(activityTab === 'all' || activityTab === 'comments') && (
+                    <form className="card-comment-form" onSubmit={handleCommentSubmit}>
+                      <input
+                        type="text"
+                        value={commentDraft}
+                        onChange={(event) => setCommentDraft(event.target.value)}
+                        placeholder="Viết bình luận..."
+                        aria-label="Viết bình luận"
+                      />
+                      <button type="submit" disabled={!commentDraft.trim()}>
+                        Gửi
+                      </button>
+                    </form>
+                  )}
+
+                  {loadingMovements && (
+                    <p className="card-activity-status">Đang tải lịch sử di chuyển...</p>
+                  )}
+
+                  {movementError && (
+                    <div className="card-activity-error" role="alert">
+                      <span>{movementError}</span>
+                      <button type="button" onClick={fetchMovements}>
+                        Thử lại
+                      </button>
+                    </div>
+                  )}
+
                   <div className="card-comment-list" aria-live="polite">
-                    {comments.length === 0 ? (
-                      <p className="card-comment-empty">Chưa có nhận xét.</p>
-                    ) : (
-                      comments.map((comment, index) => {
-                        const commentText = typeof comment === 'string' ? comment : comment.text;
-                        const createdAt = typeof comment === 'string' ? null : comment.createdAt;
-                        const commentKey = comment.id || `${index}-${commentText}`;
-                        const isMenuOpen = openCommentMenuKey === commentKey;
-                        const isEditing = editingCommentKey === commentKey;
+                    {activityTab === 'comments' && (
+                      comments.length === 0 ? (
+                        <p className="card-comment-empty">Chưa có nhận xét nào.</p>
+                      ) : (
+                        comments.map((comment, index) => renderCommentItem(comment, index))
+                      )
+                    )}
 
-                        return (
-                          <article className="card-comment" key={commentKey}>
-                            <span className="card-comment-avatar" aria-hidden="true">T</span>
-                            <div className="card-comment-content">
-                              <div className="card-comment-header">
-                                <strong>Bạn</strong>
-                                <div className="card-comment-menu-wrapper">
-                                  <button
-                                    type="button"
-                                    className="card-comment-menu-button"
-                                    onClick={() =>
-                                      setOpenCommentMenuKey((current) =>
-                                        current === commentKey ? null : commentKey
-                                      )
-                                    }
-                                    aria-label="Tùy chọn nhận xét"
-                                    aria-expanded={isMenuOpen}
-                                  >
-                                    •••
-                                  </button>
-                                  {isMenuOpen && (
-                                    <div className="card-comment-dropdown" role="menu">
-                                      <button
-                                        type="button"
-                                        role="menuitem"
-                                        className="card-comment-dropdown-item"
-                                        onClick={() => handleStartEditComment(commentKey, commentText)}
-                                      >
-                                        Sửa
-                                      </button>
-                                      <button
-                                        type="button"
-                                        role="menuitem"
-                                        className="card-comment-dropdown-item is-danger"
-                                        onClick={() => handleDeleteComment(index, comment.id)}
-                                      >
-                                        Xóa
-                                      </button>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
+                    {activityTab === 'movements' && (
+                      movements.length === 0 && !loadingMovements ? (
+                        <p className="card-comment-empty">Chưa có lịch sử di chuyển nào cho thẻ này.</p>
+                      ) : (
+                        movements.map((movement) => renderMovementItem(movement))
+                      )
+                    )}
 
-                              {isEditing ? (
-                                <div className="card-comment-edit-box">
-                                  <input
-                                    type="text"
-                                    className="card-modal-input card-comment-edit-input"
-                                    value={editingCommentText}
-                                    onChange={(event) => setEditingCommentText(event.target.value)}
-                                    onKeyDown={(event) => {
-                                      if (event.key === 'Enter') {
-                                        event.preventDefault();
-                                        handleSaveEditComment(index, comment.id);
-                                      } else if (event.key === 'Escape') {
-                                        handleCancelEditComment();
-                                      }
-                                    }}
-                                    autoFocus
-                                  />
-                                  <div className="card-comment-edit-actions">
-                                    <button
-                                      type="button"
-                                      className="card-save-button"
-                                      onClick={() => handleSaveEditComment(index, comment.id)}
-                                    >
-                                      Lưu
-                                    </button>
-                                    <button
-                                      type="button"
-                                      className="card-cancel-button"
-                                      onClick={handleCancelEditComment}
-                                    >
-                                      Hủy
-                                    </button>
-                                  </div>
-                                </div>
-                              ) : (
-                                <>
-                                  <p>{commentText}</p>
-                                  {createdAt && (
-                                    <time dateTime={createdAt}>
-                                      {new Date(createdAt).toLocaleString('vi-VN')}
-                                    </time>
-                                  )}
-                                </>
-                              )}
-                            </div>
-                          </article>
-                        );
-                      })
+                    {activityTab === 'all' && (
+                      combinedActivities.length === 0 && !loadingMovements ? (
+                        <p className="card-comment-empty">Chưa có hoạt động nào.</p>
+                      ) : (
+                        combinedActivities.map((item) =>
+                          item.itemType === 'movement'
+                            ? renderMovementItem(item.movement)
+                            : renderCommentItem(item.rawComment, item.index)
+                        )
+                      )
                     )}
                   </div>
                 </aside>

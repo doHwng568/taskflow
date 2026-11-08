@@ -23,6 +23,7 @@ function App() {
         <Route path="/workspace" element={<MainWorkspace />} />
         <Route path="/workspace/:id" element={<WorkspaceDetail />} />
         <Route path="/logout" element={<Logout />} />
+        <Route path="/board/:workspaceId" element={<BoardPage />} />
         <Route path="/board" element={<BoardPage />} />
         <Route path="/board/:workspaceId" element={<BoardPage />} />
         <Route path="/permissions" element={<PermissionMatrix />} />

@@ -66,6 +66,9 @@ export default function CardItem({
       if (dragData.cardId && dragData.sourceColumnId) {
         event.preventDefault();
         event.stopPropagation();
+        if (String(dragData.sourceColumnId) === String(columnId)) {
+          return;
+        }
         onDropOnCard(dragData.sourceColumnId, columnId, dragData.cardId, card.id);
       }
     } catch {

@@ -481,3 +481,50 @@
     transform: none;
   }
 }
+
+.board-error-toast {
+  position: fixed;
+  bottom: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 500px;
+  padding: 10px 16px;
+  background-color: #ae2e24;
+  color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  font-size: 13px;
+  font-weight: 500;
+  animation: boardToastFadeIn 0.2s ease-out;
+}
+
+.board-error-toast button {
+  border: 0;
+  background: transparent;
+  color: #ffffff;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 2px 4px;
+  line-height: 1;
+  opacity: 0.8;
+}
+
+.board-error-toast button:hover {
+  opacity: 1;
+}
+
+@keyframes boardToastFadeIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 10px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+

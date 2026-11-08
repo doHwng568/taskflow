@@ -41,6 +41,10 @@ const cardApi = {
     return api.put(`/api/cards/${cardId}/move`, data);
   },
 
+  getCardMovementsApi(cardId) {
+    return api.get(`/api/cards/${cardId}/movements`);
+  },
+
   deleteCardApi(cardId) {
     return api.delete(`/api/cards/${cardId}`);
   },

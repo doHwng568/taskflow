@@ -2058,3 +2058,106 @@
     font-size: 10px;
   }
 }
+
+
+/* Card Activity Tabs & Movement History */
+.card-activity-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid #dfe3e8;
+  padding-bottom: 6px;
+}
+
+.card-activity-tab-btn {
+  padding: 4px 10px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #626f86;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.card-activity-tab-btn:hover {
+  background: #e9ebee;
+  color: #172b4d;
+}
+
+.card-activity-tab-btn.is-active {
+  background: #e9f2ff;
+  color: #0c66e4;
+  font-weight: 600;
+}
+
+.card-comment-avatar.is-movement {
+  background: #e9f2ff;
+  color: #0c66e4;
+  font-size: 13px;
+}
+
+.card-movement-text {
+  margin: 0 0 4px;
+  font-size: 13px;
+  color: #172b4d;
+  line-height: 1.4;
+}
+
+.card-movement-area-badge {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: #e9ebee;
+  font-weight: 600;
+  color: #172b4d;
+  font-size: 12px;
+}
+
+.card-movement-comment-quote {
+  margin: 4px 0 6px;
+  padding: 6px 10px;
+  border-left: 3px solid #0c66e4;
+  background: #f1f2f4;
+  border-radius: 0 4px 4px 0;
+  font-size: 12px;
+  color: #44546f;
+  font-style: italic;
+  overflow-wrap: anywhere;
+}
+
+.card-activity-status {
+  margin: 8px 0;
+  color: #626f86;
+  font-size: 13px;
+  text-align: center;
+}
+
+.card-activity-error {
+  margin: 8px 0;
+  padding: 8px 12px;
+  border-radius: 4px;
+  background: #ffeceb;
+  color: #ae2e24;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.card-activity-error button {
+  border: 0;
+  background: #ae2e24;
+  color: #fff;
+  border-radius: 3px;
+  padding: 2px 8px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.card-move-comment-input {
+  margin-bottom: 12px;
+  font-size: 13px;
+}

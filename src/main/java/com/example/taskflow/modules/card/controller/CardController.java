@@ -10,6 +10,8 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -65,9 +67,11 @@ public class CardController {
     @PutMapping("/{cardId}/move")
     public ResponseEntity<ApiResponse<CardResponse>> moveCard(
             @PathVariable Long cardId,
-            @Valid @RequestBody MoveCardRequest request
+            @Valid @RequestBody MoveCardRequest request,
+            @AuthenticationPrincipal UserDetails userDetails
     ) {
-        CardResponse movedCard = cardService.moveCard(cardId, request);
+        String username = userDetails != null ? userDetails.getUsername() : null;
+        CardResponse movedCard = cardService.moveCard(cardId, request, username);
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(ApiResponse.success(movedCard, "Move card successfully"));
