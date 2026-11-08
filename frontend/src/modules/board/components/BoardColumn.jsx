@@ -12,6 +12,7 @@ const isAreaDrag = (event) =>
 export default function BoardColumn({ column, onUpdateTitle, onDeleteList, onCreateCard,
   onOpenCard, onEditCard, onMoveCard, onToggleCardComplete,
   onArchiveList, onChangeColor, onMoveArea,
+  workspaceId, onTogglePin, onCopyList, onMoveToWorkspace,
   draggingAreaId, onAreaDragStart, onAreaDragEnd, }) {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [title, setTitle] = useState(column.title);
@@ -160,6 +161,9 @@ export default function BoardColumn({ column, onUpdateTitle, onDeleteList, onCre
         )}
 
         <div className="board-column-meta">
+          {column.pinned && (
+            <span className="board-column-pin-badge" title="Đã ghim" aria-label="Đã ghim">📌</span>
+          )}
           <span className="board-card-count">{column.cards.length}</span>
           <button
             onClick={() => setShowMenu((isOpen) => !isOpen)}
@@ -178,6 +182,22 @@ export default function BoardColumn({ column, onUpdateTitle, onDeleteList, onCre
           onAddCard={showCardForm}
           color={column.color}
           onChangeColor={(color) => onChangeColor(column.id, color)}
+          pinned={Boolean(column.pinned)}
+          onTogglePin={() => {
+            setShowMenu(false);
+            onTogglePin(column.id, !column.pinned);
+          }}
+          onCopy={() => {
+            setShowMenu(false);
+            onCopyList(column.id);
+          }}
+          currentWorkspaceId={workspaceId}
+          onMoveToWorkspace={(workspace) => {
+            setShowMenu(false);
+            if (window.confirm(`Chuyển danh sách "${column.title}" (kèm ${column.cards.length} thẻ) sang workspace "${workspace.name}"?`)) {
+              onMoveToWorkspace(column.id, workspace.id);
+            }
+          }}
           onArchive={() => {
             setShowMenu(false);
             onArchiveList(column.id);

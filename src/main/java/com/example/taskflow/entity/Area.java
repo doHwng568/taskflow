@@ -28,6 +28,9 @@ public class Area {
     // true = đã lưu trữ, không hiện trên board
     private boolean archived = false;
 
+    // true = đã ghim: luôn nằm ở đầu board (các area ghim sắp xếp theo position với nhau)
+    private boolean pinned = false;
+
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;

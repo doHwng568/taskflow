@@ -24,6 +24,8 @@ public class AreaResponse {
     private String color;
     // true = đã lưu trữ, không hiện trên board
     private boolean archived;
+    // true = đã ghim, hiện ở đầu board
+    private boolean pinned;
     private int cardCount;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -37,6 +39,7 @@ public class AreaResponse {
                 .workspaceId(area.getWorkspace() != null ? area.getWorkspace().getId() : null)
                 .color(area.getColor())
                 .archived(area.isArchived())
+                .pinned(area.isPinned())
                 .cardCount(cards.size())
                 .createdAt(area.getCreatedAt())
                 .updatedAt(area.getUpdatedAt())

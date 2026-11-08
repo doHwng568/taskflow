@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import workspaceService from '../../workspace/services/workspaceService';
 
 // Bảng màu: đều là màu tối để chữ sáng của area vẫn đọc rõ
 const AREA_COLORS = [
@@ -21,8 +22,32 @@ export default function ListActionMenu({
   onDeleteList,
   color,
   onChangeColor,
+  pinned,
+  onTogglePin,
+  onCopy,
+  currentWorkspaceId,
+  onMoveToWorkspace,
 }) {
   const [showColors, setShowColors] = useState(false);
+  const [showMove, setShowMove] = useState(false);
+  const [workspaces, setWorkspaces] = useState([]);
+  const [moveStatus, setMoveStatus] = useState('idle'); // idle | loading | error
+
+  // Mở danh sách workspace khi bấm "Di chuyển danh sách..." (chỉ tải lần đầu)
+  const toggleMove = async () => {
+    const willOpen = !showMove;
+    setShowMove(willOpen);
+    if (!willOpen || workspaces.length > 0) return;
+
+    setMoveStatus('loading');
+    try {
+      const all = await workspaceService.getAll();
+      setWorkspaces(all.filter((ws) => String(ws.id) !== String(currentWorkspaceId)));
+      setMoveStatus('idle');
+    } catch {
+      setMoveStatus('error');
+    }
+  };
 
   return (
     <div className="board-list-menu">
@@ -44,12 +69,47 @@ export default function ListActionMenu({
         >
           Thêm thẻ...
         </button>
-        <button className="board-list-menu-option">
+        <button
+          onClick={onTogglePin}
+          className="board-list-menu-option"
+        >
+          {pinned ? 'Bỏ ghim danh sách' : 'Ghim danh sách'}
+        </button>
+        <button
+          onClick={onCopy}
+          className="board-list-menu-option"
+        >
           Sao chép danh sách...
         </button>
-        <button className="board-list-menu-option">
-          Di chuyển danh sách...
+        <button
+          onClick={toggleMove}
+          className="board-list-menu-option board-list-menu-submenu"
+          aria-expanded={showMove}
+        >
+          <span>Di chuyển danh sách...</span>
+          <span className="text-xs">{showMove ? '⌄' : '❯'}</span>
         </button>
+        {showMove && (
+          <div className="board-list-menu-workspaces">
+            {moveStatus === 'loading' && <p className="board-list-menu-hint">Đang tải...</p>}
+            {moveStatus === 'error' && (
+              <p className="board-list-menu-hint">Không tải được danh sách workspace</p>
+            )}
+            {moveStatus === 'idle' && workspaces.length === 0 && (
+              <p className="board-list-menu-hint">Không có workspace nào khác</p>
+            )}
+            {workspaces.map((ws) => (
+              <button
+                key={ws.id}
+                type="button"
+                className="board-list-menu-option"
+                onClick={() => onMoveToWorkspace(ws)}
+              >
+                {ws.name}
+              </button>
+            ))}
+          </div>
+        )}
         <button className="board-list-menu-option">
           Theo dõi
         </button>

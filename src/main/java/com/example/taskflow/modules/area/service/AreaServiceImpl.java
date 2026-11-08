@@ -3,6 +3,7 @@ package com.example.taskflow.modules.area.service;
 import com.example.taskflow.common.enums.ErrorCode;
 import com.example.taskflow.common.exception.BusinessException;
 import com.example.taskflow.entity.Area;
+import com.example.taskflow.entity.Card;
 import com.example.taskflow.entity.Workspace;
 import com.example.taskflow.modules.area.Repositories.AreaRepository;
 import com.example.taskflow.modules.area.dto.AreaResponse;
@@ -10,6 +11,8 @@ import com.example.taskflow.modules.area.dto.CreateAreaRequest;
 import com.example.taskflow.modules.area.dto.UpdateAreaRequest;
 import com.example.taskflow.modules.area.dto.request.CreateWorkspaceAreaRequest;
 import com.example.taskflow.modules.area.dto.request.MoveAreaRequest;
+import com.example.taskflow.modules.area.dto.request.MoveAreaToWorkspaceRequest;
+import com.example.taskflow.modules.area.dto.request.PinAreaRequest;
 import com.example.taskflow.modules.area.dto.request.RenameAreaRequest;
 import com.example.taskflow.modules.area.dto.request.UpdateAreaColorRequest;
 import com.example.taskflow.modules.card.dto.CardResponse;
@@ -338,7 +341,117 @@ public class AreaServiceImpl implements AreaService {
         if (!neighbor.getWorkspace().getId().equals(workspaceId)) {
             throw new BusinessException(ErrorCode.AREA_INVALID_POSITION);
         }
+        // Area ghim và không ghim là hai nhóm riêng, không kéo xen kẽ nhau
+        if (neighbor.isPinned() != moved.isPinned()) {
+            throw new BusinessException(ErrorCode.AREA_INVALID_POSITION);
+        }
         return neighbor;
+    }
+
+    // ----- ghim / bỏ ghim -----
+
+    // Giữ nguyên position: area ghim luôn nằm trước, sắp xếp theo position trong nhóm của nó
+    @Override
+    @Transactional
+    public AreaResponse pinArea(Long areaId, PinAreaRequest request) {
+        Area area = findAreaOrThrow(areaId);
+
+        area.setPinned(request.pinned());
+        area.setUpdatedAt(LocalDateTime.now());
+
+        return AreaResponse.from(areaRepository.save(area));
+    }
+
+    // ----- sao chép -----
+
+    // Tạo bản sao ngay sau area gốc: cùng màu, cùng toàn bộ thẻ (thẻ mới, giữ nguyên thứ tự).
+    // Bản sao không ghim và không lưu trữ.
+    @Override
+    @Transactional
+    public AreaResponse copyArea(Long areaId) {
+        Area source = findAreaOrThrow(areaId);
+        if (source.getWorkspace() == null) {
+            throw new BusinessException(ErrorCode.AREA_NO_WORKSPACE);
+        }
+        Long workspaceId = source.getWorkspace().getId();
+
+        // Area đứng liền sau area gốc (theo position) để chèn bản sao vào giữa
+        Area next = areaRepository.findByWorkspace_IdOrderByPositionAsc(workspaceId).stream()
+                .filter(a -> a.getPosition() > source.getPosition())
+                .findFirst()
+                .orElse(null);
+
+        Double position = calculatePosition(source, next);
+        if (position == null) {
+            rebalance(workspaceId);
+            position = calculatePosition(source, next);
+        }
+
+        String copyName = source.getName();
+        if (copyName.length() > 240) {
+            copyName = copyName.substring(0, 240);
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+
+        Area copy = new Area();
+        copy.setName(copyName + " (bản sao)");
+        copy.setPosition(position);
+        copy.setColor(source.getColor());
+        copy.setWorkspace(source.getWorkspace());
+        copy.setCreatedAt(now);
+        copy.setUpdatedAt(now);
+        copy = areaRepository.save(copy);
+
+        List<Card> copiedCards = new ArrayList<>();
+        for (Card card : source.getCardList()) {
+            Card cardCopy = new Card();
+            cardCopy.setTitle(card.getTitle());
+            cardCopy.setContent(card.getContent());
+            cardCopy.setCoverImage(card.getCoverImage());
+            cardCopy.setComments(card.getComments());
+            cardCopy.setPosition(card.getPosition());
+            cardCopy.setPriority(card.getPriority());
+            cardCopy.setType(card.getType());
+            cardCopy.setDueDate(card.getDueDate());
+            cardCopy.setCreatedBy(card.getCreatedBy());
+            cardCopy.setAssignee(card.getAssignee());
+            cardCopy.setArea(copy);
+            cardCopy.setCreatedAt(now);
+            cardCopy.setUpdatedAt(now);
+            copiedCards.add(cardCopy);
+        }
+        List<CardResponse> cards = cardRepository.saveAll(copiedCards).stream()
+                .map(CardResponse::fromEntity)
+                .toList();
+
+        return AreaResponse.fromEntity(copy, cards);
+    }
+
+    // ----- chuyển sang workspace khác -----
+
+    // Area đi cùng toàn bộ thẻ, xuống cuối board của workspace đích; giữ màu / ghim / lưu trữ.
+    @Override
+    @Transactional
+    public AreaResponse moveAreaToWorkspace(Long areaId, MoveAreaToWorkspaceRequest request) {
+        Area area = findAreaOrThrow(areaId);
+
+        Workspace target = workspaceRepository.findById(request.targetWorkspaceId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.WORKSPACE_NOT_FOUND));
+
+        if (area.getWorkspace() != null && area.getWorkspace().getId().equals(target.getId())) {
+            throw new BusinessException(ErrorCode.AREA_SAME_WORKSPACE);
+        }
+
+        double position = areaRepository.findMaxPositionByWorkspaceId(target.getId())
+                .map(max -> max + POSITION_STEP)
+                .orElse(POSITION_STEP);
+
+        area.setWorkspace(target);
+        area.setPosition(position);
+        area.setUpdatedAt(LocalDateTime.now());
+
+        return AreaResponse.from(areaRepository.save(area));
     }
 
     // ----- hàm dùng chung -----

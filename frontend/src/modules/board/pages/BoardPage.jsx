@@ -109,6 +109,12 @@ const mapCardFromServer = (serverCard, existingLocalCard = null) => {
   };
 };
 
+// Area đã ghim luôn nằm trước, trong mỗi nhóm sắp theo position (khớp thứ tự server trả về)
+const sortColumns = (columns) =>
+  [...columns].sort(
+    (a, b) => Number(Boolean(b.pinned)) - Number(Boolean(a.pinned)) || a.position - b.position
+  );
+
 // Đổi dữ liệu area từ API thành dạng "cột" mà giao diện đang dùng
 function toColumn(area, cachedCards = new Map()) {
   return {
@@ -116,6 +122,7 @@ function toColumn(area, cachedCards = new Map()) {
     title: area.name,
     position: area.position,
     color: area.color ?? null,
+    pinned: Boolean(area.pinned),
     cards: (area.cards || []).map((card) =>
       mapCardFromServer(card, cachedCards.get(String(card.id)))
     ),
@@ -268,9 +275,7 @@ export default function BoardPage() {
       if (currentColumns.some((column) => column.id === area.id)) {
         return currentColumns;
       }
-      return [...currentColumns, toColumn(area, loadCachedCards(workspaceId))].sort(
-        (a, b) => a.position - b.position
-      );
+      return sortColumns([...currentColumns, toColumn(area, loadCachedCards(workspaceId))]);
     });
   };
 
@@ -298,6 +303,47 @@ export default function BoardPage() {
     }
   };
 
+  // Tính năng 8: ghim / bỏ ghim area. Chờ server xong rồi sắp lại (ghim lên đầu board).
+  const handleTogglePin = async (columnId, pinned) => {
+    try {
+      const area = await areaService.pin(columnId, pinned);
+      setColumns((currentColumns) =>
+        sortColumns(
+          currentColumns.map((column) =>
+            column.id === columnId ? { ...column, pinned: Boolean(area.pinned) } : column
+          )
+        )
+      );
+      setError('');
+    } catch (err) {
+      setError(err.response?.data?.message ?? 'Không ghim được danh sách');
+    }
+  };
+
+  // Tính năng 9: sao chép area (kèm thẻ), bản sao nằm ngay sau area gốc
+  const handleCopyList = async (columnId) => {
+    try {
+      const area = await areaService.copy(columnId);
+      setColumns((currentColumns) => sortColumns([...currentColumns, toColumn(area)]));
+      setError('');
+    } catch (err) {
+      setError(err.response?.data?.message ?? 'Không sao chép được danh sách');
+    }
+  };
+
+  // Tính năng 10: chuyển area (kèm thẻ) sang workspace khác -> biến mất khỏi board này
+  const handleMoveToWorkspace = async (columnId, targetWorkspaceId) => {
+    try {
+      await areaService.moveToWorkspace(columnId, targetWorkspaceId);
+      setColumns((currentColumns) =>
+        currentColumns.filter((column) => column.id !== columnId)
+      );
+      setError('');
+    } catch (err) {
+      setError(err.response?.data?.message ?? 'Không chuyển được danh sách');
+    }
+  };
+
   // Tính năng 7: kéo area đến trước / sau một area khác.
   // Đổi thứ tự ngay trên giao diện, gửi id hai area hai bên để server tự tính position,
   // nếu API lỗi thì trả lại thứ tự cũ.
@@ -311,6 +357,9 @@ export default function BoardPage() {
 
     if (!draggedColumn || targetIndex === -1) return;
 
+    // Area ghim và không ghim là hai nhóm riêng, không kéo xen kẽ nhau
+    if (Boolean(draggedColumn.pinned) !== Boolean(withoutDragged[targetIndex].pinned)) return;
+
     const insertIndex = placement === 'before' ? targetIndex : targetIndex + 1;
     const reordered = [
       ...withoutDragged.slice(0, insertIndex),
@@ -323,8 +372,11 @@ export default function BoardPage() {
 
     setColumns(reordered);
 
-    const previousAreaId = reordered[insertIndex - 1]?.id ?? null;
-    const nextAreaId = reordered[insertIndex + 1]?.id ?? null;
+    // Chỉ lấy hàng xóm cùng nhóm ghim (hàng xóm khác nhóm coi như đầu / cuối nhóm)
+    const sameGroup = (column) =>
+      column && Boolean(column.pinned) === Boolean(draggedColumn.pinned) ? column : null;
+    const previousAreaId = sameGroup(reordered[insertIndex - 1])?.id ?? null;
+    const nextAreaId = sameGroup(reordered[insertIndex + 1])?.id ?? null;
 
     try {
       await areaService.move(draggedId, previousAreaId, nextAreaId);
@@ -627,6 +679,10 @@ export default function BoardPage() {
             onArchiveList={handleArchiveList}
             onChangeColor={handleChangeColor}
             onMoveArea={handleMoveArea}
+            workspaceId={workspaceId}
+            onTogglePin={handleTogglePin}
+            onCopyList={handleCopyList}
+            onMoveToWorkspace={handleMoveToWorkspace}
             draggingAreaId={draggingAreaId}
             onAreaDragStart={setDraggingAreaId}
             onAreaDragEnd={() => setDraggingAreaId(null)}

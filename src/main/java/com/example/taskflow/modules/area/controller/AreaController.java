@@ -6,6 +6,8 @@ import com.example.taskflow.modules.area.dto.CreateAreaRequest;
 import com.example.taskflow.modules.area.dto.UpdateAreaRequest;
 import com.example.taskflow.modules.area.dto.request.CreateWorkspaceAreaRequest;
 import com.example.taskflow.modules.area.dto.request.MoveAreaRequest;
+import com.example.taskflow.modules.area.dto.request.MoveAreaToWorkspaceRequest;
+import com.example.taskflow.modules.area.dto.request.PinAreaRequest;
 import com.example.taskflow.modules.area.dto.request.RenameAreaRequest;
 import com.example.taskflow.modules.area.dto.request.UpdateAreaColorRequest;
 import com.example.taskflow.modules.area.service.AreaService;
@@ -158,5 +160,31 @@ public class AreaController {
             @RequestBody MoveAreaRequest request) {
         return ResponseEntity.ok(ApiResponse.success(
                 areaService.moveArea(areaId, request), "Move area successfully"));
+    }
+
+    // PATCH /areas/{areaId}/pin   body: { "pinned": true }
+    @PatchMapping("/areas/{areaId}/pin")
+    public ResponseEntity<ApiResponse<AreaResponse>> pinArea(
+            @PathVariable Long areaId,
+            @Valid @RequestBody PinAreaRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(
+                areaService.pinArea(areaId, request), "Pin area successfully"));
+    }
+
+    // POST /areas/{areaId}/copy  -> 201, bản sao kèm thẻ
+    @PostMapping("/areas/{areaId}/copy")
+    public ResponseEntity<ApiResponse<AreaResponse>> copyArea(@PathVariable Long areaId) {
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(ApiResponse.success(areaService.copyArea(areaId), "Copy area successfully"));
+    }
+
+    // PATCH /areas/{areaId}/workspace   body: { "targetWorkspaceId": 5 }
+    @PatchMapping("/areas/{areaId}/workspace")
+    public ResponseEntity<ApiResponse<AreaResponse>> moveAreaToWorkspace(
+            @PathVariable Long areaId,
+            @Valid @RequestBody MoveAreaToWorkspaceRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(
+                areaService.moveAreaToWorkspace(areaId, request), "Move area to workspace successfully"));
     }
 }

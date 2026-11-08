@@ -57,6 +57,24 @@ const areaService = {
     })
     return response.data.data
   },
+
+  // PATCH /areas/{areaId}/pin, pinned = true ghim lên đầu board, false bỏ ghim
+  async pin(areaId, pinned) {
+    const response = await api.patch(`/areas/${areaId}/pin`, { pinned })
+    return response.data.data
+  },
+
+  // POST /areas/{areaId}/copy -> bản sao (kèm thẻ) nằm ngay sau area gốc
+  async copy(areaId) {
+    const response = await api.post(`/areas/${areaId}/copy`)
+    return response.data.data
+  },
+
+  // PATCH /areas/{areaId}/workspace -> chuyển area (kèm thẻ) sang workspace khác
+  async moveToWorkspace(areaId, targetWorkspaceId) {
+    const response = await api.patch(`/areas/${areaId}/workspace`, { targetWorkspaceId })
+    return response.data.data
+  },
 }
 
 export default areaService

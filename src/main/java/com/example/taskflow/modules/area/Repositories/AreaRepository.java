@@ -21,7 +21,7 @@ public interface AreaRepository extends JpaRepository<Area, Long> {
             select distinct a from Area a
             left join fetch a.cardList
             where a.workspace.id = :workspaceId and a.archived = false
-            order by a.position asc
+            order by a.pinned desc, a.position asc
             """)
     List<Area> findActiveWithCards(@Param("workspaceId") Long workspaceId);
 
@@ -30,7 +30,7 @@ public interface AreaRepository extends JpaRepository<Area, Long> {
             select distinct a from Area a
             left join fetch a.cardList
             where a.workspace.id = :workspaceId and a.archived = true
-            order by a.position asc
+            order by a.pinned desc, a.position asc
             """)
     List<Area> findArchivedWithCards(@Param("workspaceId") Long workspaceId);
 

@@ -5,6 +5,8 @@ import com.example.taskflow.modules.area.dto.CreateAreaRequest;
 import com.example.taskflow.modules.area.dto.UpdateAreaRequest;
 import com.example.taskflow.modules.area.dto.request.CreateWorkspaceAreaRequest;
 import com.example.taskflow.modules.area.dto.request.MoveAreaRequest;
+import com.example.taskflow.modules.area.dto.request.MoveAreaToWorkspaceRequest;
+import com.example.taskflow.modules.area.dto.request.PinAreaRequest;
 import com.example.taskflow.modules.area.dto.request.RenameAreaRequest;
 import com.example.taskflow.modules.area.dto.request.UpdateAreaColorRequest;
 
@@ -41,4 +43,13 @@ public interface AreaService {
     AreaResponse updateAreaColor(Long areaId, UpdateAreaColorRequest request);
 
     AreaResponse moveArea(Long areaId, MoveAreaRequest request);
+
+    // Ghim / bỏ ghim area
+    AreaResponse pinArea(Long areaId, PinAreaRequest request);
+
+    // Sao chép area (kèm toàn bộ thẻ) ngay sau area gốc
+    AreaResponse copyArea(Long areaId);
+
+    // Chuyển area (kèm thẻ) sang workspace khác
+    AreaResponse moveAreaToWorkspace(Long areaId, MoveAreaToWorkspaceRequest request);
 }
