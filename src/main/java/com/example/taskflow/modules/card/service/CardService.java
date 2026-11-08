@@ -1,5 +1,6 @@
 package com.example.taskflow.modules.card.service;
 
+import com.example.taskflow.modules.card.dto.CardMovementResponse;
 import com.example.taskflow.modules.card.dto.CreateCardRequest;
 import com.example.taskflow.modules.card.dto.MoveCardRequest;
 import com.example.taskflow.modules.card.dto.UpdateCardRequest;
@@ -17,7 +18,9 @@ public interface CardService {
 
     CardResponse updateCard(Long cardId, UpdateCardRequest request);
 
-    CardResponse moveCard(Long cardId, MoveCardRequest request);
+    CardResponse moveCard(Long cardId, MoveCardRequest request, String username);
+
+    List<CardMovementResponse> getCardMovements(Long cardId);
 
     void deleteCard(Long cardId);
 }

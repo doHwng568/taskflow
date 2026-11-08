@@ -1,11 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useParams } from 'react-router-dom';
 import BoardHeader from '../components/BoardHeader';
 import BoardColumn from '../components/BoardColumn';
 import CardDetailModal from '../../card/components/CardDetailModal';
 import cardApi from '../../card/api/cardApi';
 import '../styles/BoardPage.css';
 
-const BOARD_STORAGE_KEY = 'taskflow_board_columns';
+const getBoardStorageKey = (workspaceId) =>
+  workspaceId ? `taskflow_board_columns_${workspaceId}` : 'taskflow_board_columns';
 
 const DEFAULT_COLUMNS = [
   { id: 'col-1', title: 'Cần làm', cards: [] },
@@ -13,14 +15,15 @@ const DEFAULT_COLUMNS = [
   { id: 'col-3', title: 'Đã xong', cards: [] },
 ];
 
-const loadColumnsFromStorage = () => {
+const loadColumnsFromStorage = (workspaceId) => {
   try {
-    const raw = localStorage.getItem(BOARD_STORAGE_KEY);
-    if (!raw) return DEFAULT_COLUMNS;
+    const key = getBoardStorageKey(workspaceId);
+    const raw = localStorage.getItem(key);
+    if (!raw) return workspaceId ? [] : DEFAULT_COLUMNS;
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : DEFAULT_COLUMNS;
+    return Array.isArray(parsed) && parsed.length > 0 ? parsed : (workspaceId ? [] : DEFAULT_COLUMNS);
   } catch {
-    return DEFAULT_COLUMNS;
+    return workspaceId ? [] : DEFAULT_COLUMNS;
   }
 };
 
@@ -102,10 +105,27 @@ const mapCardFromServer = (serverCard, existingLocalCard = null) => {
 };
 
 export default function BoardPage() {
-  const [columns, setColumns] = useState(loadColumnsFromStorage);
+  const { workspaceId } = useParams();
+  const [columns, setColumns] = useState(() => loadColumnsFromStorage(workspaceId));
+  const [prevWorkspaceId, setPrevWorkspaceId] = useState(workspaceId);
   const [isAddingList, setIsAddingList] = useState(false);
   const [newListTitle, setNewListTitle] = useState('');
   const [selectedCard, setSelectedCard] = useState(null);
+  const [errorNotification, setErrorNotification] = useState('');
+  const inFlightMovesRef = useRef(new Set());
+
+  useEffect(() => {
+    if (!errorNotification) return;
+    const timer = setTimeout(() => {
+      setErrorNotification('');
+    }, 4500);
+    return () => clearTimeout(timer);
+  }, [errorNotification]);
+
+  if (prevWorkspaceId !== workspaceId) {
+    setPrevWorkspaceId(workspaceId);
+    setColumns(loadColumnsFromStorage(workspaceId));
+  }
 
   const parseNumericId = (rawId) => {
     if (typeof rawId === 'number' && Number.isFinite(rawId) && rawId > 0) {
@@ -117,20 +137,21 @@ export default function BoardPage() {
 
   useEffect(() => {
     try {
-      localStorage.setItem(BOARD_STORAGE_KEY, JSON.stringify(columns));
+      const key = getBoardStorageKey(workspaceId);
+      localStorage.setItem(key, JSON.stringify(columns));
     } catch {
       // Ignore storage quota errors
     }
-  }, [columns]);
+  }, [columns, workspaceId]);
 
   useEffect(() => {
     let isMounted = true;
 
     const fetchBoardData = async () => {
       try {
-        const res = await cardApi.getAreasApi();
+        const res = await cardApi.getAreasApi(workspaceId);
         const serverAreas = res?.data?.data;
-        if (isMounted && Array.isArray(serverAreas) && serverAreas.length > 0) {
+        if (isMounted && Array.isArray(serverAreas)) {
           setColumns((currentColumns) => {
             const localCardsById = new Map();
             currentColumns.forEach((col) => {
@@ -158,7 +179,7 @@ export default function BoardPage() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [workspaceId]);
 
   const handleCreateList = async (event) => {
     event.preventDefault();
@@ -170,10 +191,12 @@ export default function BoardPage() {
     setIsAddingList(false);
 
     let createdArea = null;
+    const numericWorkspaceId = parseNumericId(workspaceId);
     try {
       const res = await cardApi.createAreaApi({
         name: title,
         position: columns.length + 1,
+        ...(numericWorkspaceId ? { workspaceId: numericWorkspaceId } : {}),
       });
       createdArea = res?.data?.data;
     } catch {
@@ -288,106 +311,143 @@ export default function BoardPage() {
     targetColumnId,
     cardId,
     targetCardId = null,
-    targetPosition = null
+    targetPosition = null,
+    comment = null
   ) => {
+    // 1. Chỉ di chuyển card giữa 2 Area khác nhau, chặn cùng Area
+    if (
+      !sourceColumnId ||
+      !targetColumnId ||
+      String(sourceColumnId) === String(targetColumnId)
+    ) {
+      return false;
+    }
+
+    // 2. Chặn duplicate API requests khi có thao tác drop liên tục trên cùng 1 card
+    const cardKey = String(cardId);
+    if (inFlightMovesRef.current.has(cardKey)) {
+      return false;
+    }
+    inFlightMovesRef.current.add(cardKey);
+
+    // 3. Snapshot trạng thái trước khi chuyển để phục hồi khi API thất bại
+    const previousColumns = columns;
+
+    const sourceColumn = previousColumns.find(
+      (column) => String(column.id) === String(sourceColumnId)
+    );
+    const movedCard = sourceColumn?.cards?.find(
+      (card) => String(card.id) === String(cardId)
+    );
+
+    if (!movedCard) {
+      inFlightMovesRef.current.delete(cardKey);
+      return false;
+    }
+
+    const targetColumn = previousColumns.find(
+      (column) => String(column.id) === String(targetColumnId)
+    );
+    const existingTargetCards = targetColumn?.cards || [];
+
     const hasExplicitPosition =
       targetPosition !== null &&
       targetPosition !== undefined &&
       Number.isFinite(Number(targetPosition));
 
-    if (
-      String(sourceColumnId) === String(targetColumnId) &&
-      !hasExplicitPosition &&
-      (!targetCardId || String(cardId) === String(targetCardId))
-    ) {
-      return;
-    }
+    let targetInsertIdx = existingTargetCards.length;
+    let reqPosition = existingTargetCards.length + 1;
 
-    const numericCardId = parseNumericId(cardId);
-    const numericTargetAreaId = parseNumericId(targetColumnId);
-    if (numericCardId && numericTargetAreaId) {
-      try {
-        await cardApi.moveCardApi(numericCardId, {
-          targetAreaId: numericTargetAreaId,
-          ...(hasExplicitPosition ? { position: Number(targetPosition) } : {}),
-        });
-      } catch {
-        // Fallback khi server chưa kết nối DB
+    if (hasExplicitPosition) {
+      targetInsertIdx = Math.max(
+        0,
+        Math.min(Number(targetPosition) - 1, existingTargetCards.length)
+      );
+      reqPosition = targetInsertIdx + 1;
+    } else if (targetCardId) {
+      const idx = existingTargetCards.findIndex(
+        (card) => String(card.id) === String(targetCardId)
+      );
+      if (idx !== -1) {
+        targetInsertIdx = idx;
+        reqPosition = idx + 1;
       }
     }
 
-    setColumns((currentColumns) => {
-      const sourceColumn = currentColumns.find(
-        (column) => String(column.id) === String(sourceColumnId)
-      );
-      const movedCard = sourceColumn?.cards?.find(
-        (card) => String(card.id) === String(cardId)
-      );
-      if (!movedCard) return currentColumns;
+    // 4. Cập nhật lạc quan trên frontend
+    const updatedTargetCards = [...existingTargetCards];
+    updatedTargetCards.splice(targetInsertIdx, 0, movedCard);
 
-      if (String(sourceColumnId) === String(targetColumnId)) {
-        return currentColumns.map((column) => {
-          if (String(column.id) !== String(sourceColumnId)) return column;
-          const remainingCards = column.cards.filter(
-            (card) => String(card.id) !== String(cardId)
-          );
-          if (hasExplicitPosition) {
-            const insertIdx = Math.max(
-              0,
-              Math.min(Number(targetPosition) - 1, remainingCards.length)
-            );
-            const updatedCards = [...remainingCards];
-            updatedCards.splice(insertIdx, 0, movedCard);
-            return { ...column, cards: updatedCards };
-          }
-          const targetIndex = remainingCards.findIndex(
-            (card) => String(card.id) === String(targetCardId)
-          );
-          if (targetIndex === -1) {
-            return { ...column, cards: [...remainingCards, movedCard] };
-          }
-          const updatedCards = [...remainingCards];
-          updatedCards.splice(targetIndex, 0, movedCard);
-          return { ...column, cards: updatedCards };
-        });
-      }
-
-      return currentColumns.map((column) => {
+    setColumns((currentColumns) =>
+      currentColumns.map((column) => {
         if (String(column.id) === String(sourceColumnId)) {
           return {
             ...column,
-            cards: column.cards.filter((card) => String(card.id) !== String(cardId)),
+            cards: (column.cards || []).filter(
+              (card) => String(card.id) !== String(cardId)
+            ),
           };
         }
         if (String(column.id) === String(targetColumnId)) {
-          const existingCards = column.cards || [];
-          if (hasExplicitPosition) {
-            const insertIdx = Math.max(
-              0,
-              Math.min(Number(targetPosition) - 1, existingCards.length)
-            );
-            const updatedCards = [...existingCards];
-            updatedCards.splice(insertIdx, 0, movedCard);
-            return { ...column, cards: updatedCards };
-          }
-          if (targetCardId) {
-            const targetIndex = existingCards.findIndex(
-              (card) => String(card.id) === String(targetCardId)
-            );
-            if (targetIndex !== -1) {
-              const updatedCards = [...existingCards];
-              updatedCards.splice(targetIndex, 0, movedCard);
-              return { ...column, cards: updatedCards };
-            }
-          }
           return {
             ...column,
-            cards: [...existingCards, movedCard],
+            cards: updatedTargetCards,
           };
         }
         return column;
-      });
-    });
+      })
+    );
+
+    // 5. Gửi request lên Backend API
+    const numericCardId = parseNumericId(cardId);
+    const numericTargetAreaId = parseNumericId(targetColumnId);
+    let serverUpdatedCard = null;
+
+    if (numericCardId && numericTargetAreaId) {
+      try {
+        const payload = {
+          targetAreaId: numericTargetAreaId,
+          position: Number(reqPosition),
+          ...(comment && typeof comment === 'string' && comment.trim()
+            ? { comment: comment.trim() }
+            : {}),
+        };
+        const res = await cardApi.moveCardApi(numericCardId, payload);
+        serverUpdatedCard = res?.data?.data;
+      } catch (err) {
+        // Hoàn tác về trạng thái ban đầu khi API thất bại
+        setColumns(previousColumns);
+        const errMsg =
+          err?.response?.data?.message ||
+          'Di chuyển thẻ thất bại. Đã khôi phục trạng thái ban đầu.';
+        setErrorNotification(errMsg);
+        return false;
+      } finally {
+        inFlightMovesRef.current.delete(cardKey);
+      }
+    } else {
+      inFlightMovesRef.current.delete(cardKey);
+    }
+
+    // 6. Đồng bộ trạng thái từ backend response (bảo toàn position & content/description mapping)
+    if (serverUpdatedCard) {
+      setColumns((currentColumns) =>
+        currentColumns.map((column) => {
+          if (String(column.id) === String(targetColumnId)) {
+            const mappedCard = mapCardFromServer(serverUpdatedCard, movedCard);
+            return {
+              ...column,
+              cards: (column.cards || []).map((c) =>
+                String(c.id) === String(serverUpdatedCard.id) ? mappedCard : c
+              ),
+            };
+          }
+          return column;
+        })
+      );
+    }
+
+    return true;
   };
 
   const handleOpenCard = (columnId, card) => {
@@ -602,18 +662,41 @@ export default function BoardPage() {
           onClose={() => setSelectedCard(null)}
           onSave={handleSaveCard}
           onUpdateCard={handleUpdateCard}
-          onMoveCard={(targetColumnId, targetPosition) => {
-            handleMoveCard(
+          onMoveCard={async (targetColumnId, targetPosition, comment) => {
+            const success = await handleMoveCard(
               selectedCard.columnId,
               targetColumnId,
               selectedCard.card.id,
               null,
-              targetPosition
+              targetPosition,
+              comment
             );
-            setSelectedCard(null);
+            if (success) {
+              setSelectedCard((prev) =>
+                prev
+                  ? {
+                      ...prev,
+                      columnId: targetColumnId,
+                    }
+                  : null
+              );
+            }
+            return success;
           }}
           onDelete={handleDeleteCard}
         />
+      )}
+      {errorNotification && (
+        <div className="board-error-toast" role="alert">
+          <span>{errorNotification}</span>
+          <button
+            type="button"
+            onClick={() => setErrorNotification('')}
+            aria-label="Đóng thông báo lỗi"
+          >
+            ✕
+          </button>
+        </div>
       )}
     </div>
   );

@@ -1,6 +1,9 @@
 package com.example.taskflow.modules.card.controller;
 
 import com.example.taskflow.common.dto.ApiResponse;
+import com.example.taskflow.common.enums.ErrorCode;
+import com.example.taskflow.common.exception.BusinessException;
+import com.example.taskflow.modules.card.dto.CardMovementResponse;
 import com.example.taskflow.modules.card.dto.CreateCardRequest;
 import com.example.taskflow.modules.card.dto.MoveCardRequest;
 import com.example.taskflow.modules.card.dto.UpdateCardRequest;
@@ -9,6 +12,7 @@ import com.example.taskflow.modules.card.service.CardService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -61,12 +65,27 @@ public class CardController {
     @PutMapping("/{cardId}/move")
     public ResponseEntity<ApiResponse<CardResponse>> moveCard(
             @PathVariable Long cardId,
-            @Valid @RequestBody MoveCardRequest request
+            @Valid @RequestBody MoveCardRequest request,
+            Authentication authentication
     ) {
-        CardResponse movedCard = cardService.moveCard(cardId, request);
+        if (authentication == null || "anonymousUser".equals(authentication.getName()) || !authentication.isAuthenticated()) {
+            throw new BusinessException(ErrorCode.ACCESS_DENIED);
+        }
+        String username = authentication.getName();
+        CardResponse movedCard = cardService.moveCard(cardId, request, username);
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(ApiResponse.success(movedCard, "Move card successfully"));
+    }
+
+    @GetMapping("/{cardId}/movements")
+    public ResponseEntity<ApiResponse<List<CardMovementResponse>>> getCardMovements(
+            @PathVariable Long cardId
+    ) {
+        List<CardMovementResponse> movements = cardService.getCardMovements(cardId);
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(ApiResponse.success(movements, "Get card movement history successfully"));
     }
 
     @DeleteMapping("/{cardId}")

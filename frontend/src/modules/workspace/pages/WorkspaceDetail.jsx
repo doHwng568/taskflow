@@ -365,6 +365,13 @@ function WorkspaceDetail() {
         </div>
 
         <div className="d-flex gap-2 flex-wrap">
+          <Button
+            variant="primary"
+            onClick={() => navigate(`/board/${id}`)}
+          >
+            Open Board
+          </Button>
+
           {canEdit && (
             <Button
               variant="outline-primary"
