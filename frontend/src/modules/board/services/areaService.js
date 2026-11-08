@@ -7,6 +7,12 @@ const areaService = {
     return response.data.data
   },
 
+  // GET /workspaces/{workspaceId}/areas/archived -> các area đã lưu trữ
+  async getArchived(workspaceId) {
+    const response = await api.get(`/workspaces/${workspaceId}/areas/archived`)
+    return response.data.data
+  },
+
   // POST /workspaces/{workspaceId}/areas -> area vừa tạo
   async create(workspaceId, name) {
     const response = await api.post(`/workspaces/${workspaceId}/areas`, { name })
@@ -22,6 +28,34 @@ const areaService = {
   // DELETE /areas/{areaId} -> 204, xóa area cùng toàn bộ thẻ trong area
   async remove(areaId) {
     await api.delete(`/areas/${areaId}`)
+  },
+
+  // PATCH /areas/{areaId}/archive -> area đã lưu trữ
+  async archive(areaId) {
+    const response = await api.patch(`/areas/${areaId}/archive`)
+    return response.data.data
+  },
+
+  // PATCH /areas/{areaId}/restore -> area đã khôi phục (kèm cards)
+  async restore(areaId) {
+    const response = await api.patch(`/areas/${areaId}/restore`)
+    return response.data.data
+  },
+
+  // PATCH /areas/{areaId}/color, color = '#RRGGBB' hoặc null để bỏ màu
+  async changeColor(areaId, color) {
+    const response = await api.patch(`/areas/${areaId}/color`, { color })
+    return response.data.data
+  },
+
+  // PATCH /areas/{areaId}/position
+  // previousAreaId / nextAreaId: area đứng ngay trước / sau vị trí mới (null nếu ở đầu / cuối)
+  async move(areaId, previousAreaId, nextAreaId) {
+    const response = await api.patch(`/areas/${areaId}/position`, {
+      previousAreaId,
+      nextAreaId,
+    })
+    return response.data.data
   },
 }
 

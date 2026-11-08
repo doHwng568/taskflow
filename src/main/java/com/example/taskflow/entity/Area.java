@@ -22,6 +22,10 @@ public class Area {
 
     private Double position;
 
+    // Màu nền của area dạng hex, ví dụ "#1E40AF". null = màu mặc định
+    private String color;
+
+    // true = đã lưu trữ, không hiện trên board
     private boolean archived = false;
 
     private LocalDateTime createdAt;
@@ -32,8 +36,9 @@ public class Area {
     @JoinColumn(name = "workspace_id")
     private Workspace workspace;
 
-    @OrderBy("position ASC")
+    // Thẻ trong area luôn được sắp xếp theo position tăng dần
     @OneToMany(mappedBy = "area")
+    @OrderBy("position ASC")
     private List<Card> cardList = new ArrayList<>();
 
     @OneToMany(mappedBy = "fromArea")

@@ -2,6 +2,8 @@ package com.example.taskflow.modules.area.controller;
 
 import com.example.taskflow.common.dto.ApiResponse;
 import com.example.taskflow.modules.area.dto.request.CreateAreaRequest;
+import com.example.taskflow.modules.area.dto.request.MoveAreaRequest;
+import com.example.taskflow.modules.area.dto.request.UpdateAreaColorRequest;
 import com.example.taskflow.modules.area.dto.request.UpdateAreaRequest;
 import com.example.taskflow.modules.area.dto.response.AreaResponse;
 import com.example.taskflow.modules.area.service.AreaService;
@@ -12,9 +14,9 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-// Không đặt @RequestMapping ở cấp class vì có hai nhóm đường dẫn:
-//  - /workspaces/{workspaceId}/areas : thao tác theo workspace (lấy danh sách, tạo)
-//  - /areas/{areaId}                 : thao tác trên một area cụ thể (sửa, xóa...)
+// Hai nhóm đường dẫn:
+//  - /workspaces/{workspaceId}/areas... : thao tác theo workspace
+//  - /areas/{areaId}...                 : thao tác trên một area cụ thể
 @RestController
 public class AreaController {
 
@@ -27,9 +29,15 @@ public class AreaController {
     // GET /workspaces/{workspaceId}/areas
     @GetMapping("/workspaces/{workspaceId}/areas")
     public ResponseEntity<ApiResponse<List<AreaResponse>>> getAreas(@PathVariable Long workspaceId) {
-        List<AreaResponse> areas = areaService.getAreasByWorkspace(workspaceId);
+        return ResponseEntity.ok(ApiResponse.success(
+                areaService.getAreasByWorkspace(workspaceId), "Get areas successfully"));
+    }
 
-        return ResponseEntity.ok(ApiResponse.success(areas, "Get areas successfully"));
+    // GET /workspaces/{workspaceId}/areas/archived
+    @GetMapping("/workspaces/{workspaceId}/areas/archived")
+    public ResponseEntity<ApiResponse<List<AreaResponse>>> getArchivedAreas(@PathVariable Long workspaceId) {
+        return ResponseEntity.ok(ApiResponse.success(
+                areaService.getArchivedAreasByWorkspace(workspaceId), "Get archived areas successfully"));
     }
 
     // POST /workspaces/{workspaceId}/areas   body: { "name": "Tên area" }
@@ -37,11 +45,9 @@ public class AreaController {
     public ResponseEntity<ApiResponse<AreaResponse>> createArea(
             @PathVariable Long workspaceId,
             @Valid @RequestBody CreateAreaRequest request) {
-        AreaResponse area = areaService.createArea(workspaceId, request);
-
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(ApiResponse.success(area, "Create area successfully"));
+                .body(ApiResponse.success(areaService.createArea(workspaceId, request), "Create area successfully"));
     }
 
     // PATCH /areas/{areaId}   body: { "name": "Tên mới" }
@@ -49,9 +55,8 @@ public class AreaController {
     public ResponseEntity<ApiResponse<AreaResponse>> updateArea(
             @PathVariable Long areaId,
             @Valid @RequestBody UpdateAreaRequest request) {
-        AreaResponse area = areaService.updateArea(areaId, request);
-
-        return ResponseEntity.ok(ApiResponse.success(area, "Update area successfully"));
+        return ResponseEntity.ok(ApiResponse.success(
+                areaService.updateArea(areaId, request), "Update area successfully"));
     }
 
     // DELETE /areas/{areaId}  -> 204 No Content
@@ -60,5 +65,37 @@ public class AreaController {
         areaService.deleteArea(areaId);
 
         return ResponseEntity.noContent().build();
+    }
+
+    // PATCH /areas/{areaId}/archive
+    @PatchMapping("/areas/{areaId}/archive")
+    public ResponseEntity<ApiResponse<AreaResponse>> archiveArea(@PathVariable Long areaId) {
+        return ResponseEntity.ok(ApiResponse.success(
+                areaService.archiveArea(areaId), "Archive area successfully"));
+    }
+
+    // PATCH /areas/{areaId}/restore
+    @PatchMapping("/areas/{areaId}/restore")
+    public ResponseEntity<ApiResponse<AreaResponse>> restoreArea(@PathVariable Long areaId) {
+        return ResponseEntity.ok(ApiResponse.success(
+                areaService.restoreArea(areaId), "Restore area successfully"));
+    }
+
+    // PATCH /areas/{areaId}/color   body: { "color": "#1E40AF" } hoặc { "color": null } để bỏ màu
+    @PatchMapping("/areas/{areaId}/color")
+    public ResponseEntity<ApiResponse<AreaResponse>> updateAreaColor(
+            @PathVariable Long areaId,
+            @Valid @RequestBody UpdateAreaColorRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(
+                areaService.updateAreaColor(areaId, request), "Update area color successfully"));
+    }
+
+    // PATCH /areas/{areaId}/position   body: { "previousAreaId": 1, "nextAreaId": 3 }
+    @PatchMapping("/areas/{areaId}/position")
+    public ResponseEntity<ApiResponse<AreaResponse>> moveArea(
+            @PathVariable Long areaId,
+            @RequestBody MoveAreaRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(
+                areaService.moveArea(areaId, request), "Move area successfully"));
     }
 }

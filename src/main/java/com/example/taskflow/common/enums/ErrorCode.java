@@ -19,6 +19,7 @@ public enum ErrorCode {
 
     // Area
     AREA_NOT_FOUND("AREA_001", "Area not found", HttpStatus.NOT_FOUND),
+    AREA_INVALID_POSITION("AREA_002", "Invalid area position", HttpStatus.BAD_REQUEST),
 
     // Card
     CARD_NOT_FOUND("CARD_001", "Card not found", HttpStatus.NOT_FOUND),

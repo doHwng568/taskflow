@@ -8,6 +8,8 @@ public record AreaResponse(
         Long id,
         String name,
         Double position,
+        String color,
+        boolean archived,
         int cardCount,
         List<CardResponse> cards) {
 
@@ -20,6 +22,8 @@ public record AreaResponse(
                 area.getId(),
                 area.getName(),
                 area.getPosition(),
+                area.getColor(),
+                area.isArchived(),
                 cards.size(),
                 cards);
     }
