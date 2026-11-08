@@ -1,9 +1,6 @@
 package com.example.taskflow.modules.card.controller;
 
 import com.example.taskflow.common.dto.ApiResponse;
-import com.example.taskflow.common.enums.ErrorCode;
-import com.example.taskflow.common.exception.BusinessException;
-import com.example.taskflow.modules.card.dto.CardMovementResponse;
 import com.example.taskflow.modules.card.dto.CreateCardRequest;
 import com.example.taskflow.modules.card.dto.MoveCardRequest;
 import com.example.taskflow.modules.card.dto.UpdateCardRequest;
@@ -12,7 +9,9 @@ import com.example.taskflow.modules.card.service.CardService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -43,6 +42,7 @@ public class CardController {
                 .body(ApiResponse.success(card, "Get card detail successfully"));
     }
 
+    @PreAuthorize("hasAuthority('CARD_CREATE')")
     @PostMapping
     public ResponseEntity<ApiResponse<CardResponse>> createCard(@Valid @RequestBody CreateCardRequest request) {
         CardResponse createdCard = cardService.createCard(request);
@@ -51,6 +51,7 @@ public class CardController {
                 .body(ApiResponse.success(createdCard, "Create card successfully"));
     }
 
+    @PreAuthorize("hasAuthority('CARD_UPDATE')")
     @PutMapping("/{cardId}")
     public ResponseEntity<ApiResponse<CardResponse>> updateCard(
             @PathVariable Long cardId,
@@ -62,32 +63,21 @@ public class CardController {
                 .body(ApiResponse.success(updatedCard, "Update card successfully"));
     }
 
+    @PreAuthorize("hasAuthority('CARD_UPDATE')")
     @PutMapping("/{cardId}/move")
     public ResponseEntity<ApiResponse<CardResponse>> moveCard(
             @PathVariable Long cardId,
             @Valid @RequestBody MoveCardRequest request,
-            Authentication authentication
+            @AuthenticationPrincipal UserDetails userDetails
     ) {
-        if (authentication == null || "anonymousUser".equals(authentication.getName()) || !authentication.isAuthenticated()) {
-            throw new BusinessException(ErrorCode.ACCESS_DENIED);
-        }
-        String username = authentication.getName();
+        String username = userDetails != null ? userDetails.getUsername() : null;
         CardResponse movedCard = cardService.moveCard(cardId, request, username);
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(ApiResponse.success(movedCard, "Move card successfully"));
     }
 
-    @GetMapping("/{cardId}/movements")
-    public ResponseEntity<ApiResponse<List<CardMovementResponse>>> getCardMovements(
-            @PathVariable Long cardId
-    ) {
-        List<CardMovementResponse> movements = cardService.getCardMovements(cardId);
-        return ResponseEntity
-                .status(HttpStatus.OK)
-                .body(ApiResponse.success(movements, "Get card movement history successfully"));
-    }
-
+    @PreAuthorize("hasAuthority('CARD_DELETE')")
     @DeleteMapping("/{cardId}")
     public ResponseEntity<ApiResponse<Void>> deleteCard(@PathVariable Long cardId) {
         cardService.deleteCard(cardId);
