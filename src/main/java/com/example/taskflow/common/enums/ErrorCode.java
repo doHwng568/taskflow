@@ -16,7 +16,39 @@ public enum ErrorCode {
 
     // Workspace
     WORKSPACE_NOT_FOUND("WS_001", "Workspace not found", HttpStatus.NOT_FOUND),
+    WORKSPACE_HAS_AREAS(
+            "WS_002",
+            "Cannot delete workspace because it contains areas",
+            HttpStatus.CONFLICT
+    ),WORKSPACE_MEMBER_NOT_FOUND(
+            "WS_003",
+            "Workspace member not found",
+            HttpStatus.NOT_FOUND
+    ),
 
+    WORKSPACE_MEMBER_ALREADY_EXISTS(
+            "WS_004",
+            "User is already a member of this workspace",
+            HttpStatus.CONFLICT
+    ),
+
+    WORKSPACE_OWNER_CANNOT_BE_REMOVED(
+            "WS_005",
+            "Workspace owner cannot be removed",
+            HttpStatus.BAD_REQUEST
+    ),
+
+    INVALID_WORKSPACE_ROLE(
+            "WS_006",
+            "Invalid workspace role",
+            HttpStatus.BAD_REQUEST
+    ),
+
+    INVALID_OWNERSHIP_TRANSFER(
+            "WS_007",
+            "Invalid ownership transfer",
+            HttpStatus.BAD_REQUEST
+    ),
     // Area
     AREA_NOT_FOUND("AREA_001", "Area not found", HttpStatus.NOT_FOUND),
     AREA_INVALID_POSITION("AREA_002", "Invalid area position", HttpStatus.BAD_REQUEST),

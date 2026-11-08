@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import ListActionMenu from './ListActionMenu';
-import CardItem from './CardItem';
+import CardItem from '../../card/components/CardItem';
+import AddCardForm from '../../card/components/AddCardForm';
 
 // Kiểu dữ liệu riêng khi kéo area. Kéo thẻ dùng 'text/plain' nên hai loại kéo không lẫn nhau.
 const AREA_DRAG_TYPE = 'application/x-area-id';
@@ -16,7 +17,6 @@ export default function BoardColumn({ column, onUpdateTitle, onDeleteList, onCre
   const [title, setTitle] = useState(column.title);
   const [showMenu, setShowMenu] = useState(false);
   const [isAddingCard, setIsAddingCard] = useState(false);
-  const [newCardTitle, setNewCardTitle] = useState('');
   const [isDragOver, setIsDragOver] = useState(false);
   const [areaDropPlacement, setAreaDropPlacement] = useState(null); // 'before' | 'after' | null
   const sectionRef = useRef(null);
@@ -113,25 +113,9 @@ export default function BoardColumn({ column, onUpdateTitle, onDeleteList, onCre
     setIsEditingTitle(true);
   };
 
-  const handleCreateCard = (event) => {
-    event.preventDefault();
-
-    const cardTitle = newCardTitle.trim();
-    if (!cardTitle) return;
-
-    onCreateCard(column.id, cardTitle);
-    setNewCardTitle('');
-    setIsAddingCard(false);
-  };
-
   const showCardForm = () => {
     setIsAddingCard(true);
     setShowMenu(false);
-  };
-
-  const cancelCreateCard = () => {
-    setNewCardTitle('');
-    setIsAddingCard(false);
   };
 
   return (
@@ -221,59 +205,21 @@ export default function BoardColumn({ column, onUpdateTitle, onDeleteList, onCre
             card={card}
             columnId={column.id}
             onClick={() => onOpenCard(column.id, card)}
-            onEdit={() => onEditCard(column.id, card)}
+            onEdit={(rect) => onEditCard(column.id, card, rect)}
             onToggleComplete={onToggleCardComplete}
+            onDropOnCard={(sourceColId, targetColId, draggedCardId, targetCardId) => {
+              setIsDragOver(false);
+              onMoveCard(sourceColId, targetColId, draggedCardId, targetCardId);
+            }}
           />
         ))}
       </div>
-      {isAddingCard ? (
-        <form onSubmit={handleCreateCard} className="board-add-card-form">
-          <textarea
-            autoFocus
-            value={newCardTitle}
-            onChange={(event) => setNewCardTitle(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' && !event.shiftKey) {
-                event.preventDefault();
-                event.currentTarget.form?.requestSubmit();
-              }
-            }}
-            placeholder="Nhập tiêu đề hoặc dán liên kết"
-            className="board-add-card-input"
-            rows={2}
-          />
-
-          <div className="board-add-card-actions">
-            <button type="submit" className="board-add-card-submit">
-              Thêm thẻ
-            </button>
-            <button
-              type="button"
-              onClick={cancelCreateCard}
-              className="board-add-card-cancel"
-              aria-label="Hủy thêm thẻ"
-            >
-              ✕
-            </button>
-          </div>
-        </form>
-      ) : (
-        <div className="board-column-footer">
-          <button
-            className="board-add-card-button"
-            onClick={() => setIsAddingCard(true)}
-          >
-            <span aria-hidden="true">＋</span> Thêm thẻ
-          </button>
-          <button
-            className="board-create-card-button"
-            aria-label="Tạo thẻ"
-            onClick={() => setIsAddingCard(true)}
-          >
-            ↗
-          </button>
-        </div>
-      )}
+      <AddCardForm
+        columnId={column.id}
+        onCreateCard={onCreateCard}
+        isAddingCard={isAddingCard}
+        setIsAddingCard={setIsAddingCard}
+      />
     </section>
   );
 }

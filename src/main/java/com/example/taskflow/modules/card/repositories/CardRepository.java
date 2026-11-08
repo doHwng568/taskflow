@@ -1,4 +1,4 @@
-package com.example.taskflow.modules.card.Repositories;
+package com.example.taskflow.modules.card.repositories;
 
 import com.example.taskflow.entity.Area;
 import com.example.taskflow.entity.Card;
