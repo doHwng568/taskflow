@@ -1,0 +1,222 @@
+/* CSS cho tính năng 5 (lưu trữ), 6 (đổi màu), 7 (kéo thả area).
+   Import SAU BoardPage.css để ghi đè được. */
+
+/* ---------- Tính năng 6: màu area ---------- */
+.board-column.has-color {
+  background: var(--area-color);
+}
+
+.board-column.has-color.is-drop-target {
+  background: color-mix(in srgb, var(--area-color) 60%, #579dff);
+}
+
+.board-list-menu-colors-wrap {
+  padding: 4px 12px 8px;
+}
+
+.board-list-menu-colors {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+
+.board-list-menu-swatch {
+  height: 28px;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.board-list-menu-swatch:hover {
+  filter: brightness(1.25);
+}
+
+.board-list-menu-swatch.is-selected {
+  border-color: #ffffff;
+}
+
+.board-list-menu-clear-color {
+  width: 100%;
+  margin-top: 8px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: rgb(255 255 255 / 10%);
+  color: inherit;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.board-list-menu-clear-color:hover:not(:disabled) {
+  background: rgb(255 255 255 / 18%);
+}
+
+.board-list-menu-clear-color:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+/* ---------- Tính năng 7: kéo thả area ---------- */
+.board-column-heading[draggable="true"] {
+  cursor: grab;
+}
+
+.board-column-heading[draggable="true"]:active {
+  cursor: grabbing;
+}
+
+.board-column.is-area-dragging {
+  opacity: 0.45;
+}
+
+/* Vạch xanh cho biết area sẽ được thả vào trước / sau cột này */
+.board-column.is-area-drop-before {
+  box-shadow: -6px 0 0 0 #579dff, 0 2px 8px rgb(0 0 0 / 24%);
+}
+
+.board-column.is-area-drop-after {
+  box-shadow: 6px 0 0 0 #579dff, 0 2px 8px rgb(0 0 0 / 24%);
+}
+
+/* ---------- Tính năng 5: nút và bảng "Đã lưu trữ" ---------- */
+.board-archive-button {
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: rgb(255 255 255 / 14%);
+  color: #ffffff;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.board-archive-button:hover {
+  background: rgb(255 255 255 / 24%);
+}
+
+.archived-panel {
+  position: fixed;
+  z-index: 30;
+  top: 64px;
+  right: 16px;
+  width: 320px;
+  max-height: calc(100vh - 150px);
+  overflow: auto;
+  border: 1px solid #444b52;
+  border-radius: 9px;
+  background: #22272b;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 45%);
+  color: #d7dce2;
+  font-size: 13px;
+}
+
+.archived-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-bottom: 1px solid #444b52;
+  font-weight: 700;
+}
+
+.archived-panel-close {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.archived-panel-body {
+  padding: 8px 12px 12px;
+}
+
+.archived-panel-note {
+  margin: 8px 0;
+  color: #9fadbc;
+}
+
+.archived-panel-error {
+  margin: 8px 0;
+  color: #ff8f8f;
+}
+
+.archived-panel-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgb(255 255 255 / 8%);
+}
+
+.archived-panel-item:last-child {
+  border-bottom: 0;
+}
+
+.archived-panel-info {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.archived-panel-name {
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.archived-panel-count {
+  flex-shrink: 0;
+  color: #9fadbc;
+  font-size: 12px;
+}
+
+.archived-panel-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.archived-panel-restore,
+.archived-panel-delete {
+  padding: 5px 10px;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.archived-panel-restore {
+  background: #579dff;
+  color: #07182f;
+}
+
+.archived-panel-delete {
+  background: rgb(255 255 255 / 10%);
+  color: #ff8f8f;
+}
+
+.archived-panel-restore:disabled,
+.archived-panel-delete:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+/* Ghim / di chuyển area */
+.board-column-pin-badge {
+  font-size: 12px;
+  line-height: 1;
+}
+
+.board-list-menu-workspaces {
+  max-height: 160px;
+  overflow-y: auto;
+  padding-left: 12px;
+}
+
+.board-list-menu-hint {
+  margin: 4px 8px;
+  font-size: 12px;
+  opacity: 0.7;
+}

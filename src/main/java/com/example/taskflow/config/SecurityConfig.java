@@ -47,7 +47,8 @@ public class SecurityConfig {
                                 "/auth/register",
                                 "/api/users",
                                 "/api/cards/**",
-                                "/api/areas/**"
+                                "/api/areas/**",
+                                "/workspaces/**"
                         ).permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .anyRequest().authenticated())
