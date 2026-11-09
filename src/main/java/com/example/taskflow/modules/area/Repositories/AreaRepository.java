@@ -15,20 +15,27 @@ public interface AreaRepository extends JpaRepository<Area, Long> {
     // Lấy tất cả area của một workspace (cả đã lưu trữ), sắp xếp theo position tăng dần
     List<Area> findByWorkspace_IdOrderByPositionAsc(Long workspaceId);
 
-    // Area CHƯA lưu trữ kèm thẻ con, 1 câu query (join fetch tránh N+1).
+    // Lấy tất cả area của một workspace: ghim lên đầu, sau đó theo position tăng dần
+    List<Area> findByWorkspace_IdOrderByPinnedDescPositionAsc(Long workspaceId);
+
+    // Area CHƯA lưu trữ kèm thẻ con và người tạo/giao việc, 1 câu query (join fetch tránh N+1).
     // Thứ tự thẻ lấy từ @OrderBy ở Area.cardList.
     @Query("""
             select distinct a from Area a
-            left join fetch a.cardList
+            left join fetch a.cardList c
+            left join fetch c.createdBy
+            left join fetch c.assignee
             where a.workspace.id = :workspaceId and a.archived = false
             order by a.pinned desc, a.position asc
             """)
     List<Area> findActiveWithCards(@Param("workspaceId") Long workspaceId);
 
-    // Area ĐÃ lưu trữ kèm thẻ con (cho màn hình "Đã lưu trữ")
+    // Area ĐÃ lưu trữ kèm thẻ con và người tạo/giao việc (cho màn hình "Đã lưu trữ")
     @Query("""
             select distinct a from Area a
-            left join fetch a.cardList
+            left join fetch a.cardList c
+            left join fetch c.createdBy
+            left join fetch c.assignee
             where a.workspace.id = :workspaceId and a.archived = true
             order by a.pinned desc, a.position asc
             """)

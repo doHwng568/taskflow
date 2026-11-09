@@ -95,7 +95,8 @@ export default function BoardColumn({ column, onUpdateTitle, onDeleteList, onCre
   };
 
   const handleTitleSubmit = (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
+    if (!isEditingTitle) return;
 
     const trimmedTitle = title.trim();
     setIsEditingTitle(false);
@@ -145,8 +146,15 @@ export default function BoardColumn({ column, onUpdateTitle, onDeleteList, onCre
             <input
               autoFocus
               type="text"
+              maxLength={100}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  setTitle(column.title);
+                  setIsEditingTitle(false);
+                }
+              }}
               onBlur={handleTitleSubmit}
               className="board-column-title-input"
             />
@@ -187,9 +195,11 @@ export default function BoardColumn({ column, onUpdateTitle, onDeleteList, onCre
             setShowMenu(false);
             onTogglePin(column.id, !column.pinned);
           }}
-          onCopy={() => {
+          columnTitle={column.title}
+          cardsCount={column.cards.length}
+          onCopy={(customName) => {
             setShowMenu(false);
-            onCopyList(column.id);
+            onCopyList(column.id, customName);
           }}
           currentWorkspaceId={workspaceId}
           onMoveToWorkspace={(workspace) => {
@@ -204,16 +214,7 @@ export default function BoardColumn({ column, onUpdateTitle, onDeleteList, onCre
           }}
           onDeleteList={() => {
             setShowMenu(false);
-
-            const cardCount = column.cards.length;
-            const message =
-              cardCount > 0
-                ? `Xóa danh sách "${column.title}"?\n\nDanh sách có ${cardCount} thẻ, các thẻ này cũng sẽ bị xóa vĩnh viễn.`
-                : `Xóa danh sách "${column.title}"?`;
-
-            if (window.confirm(message)) {
-              onDeleteList(column.id);
-            }
+            onDeleteList(column.id);
           }}
         />
       )}

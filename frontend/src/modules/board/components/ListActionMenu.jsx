@@ -27,9 +27,14 @@ export default function ListActionMenu({
   onCopy,
   currentWorkspaceId,
   onMoveToWorkspace,
+  columnTitle,
+  cardsCount = 0,
 }) {
   const [showColors, setShowColors] = useState(false);
   const [showMove, setShowMove] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showCopyInput, setShowCopyInput] = useState(false);
+  const [copyName, setCopyName] = useState(columnTitle ? `${columnTitle} (bản sao)` : '');
   const [workspaces, setWorkspaces] = useState([]);
   const [moveStatus, setMoveStatus] = useState('idle'); // idle | loading | error
 
@@ -52,7 +57,13 @@ export default function ListActionMenu({
   return (
     <div className="board-list-menu">
       <div className="board-list-menu-header">
-        <span>Thao tác với danh sách</span>
+        <span>
+          {showDeleteConfirm
+            ? 'Xác nhận xóa'
+            : showCopyInput
+            ? 'Sao chép danh sách'
+            : 'Thao tác với danh sách'}
+        </span>
         <button
           onClick={onClose}
           className="board-list-menu-close"
@@ -62,112 +73,181 @@ export default function ListActionMenu({
         </button>
       </div>
 
-      <div className="board-list-menu-options">
-        <button
-          onClick={onAddCard}
-          className="board-list-menu-option"
-        >
-          Thêm thẻ...
-        </button>
-        <button
-          onClick={onTogglePin}
-          className="board-list-menu-option"
-        >
-          {pinned ? 'Bỏ ghim danh sách' : 'Ghim danh sách'}
-        </button>
-        <button
-          onClick={onCopy}
-          className="board-list-menu-option"
-        >
-          Sao chép danh sách...
-        </button>
-        <button
-          onClick={toggleMove}
-          className="board-list-menu-option board-list-menu-submenu"
-          aria-expanded={showMove}
-        >
-          <span>Di chuyển danh sách...</span>
-          <span className="text-xs">{showMove ? '⌄' : '❯'}</span>
-        </button>
-        {showMove && (
-          <div className="board-list-menu-workspaces">
-            {moveStatus === 'loading' && <p className="board-list-menu-hint">Đang tải...</p>}
-            {moveStatus === 'error' && (
-              <p className="board-list-menu-hint">Không tải được danh sách workspace</p>
-            )}
-            {moveStatus === 'idle' && workspaces.length === 0 && (
-              <p className="board-list-menu-hint">Không có workspace nào khác</p>
-            )}
-            {workspaces.map((ws) => (
-              <button
-                key={ws.id}
-                type="button"
-                className="board-list-menu-option"
-                onClick={() => onMoveToWorkspace(ws)}
-              >
-                {ws.name}
-              </button>
-            ))}
+      {showDeleteConfirm ? (
+        <div style={{ padding: '8px 12px' }}>
+          <p style={{ margin: '0 0 10px 0', fontSize: '13px', color: '#ff8f8f', lineHeight: '1.4' }}>
+            {cardsCount > 0
+              ? `Xóa danh sách "${columnTitle}" cùng ${cardsCount} thẻ con? Các thẻ này sẽ bị xóa vĩnh viễn.`
+              : `Xóa danh sách "${columnTitle}"? Thao tác này không thể hoàn tác.`}
+          </p>
+          <div style={{ display: 'flex', gap: '8px', flexDirection: 'column' }}>
+            <button
+              type="button"
+              className="board-list-menu-option is-danger"
+              style={{ textAlign: 'center', fontWeight: 'bold' }}
+              onClick={onDeleteList}
+            >
+              Xác nhận xóa vĩnh viễn
+            </button>
+            <button
+              type="button"
+              className="board-list-menu-option"
+              style={{ textAlign: 'center' }}
+              onClick={() => setShowDeleteConfirm(false)}
+            >
+              Quay lại
+            </button>
           </div>
-        )}
-        <button className="board-list-menu-option">
-          Theo dõi
-        </button>
-      </div>
-
-      <div className="board-list-menu-divider" />
-
-      <button
-        className="board-list-menu-option board-list-menu-submenu"
-        onClick={() => setShowColors((isOpen) => !isOpen)}
-        aria-expanded={showColors}
-      >
-        <span>Thay đổi màu danh sách</span>
-        <span className="text-xs">{showColors ? '⌄' : '❯'}</span>
-      </button>
-
-      {showColors && (
-        <div className="board-list-menu-colors-wrap">
-          <div className="board-list-menu-colors">
-            {AREA_COLORS.map((item) => (
-              <button
-                key={item.value}
-                type="button"
-                className={`board-list-menu-swatch ${color === item.value ? 'is-selected' : ''}`}
-                style={{ backgroundColor: item.value }}
-                title={item.name}
-                aria-label={`Màu ${item.name}`}
-                onClick={() => onChangeColor(item.value)}
-              />
-            ))}
-          </div>
-          <button
-            type="button"
-            className="board-list-menu-clear-color"
-            onClick={() => onChangeColor(null)}
-            disabled={!color}
-          >
-            Bỏ màu
-          </button>
         </div>
+      ) : showCopyInput ? (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            const trimmed = copyName.trim();
+            if (trimmed) onCopy(trimmed);
+          }}
+          style={{ padding: '8px 12px' }}
+        >
+          <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', opacity: 0.8 }}>
+            Tên danh sách mới:
+          </label>
+          <input
+            autoFocus
+            type="text"
+            maxLength={100}
+            value={copyName}
+            onChange={(e) => setCopyName(e.target.value)}
+            className="board-column-title-input"
+            style={{ width: '100%', marginBottom: '10px' }}
+          />
+          <div style={{ display: 'flex', gap: '8px', flexDirection: 'column' }}>
+            <button
+              type="submit"
+              className="board-list-menu-option"
+              style={{ textAlign: 'center', background: '#579dff', color: '#07182f', fontWeight: '600' }}
+            >
+              Tạo bản sao
+            </button>
+            <button
+              type="button"
+              className="board-list-menu-option"
+              style={{ textAlign: 'center' }}
+              onClick={() => setShowCopyInput(false)}
+            >
+              Quay lại
+            </button>
+          </div>
+        </form>
+      ) : (
+        <>
+          <div className="board-list-menu-options">
+            <button
+              onClick={onAddCard}
+              className="board-list-menu-option"
+            >
+              Thêm thẻ...
+            </button>
+            <button
+              onClick={onTogglePin}
+              className="board-list-menu-option"
+            >
+              {pinned ? 'Bỏ ghim danh sách' : 'Ghim danh sách'}
+            </button>
+            <button
+              onClick={() => setShowCopyInput(true)}
+              className="board-list-menu-option"
+            >
+              Sao chép danh sách...
+            </button>
+            <button
+              onClick={toggleMove}
+              className="board-list-menu-option board-list-menu-submenu"
+              aria-expanded={showMove}
+            >
+              <span>Di chuyển danh sách...</span>
+              <span className="text-xs">{showMove ? '⌄' : '❯'}</span>
+            </button>
+            {showMove && (
+              <div className="board-list-menu-workspaces">
+                {moveStatus === 'loading' && <p className="board-list-menu-hint">Đang tải...</p>}
+                {moveStatus === 'error' && (
+                  <p className="board-list-menu-hint">Không tải được danh sách workspace</p>
+                )}
+                {moveStatus === 'idle' && workspaces.length === 0 && (
+                  <p className="board-list-menu-hint">Không có workspace nào khác</p>
+                )}
+                {workspaces.map((ws) => (
+                  <button
+                    key={ws.id}
+                    type="button"
+                    className="board-list-menu-option"
+                    onClick={() => onMoveToWorkspace(ws)}
+                  >
+                    {ws.name}
+                  </button>
+                ))}
+              </div>
+            )}
+            <button className="board-list-menu-option">
+              Theo dõi
+            </button>
+          </div>
+
+          <div className="board-list-menu-divider" />
+
+          <button
+            className="board-list-menu-option board-list-menu-submenu"
+            onClick={() => setShowColors((isOpen) => !isOpen)}
+            aria-expanded={showColors}
+          >
+            <span>Thay đổi màu danh sách</span>
+            <span className="text-xs">{showColors ? '⌄' : '❯'}</span>
+          </button>
+
+          {showColors && (
+            <div className="board-list-menu-colors-wrap">
+              <div className="board-list-menu-colors">
+                {AREA_COLORS.map((item) => (
+                  <button
+                    key={item.value}
+                    type="button"
+                    className={`board-list-menu-swatch ${color === item.value ? 'is-selected' : ''}`}
+                    style={{ backgroundColor: item.value }}
+                    title={item.name}
+                    aria-label={`Màu ${item.name}`}
+                    onClick={() => onChangeColor(item.value)}
+                  />
+                ))}
+              </div>
+              <button
+                type="button"
+                className="board-list-menu-clear-color"
+                onClick={() => onChangeColor(null)}
+                disabled={!color}
+              >
+                Bỏ màu
+              </button>
+            </div>
+          )}
+
+          <div className="board-list-menu-divider" />
+
+          <div className="board-list-menu-options">
+            <button
+              onClick={onArchive}
+              className="board-list-menu-option"
+            >
+              Lưu trữ danh sách này
+            </button>
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="board-list-menu-option is-danger"
+            >
+              Xóa danh sách này
+            </button>
+          </div>
+        </>
       )}
-
-      <div className="board-list-menu-divider" />
-
-      <div className="board-list-menu-options">
-        <button
-          onClick={onArchive}
-          className="board-list-menu-option"
-        >
-          Lưu trữ danh sách này
-        </button>
-        <button
-          onClick={onDeleteList}
-          className="board-list-menu-option is-danger"
-        >
-          Xóa danh sách này
-        </button>
-      </div>
     </div>
   );
 }

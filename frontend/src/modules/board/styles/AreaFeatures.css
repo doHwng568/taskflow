@@ -209,6 +209,15 @@
   line-height: 1;
 }
 
+.board-pinned-divider {
+  width: 2px;
+  min-width: 2px;
+  background: rgba(255, 255, 255, 0.35);
+  margin: 6px 6px;
+  border-radius: 2px;
+  align-self: stretch;
+}
+
 .board-list-menu-workspaces {
   max-height: 160px;
   overflow-y: auto;

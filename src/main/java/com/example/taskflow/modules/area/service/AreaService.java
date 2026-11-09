@@ -3,6 +3,7 @@ package com.example.taskflow.modules.area.service;
 import com.example.taskflow.modules.area.dto.AreaResponse;
 import com.example.taskflow.modules.area.dto.CreateAreaRequest;
 import com.example.taskflow.modules.area.dto.UpdateAreaRequest;
+import com.example.taskflow.modules.area.dto.request.CopyAreaRequest;
 import com.example.taskflow.modules.area.dto.request.CreateWorkspaceAreaRequest;
 import com.example.taskflow.modules.area.dto.request.MoveAreaRequest;
 import com.example.taskflow.modules.area.dto.request.MoveAreaToWorkspaceRequest;
@@ -49,6 +50,7 @@ public interface AreaService {
 
     // Sao chép area (kèm toàn bộ thẻ) ngay sau area gốc
     AreaResponse copyArea(Long areaId);
+    AreaResponse copyArea(Long areaId, CopyAreaRequest request);
 
     // Chuyển area (kèm thẻ) sang workspace khác
     AreaResponse moveAreaToWorkspace(Long areaId, MoveAreaToWorkspaceRequest request);

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import BoardHeader from '../components/BoardHeader';
 import BoardColumn from '../components/BoardColumn';
@@ -199,7 +199,7 @@ export default function BoardPage() {
 
     try {
       const area = await areaService.create(workspaceId, title);
-      setColumns((currentColumns) => [...currentColumns, toColumn(area)]);
+      setColumns((currentColumns) => sortColumns([...currentColumns, toColumn(area)]));
       setNewListTitle('');
       setIsAddingList(false);
       setError('');
@@ -321,9 +321,9 @@ export default function BoardPage() {
   };
 
   // Tính năng 9: sao chép area (kèm thẻ), bản sao nằm ngay sau area gốc
-  const handleCopyList = async (columnId) => {
+  const handleCopyList = async (columnId, name) => {
     try {
-      const area = await areaService.copy(columnId);
+      const area = await areaService.copy(columnId, name);
       setColumns((currentColumns) => sortColumns([...currentColumns, toColumn(area)]));
       setError('');
     } catch (err) {
@@ -661,39 +661,90 @@ export default function BoardPage() {
     >
       <BoardHeader onOpenArchived={() => setShowArchived(true)} />
 
+      {error && (
+        <div
+          role="alert"
+          style={{
+            margin: '8px 16px',
+            padding: '10px 14px',
+            backgroundColor: '#fee2e2',
+            color: '#b91c1c',
+            borderRadius: '6px',
+            border: '1px solid #f87171',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            fontSize: '14px',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+            zIndex: 10,
+          }}
+        >
+          <span>⚠️ {error}</span>
+          <button
+            type="button"
+            onClick={() => setError('')}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              color: '#b91c1c',
+              fontWeight: 'bold',
+              fontSize: '16px',
+              padding: '0 4px',
+            }}
+            aria-label="Đóng thông báo lỗi"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       <main className="board-lists">
         {loading && <p style={{ color: '#fff' }}>Đang tải...</p>}
-        {error && <p style={{ color: '#ff8f8f' }}>{error}</p>}
 
-        {columns.map((col) => (
-          <BoardColumn
-            key={col.id}
-            column={col}
-            onUpdateTitle={handleUpdateListTitle}
-            onDeleteList={handleDeleteList}
-            onCreateCard={handleCreateCard}
-            onOpenCard={handleOpenCard}
-            onEditCard={handleEditCard}
-            onMoveCard={handleMoveCard}
-            onToggleCardComplete={handleToggleCardComplete}
-            onArchiveList={handleArchiveList}
-            onChangeColor={handleChangeColor}
-            onMoveArea={handleMoveArea}
-            workspaceId={workspaceId}
-            onTogglePin={handleTogglePin}
-            onCopyList={handleCopyList}
-            onMoveToWorkspace={handleMoveToWorkspace}
-            draggingAreaId={draggingAreaId}
-            onAreaDragStart={setDraggingAreaId}
-            onAreaDragEnd={() => setDraggingAreaId(null)}
-          />
-        ))}
+        {columns.map((col, index) => {
+          const isFirstUnpinned =
+            !col.pinned && index > 0 && Boolean(columns[index - 1]?.pinned);
+
+          return (
+            <Fragment key={col.id}>
+              {isFirstUnpinned && (
+                <div
+                  className="board-pinned-divider"
+                  title="Phân cách danh sách đã ghim"
+                  aria-hidden="true"
+                />
+              )}
+              <BoardColumn
+                column={col}
+                onUpdateTitle={handleUpdateListTitle}
+                onDeleteList={handleDeleteList}
+                onCreateCard={handleCreateCard}
+                onOpenCard={handleOpenCard}
+                onEditCard={handleEditCard}
+                onMoveCard={handleMoveCard}
+                onToggleCardComplete={handleToggleCardComplete}
+                onArchiveList={handleArchiveList}
+                onChangeColor={handleChangeColor}
+                onMoveArea={handleMoveArea}
+                workspaceId={workspaceId}
+                onTogglePin={handleTogglePin}
+                onCopyList={handleCopyList}
+                onMoveToWorkspace={handleMoveToWorkspace}
+                draggingAreaId={draggingAreaId}
+                onAreaDragStart={setDraggingAreaId}
+                onAreaDragEnd={() => setDraggingAreaId(null)}
+              />
+            </Fragment>
+          );
+        })}
 
         {isAddingList ? (
           <form onSubmit={handleCreateList} className="board-add-list-form">
             <input
               autoFocus
               type="text"
+              maxLength={100}
               value={newListTitle}
               onChange={(e) => setNewListTitle(e.target.value)}
               placeholder="Nhập tiêu đề danh sách..."

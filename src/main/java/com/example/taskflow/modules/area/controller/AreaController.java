@@ -4,6 +4,7 @@ import com.example.taskflow.common.dto.ApiResponse;
 import com.example.taskflow.modules.area.dto.AreaResponse;
 import com.example.taskflow.modules.area.dto.CreateAreaRequest;
 import com.example.taskflow.modules.area.dto.UpdateAreaRequest;
+import com.example.taskflow.modules.area.dto.request.CopyAreaRequest;
 import com.example.taskflow.modules.area.dto.request.CreateWorkspaceAreaRequest;
 import com.example.taskflow.modules.area.dto.request.MoveAreaRequest;
 import com.example.taskflow.modules.area.dto.request.MoveAreaToWorkspaceRequest;
@@ -171,12 +172,14 @@ public class AreaController {
                 areaService.pinArea(areaId, request), "Pin area successfully"));
     }
 
-    // POST /areas/{areaId}/copy  -> 201, bản sao kèm thẻ
+    // POST /areas/{areaId}/copy  -> 201, bản sao kèm thẻ (tùy chọn đặt tên mới qua body)
     @PostMapping("/areas/{areaId}/copy")
-    public ResponseEntity<ApiResponse<AreaResponse>> copyArea(@PathVariable Long areaId) {
+    public ResponseEntity<ApiResponse<AreaResponse>> copyArea(
+            @PathVariable Long areaId,
+            @Valid @RequestBody(required = false) CopyAreaRequest request) {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(ApiResponse.success(areaService.copyArea(areaId), "Copy area successfully"));
+                .body(ApiResponse.success(areaService.copyArea(areaId, request), "Copy area successfully"));
     }
 
     // PATCH /areas/{areaId}/workspace   body: { "targetWorkspaceId": 5 }
