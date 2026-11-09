@@ -10,7 +10,10 @@ public enum ErrorCode {
 
     USER_NOT_FOUND("USER_001", "User not found", HttpStatus.NOT_FOUND),
     USERNAME_ALREADY_EXISTS("USER_002", "Username already exists", HttpStatus.CONFLICT),
+    EMAIL_ALREADY_EXISTS("USER_004", "Email already in use", HttpStatus.CONFLICT),
+    CANNOT_CHANGE_OWN_ROLE("USER_003", "PM cannot change their own role", HttpStatus.BAD_REQUEST),
     INVALID_CREDENTIALS("AUTH_001", "Invalid credentials", HttpStatus.UNAUTHORIZED),
+    OLD_PASSWORD_INCORRECT("AUTH_003", "Old password does not match", HttpStatus.BAD_REQUEST),
     ACCESS_DENIED("AUTH_002", "Access denied", HttpStatus.FORBIDDEN),
     VALIDATION_ERROR("COMMON_001", "Validation failed", HttpStatus.BAD_REQUEST),
 
