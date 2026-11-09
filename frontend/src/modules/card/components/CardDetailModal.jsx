@@ -13,9 +13,24 @@ const getLocalDateString = (date = new Date()) => {
   return `${year}-${month}-${day}`;
 };
 
+const parseDateParts = (isoString) => {
+  if (!isoString) return { date: '', time: '' };
+  const str = String(isoString).trim();
+  if (!str) return { date: '', time: '' };
+  if (str.includes('T')) {
+    const [d, t] = str.split('T');
+    return { date: d, time: t ? t.substring(0, 5) : '' };
+  }
+  return { date: str, time: '' };
+};
+
 const getMonthForDate = (dateString) => {
-  const date = dateString ? new Date(`${dateString}T00:00:00`) : new Date();
-  return new Date(date.getFullYear(), date.getMonth(), 1);
+  if (!dateString) return new Date();
+  const cleanDate = dateString.includes('T') ? dateString.split('T')[0] : dateString;
+  const date = new Date(`${cleanDate}T00:00:00`);
+  return isNaN(date.getTime())
+    ? new Date()
+    : new Date(date.getFullYear(), date.getMonth(), 1);
 };
 
 const getCurrentUsername = () => {
@@ -56,9 +71,37 @@ const createNewCommentItem = (text) => ({
   createdAt: new Date().toISOString(),
 });
 
+const formatRelativeTime = (dateString) => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  const diffMs = Date.now() - date.getTime();
+  const diffSec = Math.floor(diffMs / 1000);
+  if (diffSec < 45) return 'vừa xong';
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin} phút trước`;
+  const diffHour = Math.floor(diffMin / 60);
+  if (diffHour < 24) return `${diffHour} giờ trước`;
+  const diffDays = Math.floor(diffHour / 24);
+  if (diffDays === 1) {
+    const time = date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+    return `Hôm qua lúc ${time}`;
+  }
+  if (diffDays < 7) return `${diffDays} ngày trước`;
+  return date.toLocaleDateString('vi-VN', {
+    day: 'numeric',
+    month: 'numeric',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
+
 const formatShortDateVi = (dateString) => {
   if (!dateString) return '';
-  const [year, month, day] = dateString.split('-');
+  const cleanDate = dateString.includes('T') ? dateString.split('T')[0] : dateString;
+  const parts = cleanDate.split('-');
+  if (parts.length < 3) return cleanDate;
+  const [year, month, day] = parts;
   const currentYear = new Date().getFullYear();
   const base = `${Number(day)} thg ${Number(month)}`;
   return Number(year) !== currentYear ? `${base}, ${year}` : base;
@@ -69,7 +112,9 @@ const getDueStatus = ({ dueDate, dueTime, dueEnabled, completed }) => {
   if (completed) {
     return { label: 'Hoàn tất', className: 'is-complete' };
   }
-  const target = new Date(`${dueDate}T${dueTime || '23:59'}:00`);
+  const cleanDate = dueDate.includes('T') ? dueDate.split('T')[0] : dueDate;
+  const cleanTime = dueTime ? (dueTime.length === 5 ? dueTime : dueTime.substring(0, 5)) : '23:59';
+  const target = new Date(`${cleanDate}T${cleanTime}:00`);
   const diffMs = target.getTime() - Date.now();
   if (diffMs < 0) {
     return { label: 'Quá hạn', className: 'is-overdue' };
@@ -875,16 +920,30 @@ export default function CardDetailModal({
   const [coverImage, setCoverImage] = useState(card.coverImage || '');
   const [isQuickCoverOpen, setIsQuickCoverOpen] = useState(false);
   const [isQuickMemberOpen, setIsQuickMemberOpen] = useState(false);
-  const [startDate, setStartDate] = useState(card.startDate || '');
-  const [dueDate, setDueDate] = useState(card.dueDate || '');
+  const initialDue = useMemo(() => parseDateParts(card.dueDate), [card.dueDate]);
+  const initialStart = useMemo(() => parseDateParts(card.startDate), [card.startDate]);
+
+  const [startDate, setStartDate] = useState(() => initialStart.date);
+  const [dueDate, setDueDate] = useState(() => initialDue.date);
   const [startEnabled, setStartEnabled] = useState(card.startDateEnabled ?? Boolean(card.startDate));
   const [dueEnabled, setDueEnabled] = useState(card.dueDateEnabled ?? Boolean(card.dueDate));
-  const [startTime, setStartTime] = useState(card.startTime || '09:00');
-  const [dueTime, setDueTime] = useState(card.dueTime || '17:00');
+  const [startTime, setStartTime] = useState(() => initialStart.time || card.startTime || '09:00');
+  const [dueTime, setDueTime] = useState(() => initialDue.time || card.dueTime || '17:00');
   const [recurrence, setRecurrence] = useState(card.recurrence || 'none');
   const [reminder, setReminder] = useState(card.reminder || '1-day');
-  const [calendarMonth, setCalendarMonth] = useState(() => getMonthForDate(card.dueDate || card.startDate));
+  const [calendarMonth, setCalendarMonth] = useState(() => getMonthForDate(initialDue.date || initialStart.date));
   const [calendarTarget, setCalendarTarget] = useState(() => (card.startDate ? 'due' : 'start'));
+
+  useEffect(() => {
+    const dueParts = parseDateParts(card.dueDate);
+    const startParts = parseDateParts(card.startDate);
+    setDueDate(dueParts.date);
+    setStartDate(startParts.date);
+    if (dueParts.time) setDueTime(dueParts.time);
+    if (startParts.time) setStartTime(startParts.time);
+    setDueEnabled(card.dueDateEnabled ?? Boolean(card.dueDate));
+    setStartEnabled(card.startDateEnabled ?? Boolean(card.startDate));
+  }, [card.id, card.dueDate, card.startDate, card.dueDateEnabled, card.startDateEnabled]);
   const [labels, setLabels] = useState(Array.isArray(card.labels) ? card.labels : []);
   const [popoverSnapshot, setPopoverSnapshot] = useState(null);
   const [comments, setComments] = useState(Array.isArray(card.comments) ? card.comments : []);
@@ -959,7 +1018,7 @@ export default function CardDetailModal({
     };
   }, [workspaceId]);
 
-  const handleSelectMember = (member) => {
+  const handleSelectMember = async (member) => {
     if (!isPM) return;
     const isCurrentlyAssigned = String(assigneeId) === String(member.id);
     const newAssigneeId = isCurrentlyAssigned ? null : member.id;
@@ -978,7 +1037,8 @@ export default function CardDetailModal({
       assigneeRole: newAssigneeRole,
       assigneeUsername: newAssigneeUsername,
     });
-    onUpdateCard?.(updated);
+    await onUpdateCard?.(updated);
+    await reloadAllHistory();
   };
 
   const [isQuickMoveOpen, setIsQuickMoveOpen] = useState(false);
@@ -1001,14 +1061,14 @@ export default function CardDetailModal({
     return Number.isFinite(num) && num > 0 ? num : null;
   };
 
-  const fetchMovements = useCallback(async () => {
+  const fetchMovements = useCallback(async (silent = false) => {
     const numericCardId = parseNumericId(card.id);
     if (!numericCardId) {
       setMovements([]);
       return;
     }
     try {
-      setLoadingMovements(true);
+      if (!silent) setLoadingMovements(true);
       setMovementError('');
       const res = await cardApi.getCardMovementsApi(numericCardId);
       const data = res?.data?.data;
@@ -1024,18 +1084,18 @@ export default function CardDetailModal({
     } catch (err) {
       setMovementError(err?.response?.data?.message || 'Không thể tải lịch sử di chuyển.');
     } finally {
-      setLoadingMovements(false);
+      if (!silent) setLoadingMovements(false);
     }
   }, [card.id]);
 
-  const fetchActivities = useCallback(async () => {
+  const fetchActivities = useCallback(async (silent = false) => {
     const numericCardId = parseNumericId(card.id);
     if (!numericCardId) {
       setActivities([]);
       return;
     }
     try {
-      setLoadingActivities(true);
+      if (!silent) setLoadingActivities(true);
       setActivityError('');
       const res = await cardApi.getCardActivitiesApi(numericCardId);
       const data = res?.data?.data;
@@ -1051,12 +1111,12 @@ export default function CardDetailModal({
     } catch (err) {
       setActivityError(err?.response?.data?.message || 'Không thể tải lịch sử hoạt động.');
     } finally {
-      setLoadingActivities(false);
+      if (!silent) setLoadingActivities(false);
     }
   }, [card.id]);
 
-  const reloadAllHistory = useCallback(async () => {
-    await Promise.allSettled([fetchMovements(), fetchActivities()]);
+  const reloadAllHistory = useCallback(async (silent = true) => {
+    await Promise.allSettled([fetchMovements(silent), fetchActivities(silent)]);
   }, [fetchMovements, fetchActivities]);
 
   useEffect(() => {
@@ -1299,20 +1359,40 @@ export default function CardDetailModal({
     onUpdateCard?.(getUpdatedCard({ completed: nextCompleted }));
   };
 
-  const saveChanges = () => {
+  const [saveStatus, setSaveStatus] = useState('idle');
+
+  const saveChanges = async () => {
     const effectiveTitle = isPM ? title.trim() : (card.title || '').trim();
     if (!effectiveTitle) return;
 
-    onSave(getUpdatedCard({ title: effectiveTitle }));
+    const updated = getUpdatedCard({ title: effectiveTitle });
+    if (activePanel === 'quick') {
+      await onSave(updated);
+    } else {
+      setSaveStatus('saving');
+      try {
+        await onUpdateCard?.(updated);
+        await reloadAllHistory(true);
+        setSaveStatus('saved');
+      } catch {
+        setSaveStatus('idle');
+      } finally {
+        setTimeout(() => {
+          setSaveStatus('idle');
+        }, 1500);
+      }
+    }
   };
 
-  const savePopoverChanges = () => {
+  const savePopoverChanges = async () => {
     const effectiveTitle = isPM ? title.trim() : (card.title || '').trim();
     if (!effectiveTitle) return;
 
-    onUpdateCard?.(getUpdatedCard({ title: effectiveTitle }));
+    const updated = getUpdatedCard({ title: effectiveTitle });
+    await onUpdateCard?.(updated);
     setPopoverSnapshot(null);
     setActivePopover(null);
+    await reloadAllHistory(true);
   };
 
   const cancelPopoverChanges = () => {
@@ -1357,7 +1437,7 @@ export default function CardDetailModal({
     setActivePopover(popover);
   };
 
-  const removeDate = () => {
+  const removeDate = async () => {
     const clearedDate = getUpdatedCard({
       startDate: '',
       dueDate: '',
@@ -1374,12 +1454,18 @@ export default function CardDetailModal({
     setReminder('none');
 
     if (activePopover === 'date' || activePopover === 'date-meta') {
-      onUpdateCard?.(clearedDate);
+      await onUpdateCard?.(clearedDate);
       setPopoverSnapshot(null);
       setActivePopover(null);
+      await reloadAllHistory(true);
       return;
     }
-    onSave(clearedDate);
+    if (activePanel === 'details') {
+      await onUpdateCard?.(clearedDate);
+      await reloadAllHistory(true);
+      return;
+    }
+    await onSave(clearedDate);
   };
 
   const handleCommentSubmit = (event) => {
@@ -1491,56 +1577,32 @@ export default function CardDetailModal({
   }, [comments, activities, movements]);
 
   const renderActivityItem = (act) => {
-    let icon = '•';
-    let avatarClass = 'is-activity';
-    let typeLabel = 'Cập nhật';
-
-    switch (act.actionType) {
-      case 'CREATED':
-        icon = '＋';
-        avatarClass = 'is-created';
-        typeLabel = 'Tạo thẻ';
-        break;
-      case 'UPDATED':
-        icon = '✎';
-        avatarClass = 'is-updated';
-        typeLabel = 'Chỉnh sửa';
-        break;
-      case 'MOVED':
-        icon = '⇄';
-        avatarClass = 'is-movement';
-        typeLabel = 'Di chuyển';
-        break;
-      case 'ARCHIVED':
-        icon = '📦';
-        avatarClass = 'is-archived';
-        typeLabel = 'Lưu trữ';
-        break;
-      case 'RESTORED':
-        icon = '↺';
-        avatarClass = 'is-restored';
-        typeLabel = 'Khôi phục';
-        break;
-      default:
-        icon = '•';
-    }
+    const userName = act.userName || (act.userId ? `Thành viên #${act.userId}` : 'Thành viên');
+    const avatarColor = getAvatarColor(act.userId, userName);
+    const initial = getInitials(userName);
 
     return (
       <article className="card-comment card-activity-record" key={`activity-${act.id}`}>
-        <span className={`card-comment-avatar ${avatarClass}`} aria-hidden="true" title={typeLabel}>
-          {icon}
+        <span
+          className="card-comment-avatar"
+          style={{ backgroundColor: avatarColor, color: '#ffffff', fontWeight: 600 }}
+          aria-hidden="true"
+          title={userName}
+        >
+          {initial}
         </span>
         <div className="card-comment-content">
-          <div className="card-comment-header">
-            <strong>{act.userName || (act.userId ? `Thành viên #${act.userId}` : 'Thành viên')}</strong>
-            <span className="card-activity-type-pill">{typeLabel}</span>
-          </div>
-          <p className="card-movement-text">
-            {act.description}
+          <p className="card-movement-text" style={{ margin: 0, fontSize: '13.5px', lineHeight: '1.4' }}>
+            <strong>{userName}</strong>{' '}
+            <span>{act.description}</span>
           </p>
           {act.createdAt && (
-            <time dateTime={act.createdAt}>
-              {new Date(act.createdAt).toLocaleString('vi-VN')}
+            <time
+              dateTime={act.createdAt}
+              style={{ fontSize: '12px', color: '#626f86', marginTop: '2px', display: 'inline-block' }}
+              title={new Date(act.createdAt).toLocaleString('vi-VN')}
+            >
+              {formatRelativeTime(act.createdAt)}
             </time>
           )}
         </div>
@@ -1548,38 +1610,51 @@ export default function CardDetailModal({
     );
   };
 
-  const renderMovementItem = (movement) => (
-    <article className="card-comment card-movement-record" key={`movement-${movement.id}`}>
-      <span className="card-comment-avatar is-movement" aria-hidden="true" title="Di chuyển thẻ">
-        ⇄
-      </span>
-      <div className="card-comment-content">
-        <div className="card-comment-header">
-          <strong>{movement.movedByName || `Người dùng #${movement.movedById || ''}`}</strong>
+  const renderMovementItem = (movement) => {
+    const movedByName = movement.movedByName || `Người dùng #${movement.movedById || ''}`;
+    const avatarColor = getAvatarColor(movement.movedById, movedByName);
+    const initial = getInitials(movedByName);
+
+    return (
+      <article className="card-comment card-movement-record" key={`movement-${movement.id}`}>
+        <span
+          className="card-comment-avatar"
+          style={{ backgroundColor: avatarColor, color: '#ffffff', fontWeight: 600 }}
+          aria-hidden="true"
+          title={movedByName}
+        >
+          {initial}
+        </span>
+        <div className="card-comment-content">
+          <p className="card-movement-text" style={{ margin: 0, fontSize: '13.5px', lineHeight: '1.4' }}>
+            <strong>{movedByName}</strong>{' '}
+            đã chuyển thẻ từ{' '}
+            <span className="card-movement-area-badge">
+              {movement.fromAreaName || (movement.fromAreaId ? `Cột #${movement.fromAreaId}` : 'Chưa phân cột')}
+            </span>{' '}
+            sang{' '}
+            <span className="card-movement-area-badge">
+              {movement.toAreaName || (movement.toAreaId ? `Cột #${movement.toAreaId}` : 'Cột đích')}
+            </span>
+          </p>
+          {movement.comment && (
+            <div className="card-movement-comment-quote">
+              “{movement.comment}”
+            </div>
+          )}
+          {movement.movedAt && (
+            <time
+              dateTime={movement.movedAt}
+              style={{ fontSize: '12px', color: '#626f86', marginTop: '2px', display: 'inline-block' }}
+              title={new Date(movement.movedAt).toLocaleString('vi-VN')}
+            >
+              {formatRelativeTime(movement.movedAt)}
+            </time>
+          )}
         </div>
-        <p className="card-movement-text">
-          Đã chuyển thẻ từ{' '}
-          <span className="card-movement-area-badge">
-            {movement.fromAreaName || (movement.fromAreaId ? `Cột #${movement.fromAreaId}` : 'Chưa phân cột')}
-          </span>{' '}
-          sang{' '}
-          <span className="card-movement-area-badge">
-            {movement.toAreaName || (movement.toAreaId ? `Cột #${movement.toAreaId}` : 'Cột đích')}
-          </span>
-        </p>
-        {movement.comment && (
-          <div className="card-movement-comment-quote">
-            “{movement.comment}”
-          </div>
-        )}
-        {movement.movedAt && (
-          <time dateTime={movement.movedAt}>
-            {new Date(movement.movedAt).toLocaleString('vi-VN')}
-          </time>
-        )}
-      </div>
-    </article>
-  );
+      </article>
+    );
+  };
 
   const renderCommentItem = (comment, index) => {
     const commentText = typeof comment === 'string' ? comment : comment.text;
@@ -1825,14 +1900,15 @@ export default function CardDetailModal({
     </div>
   );
 
-  const isQuickAnchored = activePanel === 'quick' && Boolean(anchorRect);
+    const isQuickAnchored = activePanel === 'quick' && Boolean(anchorRect);
   const quickCardWidth = anchorRect?.width ? Math.round(anchorRect.width) : 252;
   const quickModalStyle = isQuickAnchored
     ? {
-        position: 'fixed',
-        top: `${Math.max(12, Math.min(anchorRect.top, window.innerHeight - 250))}px`,
+        position: 'absolute',
+        top: `${Math.max(12, Math.min(anchorRect.top, window.innerHeight - 280))}px`,
         left: `${Math.max(12, Math.min(anchorRect.left, window.innerWidth - (quickCardWidth + 190)))}px`,
         margin: 0,
+        paddingBottom: '60px',
       }
     : undefined;
 
@@ -2166,9 +2242,6 @@ export default function CardDetailModal({
                   <ArchiveIcon /> {card.archived ? 'Bỏ lưu trữ' : 'Lưu trữ'}
                 </button>
               )}
-              <button type="button" onClick={onDelete}>
-                <TrashIcon /> Xóa thẻ
-              </button>
             </nav>
           </div>
         ) : (
@@ -2618,13 +2691,15 @@ export default function CardDetailModal({
                           <ArchiveIcon /> {card.archived ? 'Bỏ lưu trữ' : 'Lưu trữ'}
                         </button>
                       )}
-                      <button type="button" className="card-delete-button" onClick={onDelete}>
-                        <TrashIcon /> Xóa thẻ
-                      </button>
                     </div>
                     <div className="card-modal-footer-right">
-                      <button type="button" className="card-save-button" onClick={saveChanges}>
-                        Lưu
+                      <button
+                        type="button"
+                        className={`card-save-button ${saveStatus === 'saved' ? 'is-saved' : ''}`}
+                        onClick={saveChanges}
+                        disabled={saveStatus === 'saving'}
+                      >
+                        {saveStatus === 'saving' ? 'Đang lưu...' : saveStatus === 'saved' ? '✓ Đã lưu' : 'Lưu'}
                       </button>
                     </div>
                   </footer>
@@ -2684,7 +2759,7 @@ export default function CardDetailModal({
                     </form>
                   )}
 
-                  {(loadingActivities || loadingMovements) && (
+                  {(loadingActivities || loadingMovements) && activities.length === 0 && movements.length === 0 && (
                     <p className="card-activity-status">Đang tải lịch sử hoạt động...</p>
                   )}
 
