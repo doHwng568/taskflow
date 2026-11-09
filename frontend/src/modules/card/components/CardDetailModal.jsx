@@ -779,6 +779,7 @@ export default function CardDetailModal({
   const [activityError, setActivityError] = useState('');
   const [activityTab, setActivityTab] = useState('all');
   const [moveComment, setMoveComment] = useState('');
+  const [isMovingCard, setIsMovingCard] = useState(false);
   const commentListRef = useRef(null);
   const isPM = useMemo(() => isCurrentUserPM(), []);
 
@@ -1012,6 +1013,8 @@ export default function CardDetailModal({
   };
 
   const handleExecuteMove = async () => {
+    if (isMovingCard) return;
+
     const matchedCol =
       availableColumns.find((col) => String(col.id) === String(moveTargetColumnId)) ||
       availableColumns[moveTargetPosition - 1];
@@ -1029,22 +1032,27 @@ export default function CardDetailModal({
       return;
     }
 
-    const commentToSend = moveComment.trim() ? moveComment.trim() : null;
-    const success = await onMoveCard?.(
-      resolvedColId,
-      moveTargetPosition,
-      commentToSend,
-      isCrossWorkspace
-    );
-    if (success) {
-      setMoveComment('');
-      setIsQuickMoveOpen(false);
-      setActivePopover(null);
-      if (isCrossWorkspace) {
-        onClose?.();
-      } else {
-        await reloadAllHistory();
+    try {
+      setIsMovingCard(true);
+      const commentToSend = moveComment.trim() ? moveComment.trim() : null;
+      const success = await onMoveCard?.(
+        resolvedColId,
+        moveTargetPosition,
+        commentToSend,
+        isCrossWorkspace
+      );
+      if (success) {
+        setMoveComment('');
+        setIsQuickMoveOpen(false);
+        setActivePopover(null);
+        if (isCrossWorkspace) {
+          onClose?.();
+        } else {
+          await reloadAllHistory();
+        }
       }
+    } finally {
+      setIsMovingCard(false);
     }
   };
 
@@ -1893,14 +1901,16 @@ export default function CardDetailModal({
                         placeholder="Nhập lý do di chuyển thẻ..."
                         value={moveComment}
                         onChange={(e) => setMoveComment(e.target.value)}
+                        disabled={isMovingCard}
                       />
 
                       <button
                         type="button"
                         className="card-move-submit-btn"
                         onClick={handleExecuteMove}
+                        disabled={isMovingCard}
                       >
-                        Di chuyển
+                        {isMovingCard ? 'Đang di chuyển...' : 'Di chuyển'}
                       </button>
                     </div>
                   </div>
@@ -2173,14 +2183,16 @@ export default function CardDetailModal({
                               placeholder="Nhập lý do di chuyển thẻ..."
                               value={moveComment}
                               onChange={(e) => setMoveComment(e.target.value)}
+                              disabled={isMovingCard}
                             />
 
                             <button
                               type="button"
                               className="card-move-submit-btn"
                               onClick={handleExecuteMove}
+                              disabled={isMovingCard}
                             >
-                              Di chuyển
+                              {isMovingCard ? 'Đang di chuyển...' : 'Di chuyển'}
                             </button>
                           </div>
                         </div>

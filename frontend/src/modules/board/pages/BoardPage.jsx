@@ -554,22 +554,10 @@ export default function BoardPage() {
       !hasExplicitPosition &&
       (!targetCardId || String(cardId) === String(targetCardId))
     ) {
-      return;
+      return false;
     }
 
-    const numericCardId = parseNumericId(cardId);
-    const numericTargetAreaId = parseNumericId(targetColumnId);
-    if (numericCardId && numericTargetAreaId) {
-      try {
-        await cardApi.moveCardApi(numericCardId, {
-          targetAreaId: numericTargetAreaId,
-          ...(hasExplicitPosition ? { position: Number(targetPosition) } : {}),
-          ...(comment ? { comment } : {}),
-        });
-      } catch {
-        // Fallback khi server chưa kết nối DB
-      }
-    }
+    const previousColumns = columns;
 
     setColumns((currentColumns) => {
       const sourceColumn = currentColumns.find(
@@ -643,6 +631,30 @@ export default function BoardPage() {
         return column;
       });
     });
+
+    const numericCardId = parseNumericId(cardId);
+    const numericTargetAreaId = parseNumericId(targetColumnId);
+    const trimmedComment = typeof comment === 'string' ? comment.trim() : null;
+    const commentPayload = trimmedComment ? trimmedComment : null;
+
+    if (numericCardId && numericTargetAreaId) {
+      try {
+        await cardApi.moveCardApi(numericCardId, {
+          targetAreaId: numericTargetAreaId,
+          ...(hasExplicitPosition ? { position: Number(targetPosition) } : {}),
+          comment: commentPayload,
+        });
+        setError('');
+        return true;
+      } catch (err) {
+        console.error('Lỗi khi di chuyển thẻ:', err?.response?.data || err?.message || err);
+        setColumns(previousColumns);
+        setError(err?.response?.data?.message ?? 'Không di chuyển được thẻ');
+        return false;
+      }
+    }
+
+    return true;
   };
 
   const handleOpenCard = (columnId, card) => {
@@ -1009,20 +1021,27 @@ export default function BoardPage() {
           onClose={() => setSelectedCard(null)}
           onSave={handleSaveCard}
           onUpdateCard={handleUpdateCard}
-          onMoveCard={(targetColumnId, targetPosition, comment, isCrossWorkspace) => {
-              handleMoveCard(
-                selectedCard.columnId,
-                targetColumnId,
-                selectedCard.card.id,
-                null,
-                targetPosition,
+          onMoveCard={async (targetColumnId, targetPosition, comment, isCrossWorkspace) => {
+            const success = await handleMoveCard(
+              selectedCard.columnId,
+              targetColumnId,
+              selectedCard.card.id,
+              null,
+              targetPosition,
               comment
             );
+            if (!success) {
+              return false;
+            }
             if (isCrossWorkspace) {
               setSelectedCard(null);
+            } else {
+              setSelectedCard((cur) =>
+                cur ? { ...cur, columnId: targetColumnId } : null
+              );
             }
             return true;
-            }}
+          }}
             onArchive={() =>
               handleToggleArchiveCard(
                 selectedCard.columnId,
