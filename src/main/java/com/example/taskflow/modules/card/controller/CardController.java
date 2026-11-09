@@ -1,6 +1,7 @@
 package com.example.taskflow.modules.card.controller;
 
 import com.example.taskflow.common.dto.ApiResponse;
+import com.example.taskflow.modules.card.dto.CardMovementResponse;
 import com.example.taskflow.modules.card.dto.CreateCardRequest;
 import com.example.taskflow.modules.card.dto.MoveCardRequest;
 import com.example.taskflow.modules.card.dto.UpdateCardRequest;
@@ -10,6 +11,8 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -65,12 +68,38 @@ public class CardController {
     @PutMapping("/{cardId}/move")
     public ResponseEntity<ApiResponse<CardResponse>> moveCard(
             @PathVariable Long cardId,
-            @Valid @RequestBody MoveCardRequest request
+            @Valid @RequestBody MoveCardRequest request,
+            @AuthenticationPrincipal UserDetails userDetails
     ) {
-        CardResponse movedCard = cardService.moveCard(cardId, request);
+        String username = userDetails != null ? userDetails.getUsername() : null;
+        CardResponse movedCard = cardService.moveCard(cardId, request, username);
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(ApiResponse.success(movedCard, "Move card successfully"));
+    }
+
+    @GetMapping("/{cardId}/movements")
+    public ResponseEntity<ApiResponse<List<CardMovementResponse>>> getCardMovements(@PathVariable Long cardId) {
+        List<CardMovementResponse> movements = cardService.getCardMovements(cardId);
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(ApiResponse.success(movements, "Get card movements successfully"));
+    }
+
+    @PatchMapping("/{cardId}/archive")
+    public ResponseEntity<ApiResponse<CardResponse>> archiveCard(@PathVariable Long cardId) {
+        CardResponse archivedCard = cardService.archiveCard(cardId);
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(ApiResponse.success(archivedCard, "Archive card successfully"));
+    }
+
+    @PatchMapping("/{cardId}/restore")
+    public ResponseEntity<ApiResponse<CardResponse>> restoreCard(@PathVariable Long cardId) {
+        CardResponse restoredCard = cardService.restoreCard(cardId);
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(ApiResponse.success(restoredCard, "Restore card successfully"));
     }
 
     @PreAuthorize("hasAuthority('CARD_DELETE')")

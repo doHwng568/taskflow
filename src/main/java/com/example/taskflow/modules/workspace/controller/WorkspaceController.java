@@ -54,7 +54,8 @@ public class WorkspaceController {
         public ResponseEntity<ApiResponse<List<WorkspaceResponse>>> getMyWorkspaces(
                         Authentication authentication) {
                 List<WorkspaceResponse> response = workspaceService.getMyWorkspaces(
-                                authentication.getName());
+                                authentication != null ? authentication.getName() : null
+                );
 
                 return ResponseEntity.ok(
                                 ApiResponse.success(

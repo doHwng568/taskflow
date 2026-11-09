@@ -9,9 +9,9 @@ const AREA_DRAG_TYPE = 'application/x-area-id';
 const isAreaDrag = (event) =>
   Array.from(event.dataTransfer.types).includes(AREA_DRAG_TYPE);
 
-export default function BoardColumn({ column, onUpdateTitle, onDeleteList, onCreateCard,
+export default function BoardColumn({ column, columnIndex = 0, totalColumns = 1, onUpdateTitle, onDeleteList, onCreateCard,
   onOpenCard, onEditCard, onMoveCard, onToggleCardComplete,
-  onArchiveList, onChangeColor, onMoveArea,
+  onArchiveList, onChangeColor, onMoveArea, onMoveListPosition,
   workspaceId, onTogglePin, onCopyList, onMoveToWorkspace,
   draggingAreaId, onAreaDragStart, onAreaDragEnd, }) {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -70,6 +70,9 @@ export default function BoardColumn({ column, onUpdateTitle, onDeleteList, onCre
     try {
       const dragData = JSON.parse(event.dataTransfer.getData('text/plain'));
       if (dragData.cardId && dragData.sourceColumnId) {
+        if (String(dragData.sourceColumnId) === String(column.id)) {
+          return;
+        }
         onMoveCard(dragData.sourceColumnId, column.id, dragData.cardId);
       }
     } catch {
@@ -95,7 +98,8 @@ export default function BoardColumn({ column, onUpdateTitle, onDeleteList, onCre
   };
 
   const handleTitleSubmit = (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
+    if (!isEditingTitle) return;
 
     const trimmedTitle = title.trim();
     setIsEditingTitle(false);
@@ -118,6 +122,8 @@ export default function BoardColumn({ column, onUpdateTitle, onDeleteList, onCre
     setIsAddingCard(true);
     setShowMenu(false);
   };
+
+  const visibleCards = (column.cards || []).filter((card) => !card.archived);
 
   return (
     <section
@@ -145,8 +151,15 @@ export default function BoardColumn({ column, onUpdateTitle, onDeleteList, onCre
             <input
               autoFocus
               type="text"
+              maxLength={100}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  setTitle(column.title);
+                  setIsEditingTitle(false);
+                }
+              }}
               onBlur={handleTitleSubmit}
               className="board-column-title-input"
             />
@@ -164,7 +177,7 @@ export default function BoardColumn({ column, onUpdateTitle, onDeleteList, onCre
           {column.pinned && (
             <span className="board-column-pin-badge" title="Đã ghim" aria-label="Đã ghim">📌</span>
           )}
-          <span className="board-card-count">{column.cards.length}</span>
+          <span className="board-card-count">{visibleCards.length}</span>
           <button
             onClick={() => setShowMenu((isOpen) => !isOpen)}
             className="board-column-menu-button"
@@ -187,11 +200,19 @@ export default function BoardColumn({ column, onUpdateTitle, onDeleteList, onCre
             setShowMenu(false);
             onTogglePin(column.id, !column.pinned);
           }}
-          onCopy={() => {
+          columnTitle={column.title}
+          cardsCount={column.cards.length}
+          onCopy={(customName) => {
             setShowMenu(false);
-            onCopyList(column.id);
+            onCopyList(column.id, customName);
           }}
           currentWorkspaceId={workspaceId}
+          totalColumns={totalColumns}
+          currentPosition={columnIndex + 1}
+          onMovePosition={(targetPosition) => {
+            setShowMenu(false);
+            onMoveListPosition?.(column.id, targetPosition);
+          }}
           onMoveToWorkspace={(workspace) => {
             setShowMenu(false);
             if (window.confirm(`Chuyển danh sách "${column.title}" (kèm ${column.cards.length} thẻ) sang workspace "${workspace.name}"?`)) {
@@ -204,22 +225,13 @@ export default function BoardColumn({ column, onUpdateTitle, onDeleteList, onCre
           }}
           onDeleteList={() => {
             setShowMenu(false);
-
-            const cardCount = column.cards.length;
-            const message =
-              cardCount > 0
-                ? `Xóa danh sách "${column.title}"?\n\nDanh sách có ${cardCount} thẻ, các thẻ này cũng sẽ bị xóa vĩnh viễn.`
-                : `Xóa danh sách "${column.title}"?`;
-
-            if (window.confirm(message)) {
-              onDeleteList(column.id);
-            }
+            onDeleteList(column.id);
           }}
         />
       )}
 
       <div className="board-column-cards">
-        {column.cards.map((card) => (
+        {visibleCards.map((card) => (
           <CardItem
             key={card.id}
             card={card}
@@ -229,6 +241,9 @@ export default function BoardColumn({ column, onUpdateTitle, onDeleteList, onCre
             onToggleComplete={onToggleCardComplete}
             onDropOnCard={(sourceColId, targetColId, draggedCardId, targetCardId) => {
               setIsDragOver(false);
+              if (String(sourceColId) === String(targetColId)) {
+                return;
+              }
               onMoveCard(sourceColId, targetColId, draggedCardId, targetCardId);
             }}
           />

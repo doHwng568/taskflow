@@ -9,6 +9,7 @@ import com.example.taskflow.modules.area.Repositories.AreaRepository;
 import com.example.taskflow.modules.area.dto.AreaResponse;
 import com.example.taskflow.modules.area.dto.CreateAreaRequest;
 import com.example.taskflow.modules.area.dto.UpdateAreaRequest;
+import com.example.taskflow.modules.area.dto.request.CopyAreaRequest;
 import com.example.taskflow.modules.area.dto.request.CreateWorkspaceAreaRequest;
 import com.example.taskflow.modules.area.dto.request.MoveAreaRequest;
 import com.example.taskflow.modules.area.dto.request.MoveAreaToWorkspaceRequest;
@@ -18,6 +19,7 @@ import com.example.taskflow.modules.area.dto.request.UpdateAreaColorRequest;
 import com.example.taskflow.modules.card.dto.CardResponse;
 import com.example.taskflow.modules.card.repositories.CardRepository;
 import com.example.taskflow.modules.cardmovement.Repositories.CardMovementRepository;
+import com.example.taskflow.modules.workspace.Repositories.WorkspaceMemberRepository;
 import com.example.taskflow.modules.workspace.Repositories.WorkspaceRepository;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -44,17 +46,19 @@ public class AreaServiceImpl implements AreaService {
     private final CardRepository cardRepository;
     private final CardMovementRepository cardMovementRepository;
     private final WorkspaceRepository workspaceRepository;
+    private final WorkspaceMemberRepository workspaceMemberRepository;
 
     public AreaServiceImpl(
             AreaRepository areaRepository,
             CardRepository cardRepository,
             CardMovementRepository cardMovementRepository,
-            WorkspaceRepository workspaceRepository
+            WorkspaceRepository workspaceRepository, WorkspaceMemberRepository workspaceMemberRepository
     ) {
         this.areaRepository = areaRepository;
         this.cardRepository = cardRepository;
         this.cardMovementRepository = cardMovementRepository;
         this.workspaceRepository = workspaceRepository;
+        this.workspaceMemberRepository = workspaceMemberRepository;
     }
 
     // =====================================================================
@@ -236,11 +240,22 @@ public class AreaServiceImpl implements AreaService {
         return setArchived(areaId, true);
     }
 
-    // Khôi phục area về đúng vị trí cũ (position được giữ nguyên khi lưu trữ)
+    // Khôi phục area về cuối board (tránh xung đột vị trí với các area đã rebalance)
     @Override
     @Transactional
     public AreaResponse restoreArea(Long areaId) {
-        return setArchived(areaId, false);
+        Area area = findAreaOrThrow(areaId);
+        Long workspaceId = area.getWorkspace().getId();
+
+        double position = areaRepository.findMaxPositionByWorkspaceId(workspaceId)
+                .map(max -> max + POSITION_STEP)
+                .orElse(POSITION_STEP);
+
+        area.setArchived(false);
+        area.setPosition(position);
+        area.setUpdatedAt(LocalDateTime.now());
+
+        return AreaResponse.from(areaRepository.save(area));
     }
 
     private AreaResponse setArchived(Long areaId, boolean archived) {
@@ -273,27 +288,24 @@ public class AreaServiceImpl implements AreaService {
     @Transactional
     public AreaResponse moveArea(Long areaId, MoveAreaRequest request) {
         Area area = findAreaOrThrow(areaId);
-        Long workspaceId = area.getWorkspace().getId();
+        Long workspaceId = area.getWorkspace() != null ? area.getWorkspace().getId() : null;
 
         Area previous = loadNeighbor(request.previousAreaId(), area, workspaceId);
         Area next = loadNeighbor(request.nextAreaId(), area, workspaceId);
 
-        // Hai bên đã gửi lên phải đúng thứ tự trước -> sau, nếu không là dữ liệu cũ/sai
-        if (previous != null && next != null && previous.getPosition() >= next.getPosition()) {
-            throw new BusinessException(ErrorCode.AREA_INVALID_POSITION);
+        if (previous != null && next != null &&
+                (previous.getPosition() == null || next.getPosition() == null || previous.getPosition() >= next.getPosition())) {
+            rebalance(workspaceId);
         }
 
         Double newPosition = calculatePosition(previous, next);
 
         if (newPosition == null) {
-            // Hai area liền kề quá sát nhau: đánh số lại cả workspace rồi tính lại.
-            // previous/next là cùng một đối tượng đang được quản lý trong transaction
-            // nên tự nhận position mới sau khi đánh số lại.
             rebalance(workspaceId);
             newPosition = calculatePosition(previous, next);
         }
 
-        area.setPosition(newPosition);
+        area.setPosition(newPosition != null ? newPosition : POSITION_STEP);
         area.setUpdatedAt(LocalDateTime.now());
 
         return AreaResponse.from(areaRepository.save(area));
@@ -305,10 +317,20 @@ public class AreaServiceImpl implements AreaService {
             return POSITION_STEP;
         }
         if (previous == null) {
-            return next.getPosition() - POSITION_STEP;      // lên đầu hàng
+            // Lên đầu hàng: lấy một nửa của next nếu next > 0 để luôn giữ position dương
+            double nextPos = next.getPosition() != null ? next.getPosition() : POSITION_STEP * 2;
+            if (nextPos > 0) {
+                double half = nextPos / 2.0;
+                return half < MIN_POSITION_GAP ? null : half;
+            }
+            return null; // Cần rebalance nếu next <= 0
         }
         if (next == null) {
-            return previous.getPosition() + POSITION_STEP;  // xuống cuối hàng
+            double prevPos = previous.getPosition() != null ? previous.getPosition() : POSITION_STEP;
+            return prevPos + POSITION_STEP;      // xuống cuối hàng
+        }
+        if (previous.getPosition() == null || next.getPosition() == null) {
+            return null;
         }
         if (next.getPosition() - previous.getPosition() < MIN_POSITION_GAP) {
             return null;
@@ -316,9 +338,11 @@ public class AreaServiceImpl implements AreaService {
         return (previous.getPosition() + next.getPosition()) / 2;
     }
 
-    // Đánh số lại toàn bộ area của workspace: 1000, 2000, 3000... theo thứ tự hiện tại
+    // Đánh số lại toàn bộ area của workspace: 1000, 2000, 3000... theo thứ tự: ghim trước, sau đó theo position
     private void rebalance(Long workspaceId) {
-        List<Area> areas = areaRepository.findByWorkspace_IdOrderByPositionAsc(workspaceId);
+        List<Area> areas = workspaceId != null
+                ? areaRepository.findByWorkspace_IdOrderByPinnedDescPositionAsc(workspaceId)
+                : areaRepository.findAll(Sort.by(Sort.Direction.DESC, "pinned").and(Sort.by(Sort.Direction.ASC, "position", "id")));
 
         double position = POSITION_STEP;
         for (Area a : areas) {
@@ -338,7 +362,8 @@ public class AreaServiceImpl implements AreaService {
 
         Area neighbor = findAreaOrThrow(neighborId);
 
-        if (!neighbor.getWorkspace().getId().equals(workspaceId)) {
+        if (workspaceId != null && neighbor.getWorkspace() != null &&
+                !neighbor.getWorkspace().getId().equals(workspaceId)) {
             throw new BusinessException(ErrorCode.AREA_INVALID_POSITION);
         }
         // Area ghim và không ghim là hai nhóm riêng, không kéo xen kẽ nhau
@@ -350,14 +375,21 @@ public class AreaServiceImpl implements AreaService {
 
     // ----- ghim / bỏ ghim -----
 
-    // Giữ nguyên position: area ghim luôn nằm trước, sắp xếp theo position trong nhóm của nó
     @Override
     @Transactional
     public AreaResponse pinArea(Long areaId, PinAreaRequest request) {
         Area area = findAreaOrThrow(areaId);
+        boolean newPinned = Boolean.TRUE.equals(request.pinned());
 
-        area.setPinned(request.pinned());
-        area.setUpdatedAt(LocalDateTime.now());
+        if (area.isPinned() != newPinned) {
+            area.setPinned(newPinned);
+            Long workspaceId = area.getWorkspace().getId();
+            double position = areaRepository.findMaxPositionByWorkspaceId(workspaceId)
+                    .map(max -> max + POSITION_STEP)
+                    .orElse(POSITION_STEP);
+            area.setPosition(position);
+            area.setUpdatedAt(LocalDateTime.now());
+        }
 
         return AreaResponse.from(areaRepository.save(area));
     }
@@ -369,6 +401,12 @@ public class AreaServiceImpl implements AreaService {
     @Override
     @Transactional
     public AreaResponse copyArea(Long areaId) {
+        return copyArea(areaId, null);
+    }
+
+    @Override
+    @Transactional
+    public AreaResponse copyArea(Long areaId, CopyAreaRequest request) {
         Area source = findAreaOrThrow(areaId);
         if (source.getWorkspace() == null) {
             throw new BusinessException(ErrorCode.AREA_NO_WORKSPACE);
@@ -387,15 +425,24 @@ public class AreaServiceImpl implements AreaService {
             position = calculatePosition(source, next);
         }
 
-        String copyName = source.getName();
-        if (copyName.length() > 240) {
-            copyName = copyName.substring(0, 240);
+        String copyName;
+        if (request != null && request.name() != null && !request.name().isBlank()) {
+            copyName = request.name().trim();
+            if (copyName.length() > 100) {
+                copyName = copyName.substring(0, 100);
+            }
+        } else {
+            copyName = source.getName();
+            if (copyName.length() > 240) {
+                copyName = copyName.substring(0, 240);
+            }
+            copyName = copyName + " (bản sao)";
         }
 
         LocalDateTime now = LocalDateTime.now();
 
         Area copy = new Area();
-        copy.setName(copyName + " (bản sao)");
+        copy.setName(copyName);
         copy.setPosition(position);
         copy.setColor(source.getColor());
         copy.setWorkspace(source.getWorkspace());
@@ -409,7 +456,7 @@ public class AreaServiceImpl implements AreaService {
             cardCopy.setTitle(card.getTitle());
             cardCopy.setContent(card.getContent());
             cardCopy.setCoverImage(card.getCoverImage());
-            cardCopy.setComments(card.getComments());
+            cardCopy.setComments(null); // Thẻ mới bắt đầu cuộc thảo luận sạch
             cardCopy.setPosition(card.getPosition());
             cardCopy.setPriority(card.getPriority());
             cardCopy.setType(card.getType());
@@ -431,6 +478,7 @@ public class AreaServiceImpl implements AreaService {
     // ----- chuyển sang workspace khác -----
 
     // Area đi cùng toàn bộ thẻ, xuống cuối board của workspace đích; giữ màu / ghim / lưu trữ.
+    // Tự động gỡ assignee nếu người đó không phải thành viên workspace đích.
     @Override
     @Transactional
     public AreaResponse moveAreaToWorkspace(Long areaId, MoveAreaToWorkspaceRequest request) {
@@ -446,6 +494,19 @@ public class AreaServiceImpl implements AreaService {
         double position = areaRepository.findMaxPositionByWorkspaceId(target.getId())
                 .map(max -> max + POSITION_STEP)
                 .orElse(POSITION_STEP);
+
+        // Lấy danh sách ID thành viên của workspace đích
+        List<Long> targetMemberIds = workspaceMemberRepository.findByWorkspace_Id(target.getId())
+                .stream()
+                .map(m -> m.getMember().getId())
+                .toList();
+
+        // Gỡ assignee nếu user không thuộc workspace đích để tránh lỗi phân quyền
+        for (Card card : area.getCardList()) {
+            if (card.getAssignee() != null && !targetMemberIds.contains(card.getAssignee().getId())) {
+                card.setAssignee(null);
+            }
+        }
 
         area.setWorkspace(target);
         area.setPosition(position);

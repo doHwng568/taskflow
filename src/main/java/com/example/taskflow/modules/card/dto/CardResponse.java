@@ -21,6 +21,7 @@ public class CardResponse {
     private String content;
     private String coverImage;
     private String comments;
+    private boolean archived;
     private Double position;
     private TaskPriority priority;
     private TaskType type;
@@ -39,6 +40,7 @@ public class CardResponse {
                 .content(card.getContent())
                 .coverImage(card.getCoverImage())
                 .comments(card.getComments())
+                .archived(card.isArchived())
                 .position(card.getPosition())
                 .priority(card.getPriority())
                 .type(card.getType())

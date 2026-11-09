@@ -6,9 +6,9 @@ import api from "../../../services/api";
 const ROLES = ["LEADER", "DEV", "TESTER", "MEMBER"];
 
 const MODULE_NAMES = {
-  WORKSPACE: "1. MODULE WORKSPACE (Dự án)",
-  AREA: "2. MODULE AREA (Cột Kanban)",
-  CARD: "3. MODULE CARD (Thẻ công việc)",
+  WORKSPACE: "1. WORKSPACE",
+  AREA: "2. AREA",
+  CARD: "3. CARD",
 };
 
 export default function PermissionMatrix() {
@@ -18,7 +18,7 @@ export default function PermissionMatrix() {
   const [matrix, setMatrix] = useState({});
   const [message, setMessage] = useState(null);
 
-  // 1. Tải ma trận quyền từ Backend
+  // load data 
   const loadData = async () => {
     try {
       setLoading(true);
@@ -41,7 +41,7 @@ export default function PermissionMatrix() {
     loadData();
   }, []);
 
-  // 2. Xử lý khi PM tick / bỏ tick vào checkbox
+  // click tick
   const handleToggle = (role, permName) => {
     setMatrix((prev) => {
       const currentPerms = prev[role] || [];
@@ -53,7 +53,7 @@ export default function PermissionMatrix() {
     });
   };
 
-  // 3. Gửi ma trận mới về Backend để lưu vào DB
+  // save
   const handleSave = async () => {
     try {
       setSaving(true);
@@ -80,17 +80,14 @@ export default function PermissionMatrix() {
       {/* Header trang */}
       <div className="d-flex justify-content-between align-items-center mb-3">
         <div>
-          <h3 className="fw-bold text-primary mb-1">Quản Lý Phân Quyền (RBAC)</h3>
-          <p className="text-muted small mb-0">
-            Dành riêng cho PM. Tick chọn quyền hạn cho từng vai trò rồi bấm Lưu vào Database.
-          </p>
+          <h3 className="fw-bold text-primary mb-1">Quản Lý Phân Quyền</h3>
         </div>
         <Link to="/home" className="btn btn-outline-secondary btn-sm">
-          ← Về Trang Chủ
+          Về Trang Chủ
         </Link>
       </div>
 
-      {/* Thông báo kết quả */}
+      {/* message */}
       {message && (
         <Alert variant={message.type} dismissible onClose={() => setMessage(null)}>
           {message.text}
@@ -123,13 +120,13 @@ export default function PermissionMatrix() {
                   const modPerms = permissions.filter((p) => p.module === mod);
                   return (
                     <Fragment key={mod}>
-                      {/* Tiêu đề nhóm Module */}
+                      {/* header module */}
                       <tr className="table-secondary">
                         <td colSpan={ROLES.length + 1} className="fw-bold py-2 text-uppercase small text-dark">
                           {MODULE_NAMES[mod] || mod}
                         </td>
                       </tr>
-                      {/* Danh sách 4 quyền thuộc module */}
+                      {/* permission */}
                       {modPerms.map((perm) => (
                         <tr key={perm.id}>
                           <td>
@@ -161,14 +158,10 @@ export default function PermissionMatrix() {
           {/* Footer nút hành động */}
           <Card.Footer className="bg-white p-3 d-flex justify-content-between align-items-center">
             <span className="small text-muted">
-              💡 <em>Lưu ý: Vai trò <strong>PM</strong> luôn mặc định có toàn bộ 12 quyền.</em>
             </span>
             <div className="d-flex gap-2">
-              <Button variant="outline-secondary" size="sm" onClick={loadData} disabled={saving}>
-                Khôi phục ban đầu
-              </Button>
               <Button variant="primary" size="sm" onClick={handleSave} disabled={saving}>
-                {saving ? "Đang lưu..." : "💾 Lưu Thay Đổi Vào DB"}
+                {saving ? "Đang lưu" : "Lưu Thay Đổi Vào DB"}
               </Button>
             </div>
           </Card.Footer>

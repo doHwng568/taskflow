@@ -1,13 +1,13 @@
-/* CSS cho tính năng 5 (lưu trữ), 6 (đổi màu), 7 (kéo thả area).
-   Import SAU BoardPage.css để ghi đè được. */
+﻿/* CSS cho tÃ­nh nÄƒng 5 (lÆ°u trá»¯), 6 (Ä‘á»•i mÃ u), 7 (kÃ©o tháº£ area).
+   Import SAU BoardPage.css Ä‘á»ƒ ghi Ä‘Ã¨ Ä‘Æ°á»£c. */
 
-/* ---------- Tính năng 6: màu area ---------- */
+/* ---------- TÃ­nh nÄƒng 6: mÃ u area ---------- */
 .board-column.has-color {
-  background: var(--area-color);
+  background: var(--area-color) !important;
 }
 
 .board-column.has-color.is-drop-target {
-  background: color-mix(in srgb, var(--area-color) 60%, #579dff);
+  background: color-mix(in srgb, var(--area-color) 60%, #579dff) !important;
 }
 
 .board-list-menu-colors-wrap {
@@ -56,7 +56,7 @@
   opacity: 0.45;
 }
 
-/* ---------- Tính năng 7: kéo thả area ---------- */
+/* ---------- TÃ­nh nÄƒng 7: kÃ©o tháº£ area ---------- */
 .board-column-heading[draggable="true"] {
   cursor: grab;
 }
@@ -69,7 +69,7 @@
   opacity: 0.45;
 }
 
-/* Vạch xanh cho biết area sẽ được thả vào trước / sau cột này */
+/* Váº¡ch xanh cho biáº¿t area sáº½ Ä‘Æ°á»£c tháº£ vÃ o trÆ°á»›c / sau cá»™t nÃ y */
 .board-column.is-area-drop-before {
   box-shadow: -6px 0 0 0 #579dff, 0 2px 8px rgb(0 0 0 / 24%);
 }
@@ -78,7 +78,7 @@
   box-shadow: 6px 0 0 0 #579dff, 0 2px 8px rgb(0 0 0 / 24%);
 }
 
-/* ---------- Tính năng 5: nút và bảng "Đã lưu trữ" ---------- */
+/* ---------- TÃ­nh nÄƒng 5: nÃºt vÃ  báº£ng "ÄÃ£ lÆ°u trá»¯" ---------- */
 .board-archive-button {
   padding: 6px 10px;
   border: 0;
@@ -124,6 +124,117 @@
   background: transparent;
   color: inherit;
   cursor: pointer;
+}
+
+.archived-panel-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  padding: 8px 12px 4px;
+  border-bottom: 1px solid #444b52;
+}
+
+.archived-panel-tab {
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: rgb(255 255 255 / 8%);
+  color: #9fadbc;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.archived-panel-tab:hover {
+  background: rgb(255 255 255 / 14%);
+  color: #ffffff;
+}
+
+.archived-panel-tab.is-active {
+  background: #579dff;
+  color: #07182f;
+}
+
+.archived-card-preview {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #172b4d;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 28%);
+  transition: transform 100ms ease, box-shadow 100ms ease;
+}
+
+.archived-card-preview:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgb(0 0 0 / 35%);
+}
+
+.archived-card-cover {
+  width: 100%;
+  max-height: 110px;
+  overflow: hidden;
+}
+
+.archived-card-cover.is-color {
+  height: 28px;
+}
+
+.archived-card-cover img {
+  display: block;
+  width: 100%;
+  max-height: 110px;
+  object-fit: cover;
+}
+
+.archived-card-preview-body {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 9px 11px;
+}
+
+.archived-card-labels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.archived-card-label {
+  width: 36px;
+  height: 7px;
+  border-radius: 4px;
+}
+
+.archived-card-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #172b4d;
+  overflow-wrap: anywhere;
+}
+
+.archived-card-meta {
+  font-size: 11px;
+  color: #626f86;
+}
+
+.archived-panel-view {
+  padding: 5px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: rgb(255 255 255 / 14%);
+  color: #ffffff;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.archived-panel-view:hover {
+  background: rgb(255 255 255 / 22%);
 }
 
 .archived-panel-body {
@@ -203,20 +314,116 @@
   opacity: 0.5;
 }
 
-/* Ghim / di chuyển area */
+/* Ghim / di chuyá»ƒn area */
 .board-column-pin-badge {
   font-size: 12px;
   line-height: 1;
 }
 
+.board-pinned-divider {
+  width: 2px;
+  min-width: 2px;
+  background: rgba(255, 255, 255, 0.35);
+  margin: 6px 6px;
+  border-radius: 2px;
+  align-self: stretch;
+}
+
 .board-list-menu-workspaces {
-  max-height: 160px;
+  max-height: 200px;
   overflow-y: auto;
-  padding-left: 12px;
+  padding: 4px 12px 8px;
+}
+
+.board-list-menu-positions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 2px 4px 6px;
+}
+
+.board-list-pos-btn {
+  min-width: 30px;
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid rgb(255 255 255 / 16%);
+  border-radius: 6px;
+  background: rgb(255 255 255 / 10%);
+  color: #ffffff;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+
+.board-list-pos-btn:hover:not(:disabled) {
+  background: #579dff;
+  border-color: #579dff;
+  color: #07182f;
+}
+
+.board-list-pos-btn.is-current,
+.board-list-pos-btn:disabled {
+  background: #579dff;
+  border-color: #579dff;
+  color: #07182f;
+  cursor: default;
+  opacity: 0.7;
 }
 
 .board-list-menu-hint {
-  margin: 4px 8px;
-  font-size: 12px;
-  opacity: 0.7;
+  margin: 6px 4px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #9fadbc;
 }
+
+/* ---------- Menu thao tác v?i danh sách: can ch?nh g?n gàng ---------- */
+.board-list-menu {
+  left: 6px;
+  right: 6px;
+  width: auto;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 6px;
+  overflow: hidden;
+  font-family: inherit;
+  z-index: 20;
+}
+.board-list-menu *, .board-list-menu *::before, .board-list-menu *::after { box-sizing: border-box; }
+.board-list-menu-header {
+  padding: 4px 6px 10px;
+  margin-bottom: 4px;
+}
+.board-list-menu-header span {
+  flex: 1;
+  text-align: center;
+  padding-left: 26px;
+}
+.board-list-menu-options {
+  padding: 2px 0;
+  gap: 2px;
+}
+.board-list-menu-option {
+  min-height: 32px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.3;
+  text-align: left;
+  justify-content: space-between;
+  gap: 8px;
+}
+.board-list-menu-option span:first-child { flex: 1; text-align: left; }
+.board-list-menu-divider { margin: 6px 0; }
+.board-list-menu-colors-wrap { padding: 6px 4px 4px; }
+.board-list-menu-workspaces { padding: 4px 4px 6px; }
+.board-list-menu-positions { padding: 2px 0 6px; }
+
+
+/* Tiêu d? can trái th?ng hàng v?i các m?c */
+.board-list-menu-header { padding: 4px 4px 10px 10px; }
+.board-list-menu-header span { flex: 1; text-align: left; padding-left: 0; }
+.board-list-menu-option, .board-list-menu-option span { text-align: left; }
+

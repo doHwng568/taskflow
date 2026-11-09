@@ -21,6 +21,8 @@ public class UpdateCardRequest {
 
     private String comments;
 
+    private Boolean archived;
+
     private Double position;
 
     private TaskPriority priority;
