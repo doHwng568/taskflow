@@ -14,6 +14,7 @@ import {
 import { jwtDecode } from "jwt-decode";
 import { useNavigate } from "react-router-dom";
 import workspaceService from "../services/workspaceService";
+import Header from "../../../layouts/Header";
 
 const EMPTY_FORM = {
     name: "",
@@ -246,6 +247,9 @@ const isPM = userRole === "PM";
     // =====================================
 
     return (
+    <>
+        <Header />
+
         <Container className="py-5">
 
             {/* HEADER */}
@@ -551,6 +555,7 @@ const isPM = userRole === "PM";
             </Modal>
 
         </Container>
+        </>
     );
 }
 

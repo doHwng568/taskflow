@@ -1,5 +1,5 @@
+import { useEffect } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
-// Xóa hẳn dòng import Header ở đây nếu còn
 
 import Register from "./modules/auth/pages/Register";
 import Login from "./modules/auth/pages/Login";
@@ -12,28 +12,36 @@ import PermissionMatrix from "./modules/permission/pages/PermissionMatrix";
 import UserManagement from "./modules/user/pages/UserManagement";
 import UserProfile from "./modules/profile/pages/UserProfile";
 
-function App() {
-  return (
-    <>
-      {/* KHÔNG ĐƯỢC ĐỂ THẺ <Header /> Ở ĐÂY NỮA */}
+import useThemeStore from "./store/themeStore";
 
-      <Routes>
-        <Route path="/" element={<Navigate to="/home" replace />} />
-        <Route path="/home" element={<Home />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/workspace" element={<MainWorkspace />} />
-        <Route path="/workspace/:id" element={<WorkspaceDetail />} />
-        <Route path="/logout" element={<Logout />} />
-        <Route path="/board/:workspaceId" element={<BoardPage />} />
-        <Route path="/board" element={<BoardPage />} />
-        <Route path="/board/:workspaceId" element={<BoardPage />} />
-        <Route path="/permissions" element={<PermissionMatrix />} />
-        <Route path="/users" element={<UserManagement />} />
-        <Route path="/profile" element={<UserProfile />} />
-      </Routes>
-    </>
-  );
+function App() {
+    const theme = useThemeStore((state) => state.theme);
+
+    useEffect(() => {
+        document.documentElement.setAttribute("data-theme", theme);
+    }, [theme]);
+
+    return (
+        <Routes>
+            <Route path="/" element={<Navigate to="/home" replace />} />
+
+            <Route path="/home" element={<Home />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/logout" element={<Logout />} />
+
+            <Route path="/workspace" element={<MainWorkspace />} />
+            <Route path="/workspace/:id" element={<WorkspaceDetail />} />
+
+            <Route path="/board/:workspaceId" element={<BoardPage />} />
+
+            <Route path="/permissions" element={<PermissionMatrix />} />
+            <Route path="/users" element={<UserManagement />} />
+            <Route path="/profile" element={<UserProfile />} />
+
+            <Route path="*" element={<Navigate to="/home" replace />} />
+        </Routes>
+    );
 }
 
 export default App;
