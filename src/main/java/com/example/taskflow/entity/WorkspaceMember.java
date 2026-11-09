@@ -1,7 +1,5 @@
-
 package com.example.taskflow.entity;
 
-import com.example.taskflow.common.enums.WorkspaceRole;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -27,10 +25,6 @@ public class WorkspaceMember {
     private Long id;
 
     private LocalDateTime joinedAt;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
-    private WorkspaceRole role;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "member_id", nullable = false)

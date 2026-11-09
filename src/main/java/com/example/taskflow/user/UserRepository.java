@@ -1,4 +1,3 @@
-
 package com.example.taskflow.user;
 
 import com.example.taskflow.entity.User;
@@ -14,7 +13,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     boolean existsByUsername(String username);
 
-    // Find user by email, ignoring uppercase/lowercase
     Optional<User> findByEmailIgnoreCase(String email);
 
     boolean existsByEmailIgnoreCase(String email);
