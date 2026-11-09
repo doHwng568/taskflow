@@ -58,6 +58,9 @@ function Header() {
                     </Nav.Link>
                   </>
                 )}
+                <Nav.Link as={Link} to="/profile" className="btn btn-outline-secondary btn-sm px-3">
+                  Hồ sơ
+                </Nav.Link>
                 <Nav.Link as={Link} to="/logout" className="btn btn-outline-danger btn-sm px-3">
                   Logout
                 </Nav.Link>

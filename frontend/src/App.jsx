@@ -10,6 +10,7 @@ import Logout from "./modules/auth/pages/Logout";
 import BoardPage from "./modules/board/pages/BoardPage";
 import PermissionMatrix from "./modules/permission/pages/PermissionMatrix";
 import UserManagement from "./modules/user/pages/UserManagement";
+import UserProfile from "./modules/profile/pages/UserProfile";
 
 function App() {
   return (
@@ -29,6 +30,7 @@ function App() {
         <Route path="/board/:workspaceId" element={<BoardPage />} />
         <Route path="/permissions" element={<PermissionMatrix />} />
         <Route path="/users" element={<UserManagement />} />
+        <Route path="/profile" element={<UserProfile />} />
       </Routes>
     </>
   );
