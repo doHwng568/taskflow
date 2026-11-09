@@ -15,6 +15,7 @@ import {
 } from "react-bootstrap";
 
 import workspaceService from "../services/workspaceService";
+import Header from "../../../layouts/Header";
 
 function WorkspaceDetail() {
     const { id } = useParams();
@@ -212,6 +213,8 @@ function WorkspaceDetail() {
     }
 
     return (
+      <>
+    <Header />
         <Container className="py-4">
 
             {/* HEADER */}
@@ -547,6 +550,7 @@ function WorkspaceDetail() {
             </Modal>
 
         </Container>
+        </>
     );
 }
 

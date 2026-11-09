@@ -8,6 +8,7 @@ import cardApi from '../../card/api/cardApi';
 import areaService from '../services/areaService';
 import '../styles/BoardPage.css';
 import '../styles/AreaFeatures.css';
+import Header from "../../../layouts/Header";
 
 // Bộ nhớ đệm trình duyệt cho các trường chỉ có ở giao diện (nhãn, checklist, giờ hạn...),
 // tách riêng theo workspace vì area giờ thuộc về từng workspace.
@@ -519,12 +520,12 @@ export default function BoardPage() {
     const newCard = createdFromServer
       ? mapCardFromServer(createdFromServer)
       : {
-          id: `card-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-          title,
-          description: '',
-          dueDate: '',
-          color: '#ffffff',
-        };
+        id: `card-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        title,
+        description: '',
+        dueDate: '',
+        color: '#ffffff',
+      };
 
     setColumns((currentColumns) =>
       currentColumns.map((column) =>
@@ -655,11 +656,11 @@ export default function BoardPage() {
       view: 'quick',
       anchorRect: rect
         ? {
-            top: rect.top,
-            left: rect.left,
-            width: rect.width,
-            height: rect.height,
-          }
+          top: rect.top,
+          left: rect.left,
+          width: rect.width,
+          height: rect.height,
+        }
         : null,
     });
   };
@@ -773,11 +774,11 @@ export default function BoardPage() {
       currentColumns.map((column) =>
         String(column.id) === String(columnId)
           ? {
-              ...column,
-              cards: column.cards.map((card) =>
-                String(card.id) === String(cardId) ? updatedCard : card
-              ),
-            }
+            ...column,
+            cards: column.cards.map((card) =>
+              String(card.id) === String(cardId) ? updatedCard : card
+            ),
+          }
           : column
       )
     );
@@ -820,9 +821,9 @@ export default function BoardPage() {
       currentColumns.map((column) =>
         String(column.id) === String(columnId)
           ? {
-              ...column,
-              cards: column.cards.filter((card) => String(card.id) !== String(cardId)),
-            }
+            ...column,
+            cards: column.cards.filter((card) => String(card.id) !== String(cardId)),
+          }
           : column
       )
     );
@@ -853,207 +854,211 @@ export default function BoardPage() {
   );
 
   return (
-    <div
-      className="board-page"
-      style={{ backgroundImage: "url('https://images.unsplash.com/photo-1512453979798-5ea266f8880c?q=80&w=2000')" }}
-    >
-      <BoardHeader onOpenArchived={() => setShowArchived(true)} />
+    <>
+      <Header />
+      <div
+        className="board-page"
+        style={{ backgroundImage: "url('https://images.unsplash.com/photo-1512453979798-5ea266f8880c?q=80&w=2000')" }}
+      >
+        <BoardHeader onOpenArchived={() => setShowArchived(true)} workspaceId={workspaceId}
+        />
 
-      {error && (
-        <div
-          role="alert"
-          style={{
-            margin: '8px 16px',
-            padding: '10px 14px',
-            backgroundColor: '#fee2e2',
-            color: '#b91c1c',
-            borderRadius: '6px',
-            border: '1px solid #f87171',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            fontSize: '14px',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-            zIndex: 10,
-          }}
-        >
-          <span>⚠️ {error}</span>
-          <button
-            type="button"
-            onClick={() => setError('')}
+        {error && (
+          <div
+            role="alert"
             style={{
-              background: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
+              margin: '8px 16px',
+              padding: '10px 14px',
+              backgroundColor: '#fee2e2',
               color: '#b91c1c',
-              fontWeight: 'bold',
-              fontSize: '16px',
-              padding: '0 4px',
+              borderRadius: '6px',
+              border: '1px solid #f87171',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              fontSize: '14px',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+              zIndex: 10,
             }}
-            aria-label="Đóng thông báo lỗi"
           >
-            ✕
-          </button>
-        </div>
-      )}
-
-      <main className="board-lists">
-        {loading && <p style={{ color: '#fff' }}>Đang tải...</p>}
-
-        {activeColumns.map((col, idx) => {
-          const isFirstUnpinned =
-            !col.pinned && idx > 0 && Boolean(activeColumns[idx - 1]?.pinned);
-
-          return (
-            <Fragment key={col.id}>
-              {isFirstUnpinned && (
-                <div
-                  className="board-pinned-divider"
-                  title="Phân cách danh sách đã ghim"
-                  aria-hidden="true"
-                />
-              )}
-              <BoardColumn
-                key={col.id}
-                column={col}
-                columnIndex={idx}
-                totalColumns={activeColumns.length}
-                onUpdateTitle={handleUpdateListTitle}
-                onDeleteList={handleDeleteList}
-                onCreateCard={handleCreateCard}
-                onOpenCard={handleOpenCard}
-                onEditCard={handleEditCard}
-                onMoveCard={handleMoveCard}
-                onToggleCardComplete={handleToggleCardComplete}
-                onArchiveList={handleArchiveList}
-                onChangeColor={handleChangeColor}
-                onMoveArea={handleMoveArea}
-                onMoveListPosition={handleMoveListPosition}
-                workspaceId={workspaceId}
-                onTogglePin={handleTogglePin}
-                onCopyList={handleCopyList}
-                onMoveToWorkspace={handleMoveToWorkspace}
-                draggingAreaId={draggingAreaId}
-                onAreaDragStart={setDraggingAreaId}
-                onAreaDragEnd={() => setDraggingAreaId(null)}
-              />
-            </Fragment>
-          );
-        })}
-
-        {isAddingList ? (
-          <form onSubmit={handleCreateList} className="board-add-list-form">
-            <input
-              autoFocus
-              type="text"
-              maxLength={100}
-              value={newListTitle}
-              onChange={(e) => setNewListTitle(e.target.value)}
-              placeholder="Nhập tiêu đề danh sách..."
-              className="board-add-list-input"
-            />
-            <div className="board-add-list-actions">
-              <button
-                type="submit"
-                className="board-add-list-submit"
-              >
-                Thêm danh sách
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsAddingList(false)}
-                className="board-add-list-cancel"
-                aria-label="Hủy thêm danh sách"
-              >
-                ✕
-              </button>
-            </div>
-          </form>
-        ) : (
-          <button
-            onClick={() => setIsAddingList(true)}
-            className="board-add-list-button"
-          >
-            <span aria-hidden="true">＋</span> Thêm danh sách khác
-          </button>
+            <span>⚠️ {error}</span>
+            <button
+              type="button"
+              onClick={() => setError('')}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                color: '#b91c1c',
+                fontWeight: 'bold',
+                fontSize: '16px',
+                padding: '0 4px',
+              }}
+              aria-label="Đóng thông báo lỗi"
+            >
+              ✕
+            </button>
+          </div>
         )}
-      </main>
 
-      <nav className="board-bottom-nav" aria-label="Điều hướng bảng">
-        <button className="board-nav-item">
-          <span aria-hidden="true">▣</span> Hộp thư đến
-        </button>
-        <button className="board-nav-item">
-          <span aria-hidden="true">▦</span> Trình lập kế hoạch
-        </button>
-        <button className="board-nav-item is-active" aria-current="page">
-          <span aria-hidden="true">▥</span> Bảng thông tin
-        </button>
-        <button className="board-nav-item">
-          <span aria-hidden="true">▤</span> Chuyển đổi các bảng
-        </button>
-      </nav>
-      {selectedCard && (
-        <CardDetailModal
-          key={selectedCard.card.id}
-          card={selectedCard.card}
-          columns={activeColumns}
-          currentColumnId={selectedCard.columnId}
-          workspaceId={workspaceId}
+        <main className="board-lists">
+          {loading && <p style={{ color: '#fff' }}>Đang tải...</p>}
+
+          {activeColumns.map((col, idx) => {
+            const isFirstUnpinned =
+              !col.pinned && idx > 0 && Boolean(activeColumns[idx - 1]?.pinned);
+
+            return (
+              <Fragment key={col.id}>
+                {isFirstUnpinned && (
+                  <div
+                    className="board-pinned-divider"
+                    title="Phân cách danh sách đã ghim"
+                    aria-hidden="true"
+                  />
+                )}
+                <BoardColumn
+                  key={col.id}
+                  column={col}
+                  columnIndex={idx}
+                  totalColumns={activeColumns.length}
+                  onUpdateTitle={handleUpdateListTitle}
+                  onDeleteList={handleDeleteList}
+                  onCreateCard={handleCreateCard}
+                  onOpenCard={handleOpenCard}
+                  onEditCard={handleEditCard}
+                  onMoveCard={handleMoveCard}
+                  onToggleCardComplete={handleToggleCardComplete}
+                  onArchiveList={handleArchiveList}
+                  onChangeColor={handleChangeColor}
+                  onMoveArea={handleMoveArea}
+                  onMoveListPosition={handleMoveListPosition}
+                  workspaceId={workspaceId}
+                  onTogglePin={handleTogglePin}
+                  onCopyList={handleCopyList}
+                  onMoveToWorkspace={handleMoveToWorkspace}
+                  draggingAreaId={draggingAreaId}
+                  onAreaDragStart={setDraggingAreaId}
+                  onAreaDragEnd={() => setDraggingAreaId(null)}
+                />
+              </Fragment>
+            );
+          })}
+
+          {isAddingList ? (
+            <form onSubmit={handleCreateList} className="board-add-list-form">
+              <input
+                autoFocus
+                type="text"
+                maxLength={100}
+                value={newListTitle}
+                onChange={(e) => setNewListTitle(e.target.value)}
+                placeholder="Nhập tiêu đề danh sách..."
+                className="board-add-list-input"
+              />
+              <div className="board-add-list-actions">
+                <button
+                  type="submit"
+                  className="board-add-list-submit"
+                >
+                  Thêm danh sách
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsAddingList(false)}
+                  className="board-add-list-cancel"
+                  aria-label="Hủy thêm danh sách"
+                >
+                  ✕
+                </button>
+              </div>
+            </form>
+          ) : (
+            <button
+              onClick={() => setIsAddingList(true)}
+              className="board-add-list-button"
+            >
+              <span aria-hidden="true">＋</span> Thêm danh sách khác
+            </button>
+          )}
+        </main>
+
+        <nav className="board-bottom-nav" aria-label="Điều hướng bảng">
+          <button className="board-nav-item">
+            <span aria-hidden="true">▣</span> Hộp thư đến
+          </button>
+          <button className="board-nav-item">
+            <span aria-hidden="true">▦</span> Trình lập kế hoạch
+          </button>
+          <button className="board-nav-item is-active" aria-current="page">
+            <span aria-hidden="true">▥</span> Bảng thông tin
+          </button>
+          <button className="board-nav-item">
+            <span aria-hidden="true">▤</span> Chuyển đổi các bảng
+          </button>
+        </nav>
+        {selectedCard && (
+          <CardDetailModal
+            key={selectedCard.card.id}
+            card={selectedCard.card}
+            columns={activeColumns}
+            currentColumnId={selectedCard.columnId}
+            workspaceId={workspaceId}
           initialView={selectedCard.view}
           anchorRect={selectedCard.anchorRect}
           onClose={() => setSelectedCard(null)}
           onSave={handleSaveCard}
           onUpdateCard={handleUpdateCard}
           onMoveCard={(targetColumnId, targetPosition, comment, isCrossWorkspace) => {
-            handleMoveCard(
-              selectedCard.columnId,
-              targetColumnId,
-              selectedCard.card.id,
-              null,
-              targetPosition,
+              handleMoveCard(
+                selectedCard.columnId,
+                targetColumnId,
+                selectedCard.card.id,
+                null,
+                targetPosition,
               comment
             );
             if (isCrossWorkspace) {
               setSelectedCard(null);
             }
             return true;
-          }}
-          onArchive={() =>
-            handleToggleArchiveCard(
-              selectedCard.columnId,
-              selectedCard.card.id,
-              true
-            )
-          }
-          onDelete={handleDeleteCard}
-        />
-      )}
+            }}
+            onArchive={() =>
+              handleToggleArchiveCard(
+                selectedCard.columnId,
+                selectedCard.card.id,
+                true
+              )
+            }
+            onDelete={handleDeleteCard}
+          />
+        )}
 
-      {showArchived && (
-        <ArchivedAreasPanel
-          workspaceId={workspaceId}
-          refreshKey={archivedRefreshKey}
-          archivedCards={archivedCards}
-          localArchivedAreas={localArchivedAreas}
-          onClose={() => setShowArchived(false)}
-          onRestored={handleAreaRestored}
-          onDeleteLocalArea={(areaId) => {
-            setColumns((currentColumns) =>
-              currentColumns.filter((col) => String(col.id) !== String(areaId))
-            );
-          }}
-          onOpenCard={(columnId, card) => {
-            handleOpenCard(columnId, card);
-          }}
-          onRestoreCard={(columnId, cardId) => {
-            handleToggleArchiveCard(columnId, cardId, false);
-          }}
-          onDeleteCard={(columnId, cardId) => {
-            handleDeleteSpecificCard(columnId, cardId);
-          }}
-        />
-      )}
-    </div>
+        {showArchived && (
+          <ArchivedAreasPanel
+            workspaceId={workspaceId}
+            refreshKey={archivedRefreshKey}
+            archivedCards={archivedCards}
+            localArchivedAreas={localArchivedAreas}
+            onClose={() => setShowArchived(false)}
+            onRestored={handleAreaRestored}
+            onDeleteLocalArea={(areaId) => {
+              setColumns((currentColumns) =>
+                currentColumns.filter((col) => String(col.id) !== String(areaId))
+              );
+            }}
+            onOpenCard={(columnId, card) => {
+              handleOpenCard(columnId, card);
+            }}
+            onRestoreCard={(columnId, cardId) => {
+              handleToggleArchiveCard(columnId, cardId, false);
+            }}
+            onDeleteCard={(columnId, cardId) => {
+              handleDeleteSpecificCard(columnId, cardId);
+            }}
+          />
+        )}
+      </div>
+    </>
   );
 }

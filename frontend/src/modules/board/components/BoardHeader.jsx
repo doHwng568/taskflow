@@ -1,34 +1,40 @@
-export default function BoardHeader({ onOpenArchived }) {
-  return (
-    <header className="board-header">
-      <div className="board-header-left">
-        <button className="board-title">
-          SBA
-          <span className="board-view-icon" aria-hidden="true">▥⌄</span>
-        </button>
-      </div>
+import { Link } from "react-router-dom";
+import ThemeToggle from "../../../shared/components/ThemeToggle";
 
-      <div className="board-header-actions">
-        <button
-          type="button"
-          className="board-archive-button"
-          onClick={onOpenArchived}
-        >
-          Đã lưu trữ
-        </button>
-        <div className="board-avatar" aria-label="Người dùng LN">
-          LN
-        </div>
-        <button className="board-icon-button" aria-label="Kết nối">♧</button>
-        <button className="board-icon-button" aria-label="Tự động hóa">ϟ</button>
-        <button className="board-icon-button" aria-label="Lọc">☰</button>
-        <button className="board-icon-button" aria-label="Đánh dấu yêu thích">☆</button>
-        <button className="board-icon-button" aria-label="Quyền riêng tư">♙</button>
-        <button className="board-share-button">
-          <span aria-hidden="true">♙</span> Chia sẻ
-        </button>
-        <button className="board-icon-button board-more-button" aria-label="Tùy chọn khác">•••</button>
-      </div>
-    </header>
-  );
+export default function BoardHeader({
+    onOpenArchived,
+    workspaceId,
+}) {
+    return (
+        <header className="board-header">
+            <div className="board-header-left">
+                <Link to="/home" className="board-nav-link">
+                    Home
+                </Link>
+
+                <Link to="/workspace" className="board-nav-link">
+                    Workspaces
+                </Link>
+
+                <Link
+                    to={`/workspace/${workspaceId}`}
+                    className="board-nav-link"
+                >
+                    Workspace Detail
+                </Link>
+            </div>
+
+            <div className="board-header-actions">
+                <button
+                    type="button"
+                    className="board-archive-button"
+                    onClick={onOpenArchived}
+                >
+                    Đã lưu trữ
+                </button>
+
+                <ThemeToggle />
+            </div>
+        </header>
+    );
 }

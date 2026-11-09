@@ -4,6 +4,7 @@ import Navbar from "react-bootstrap/Navbar";
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { jwtDecode } from "jwt-decode";
+import ThemeToggle from "../shared/components/ThemeToggle";
 
 function getInitialAuth() {
     const token = localStorage.getItem("accessToken");
@@ -149,7 +150,7 @@ function Header() {
                                 >
                                     Hồ sơ
                                 </Nav.Link>
-
+<ThemeToggle />
                                 <Nav.Link
                                     as="button"
                                     onClick={handleLogout}
