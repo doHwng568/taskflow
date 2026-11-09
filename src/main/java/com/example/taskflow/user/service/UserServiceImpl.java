@@ -69,7 +69,19 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
-        user.setFullName(request.fullName());
+        String newEmail = request.email().trim();
+
+        // Nếu email thay đổi, kiểm tra xem email mới đã được user khác sử dụng chưa
+        if (user.getEmail() == null || !user.getEmail().equalsIgnoreCase(newEmail)) {
+            userRepository.findByEmailIgnoreCase(newEmail).ifPresent(existingUser -> {
+                if (!existingUser.getId().equals(user.getId())) {
+                    throw new BusinessException(ErrorCode.EMAIL_ALREADY_EXISTS);
+                }
+            });
+        }
+
+        user.setFullName(request.fullName().trim());
+        user.setEmail(newEmail);
         User savedUser = userRepository.save(user);
 
         return UserResponse.fromEntity(savedUser);
@@ -91,4 +103,3 @@ public class UserServiceImpl implements UserService {
         userRepository.save(user);
     }
 }
-

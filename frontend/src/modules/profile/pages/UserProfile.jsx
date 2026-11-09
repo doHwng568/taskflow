@@ -17,6 +17,7 @@ export default function UserProfile() {
 
   // State cho form cập nhật thông tin cá nhân
   const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
   const [updatingProfile, setUpdatingProfile] = useState(false);
   const [profileMessage, setProfileMessage] = useState(null);
 
@@ -35,6 +36,7 @@ export default function UserProfile() {
       const data = res.data.data;
       setProfile(data);
       setFullName(data.fullName || "");
+      setEmail(data.email || "");
     } catch (err) {
       setProfileMessage({
         type: "danger",
@@ -49,20 +51,27 @@ export default function UserProfile() {
     loadProfile();
   }, []);
 
-  // 2. Xử lý lưu họ và tên
+  // 2. Xử lý lưu họ tên và email
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
     if (!fullName.trim()) {
       setProfileMessage({ type: "danger", text: "Họ và tên không được để trống." });
       return;
     }
+    if (!email.trim()) {
+      setProfileMessage({ type: "danger", text: "Email không được để trống." });
+      return;
+    }
 
     try {
       setUpdatingProfile(true);
       setProfileMessage(null);
-      const res = await api.put("/api/users/profile", { fullName: fullName.trim() });
+      const res = await api.put("/api/users/profile", {
+        fullName: fullName.trim(),
+        email: email.trim(),
+      });
       setProfile(res.data.data);
-      setProfileMessage({ type: "success", text: "Cập nhật họ và tên thành công!" });
+      setProfileMessage({ type: "success", text: "Cập nhật thông tin cá nhân thành công!" });
     } catch (err) {
       setProfileMessage({
         type: "danger",
@@ -165,20 +174,25 @@ export default function UserProfile() {
                   </div>
                 </Form.Group>
 
-                {/* Email (Read-only) */}
-                <Form.Group className="mb-3">
-                  <Form.Label className="small fw-semibold text-muted">Địa Chỉ Email</Form.Label>
-                  <Form.Control type="email" value={profile?.email || "Chưa cập nhật"} disabled className="bg-light" />
-                </Form.Group>
-
                 {/* Họ và tên (Cho phép sửa) */}
-                <Form.Group className="mb-4">
+                <Form.Group className="mb-3">
                   <Form.Label className="small fw-semibold text-dark">Họ và Tên</Form.Label>
                   <Form.Control
                     type="text"
                     placeholder="Nhập họ và tên của bạn..."
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
+                  />
+                </Form.Group>
+
+                {/* Email (Cho phép sửa) */}
+                <Form.Group className="mb-4">
+                  <Form.Label className="small fw-semibold text-dark">Địa Chỉ Email</Form.Label>
+                  <Form.Control
+                    type="email"
+                    placeholder="Nhập địa chỉ email..."
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                   />
                 </Form.Group>
 
@@ -189,7 +203,7 @@ export default function UserProfile() {
                       Đang lưu...
                     </>
                   ) : (
-                    "Lưu Họ và Tên"
+                    "Lưu Thông Tin Cá Nhân"
                   )}
                 </Button>
               </Form>
