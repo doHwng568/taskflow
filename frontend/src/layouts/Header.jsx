@@ -78,11 +78,11 @@ function Header() {
                         {!isLogged ? (
                             <>
                                 <Link to="/login" className="tf-header-btn">
-                                    Đăng nhập
+                                    Login
                                 </Link>
 
                                 <Link to="/register" className="tf-header-btn">
-                                    Đăng ký
+                                    Register
                                 </Link>
 
                                 <ThemeToggle />
@@ -105,17 +105,17 @@ function Header() {
                                 {isPM && (
                                     <>
                                         <Link to="/users" className="tf-header-btn">
-                                            Quản lý nhân viên
+                                            User Management
                                         </Link>
 
                                         <Link to="/permissions" className="tf-header-btn">
-                                            Phân quyền
+                                            Permissions
                                         </Link>
                                     </>
                                 )}
 
                                 <Link to="/profile" className="tf-header-btn">
-                                    Hồ sơ
+                                    Profile
                                 </Link>
 
                                 <ThemeToggle />
