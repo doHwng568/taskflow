@@ -1,6 +1,7 @@
 package com.example.taskflow.modules.card.service;
 
 import com.example.taskflow.common.enums.ErrorCode;
+import com.example.taskflow.common.enums.Role;
 import com.example.taskflow.common.enums.TaskPriority;
 import com.example.taskflow.common.enums.TaskType;
 import com.example.taskflow.common.exception.BusinessException;
@@ -156,9 +157,12 @@ public class CardServiceImpl implements CardService {
 
         // Theo dõi thay đổi để tạo mô tả hoạt động
         List<String> changes = new ArrayList<>();
-        String newTitle = request.getTitle() != null ? request.getTitle().trim() : "";
-        if (!Objects.equals(card.getTitle(), newTitle)) {
-            changes.add("tiêu đề thành \"" + newTitle + "\"");
+        String newTitle = request.getTitle() != null ? request.getTitle().trim() : card.getTitle();
+        boolean titleChanged = !Objects.equals(card.getTitle(), newTitle);
+        if (titleChanged) {
+            if (currentUser == null || currentUser.getRole() != Role.PM) {
+                throw new BusinessException(ErrorCode.ACCESS_DENIED);
+            }
         }
         String newContent = request.getContent() != null ? request.getContent().trim() : "";
         String oldContent = card.getContent() != null ? card.getContent().trim() : "";
@@ -235,23 +239,25 @@ public class CardServiceImpl implements CardService {
 
         Card updatedCard = cardRepository.save(card);
 
-        // Lưu hoạt động sửa thẻ
-        String desc;
-        if (!changes.isEmpty()) {
-            desc = "đã cập nhật " + String.join(", ", changes);
-        } else if (commentsChanged) {
-            desc = "đã cập nhật nhận xét của thẻ";
-        } else {
-            desc = "đã cập nhật thông tin thẻ";
-        }
+        // Lưu hoạt động sửa thẻ (không ghi lịch sử khi chỉ đổi tiêu đề)
+        if (!changes.isEmpty() || commentsChanged || !titleChanged) {
+            String desc;
+            if (!changes.isEmpty()) {
+                desc = "đã cập nhật " + String.join(", ", changes);
+            } else if (commentsChanged) {
+                desc = "đã cập nhật nhận xét của thẻ";
+            } else {
+                desc = "đã cập nhật thông tin thẻ";
+            }
 
-        CardActivity activity = new CardActivity();
-        activity.setCard(updatedCard);
-        activity.setUser(currentUser);
-        activity.setActionType("UPDATED");
-        activity.setDescription(desc);
-        activity.setCreatedAt(now);
-        cardActivityRepository.save(activity);
+            CardActivity activity = new CardActivity();
+            activity.setCard(updatedCard);
+            activity.setUser(currentUser);
+            activity.setActionType("UPDATED");
+            activity.setDescription(desc);
+            activity.setCreatedAt(now);
+            cardActivityRepository.save(activity);
+        }
 
         return CardResponse.fromEntity(updatedCard);
     }
@@ -292,12 +298,14 @@ public class CardServiceImpl implements CardService {
             throw new BusinessException(ErrorCode.CARD_ALREADY_IN_TARGET_AREA);
         }
 
-        // 6. Kiểm tra Area đích thuộc cùng Workspace với Area hiện tại
-        if (fromArea != null
-                && fromArea.getWorkspace() != null
-                && targetArea.getWorkspace() != null
-                && !fromArea.getWorkspace().getId().equals(targetArea.getWorkspace().getId())) {
-            throw new BusinessException(ErrorCode.VALIDATION_ERROR);
+        // 6. Kiểm tra quyền của người dùng tại Workspace đích
+        if (targetArea.getWorkspace() != null) {
+            Long targetWorkspaceId = targetArea.getWorkspace().getId();
+            Long userId = currentUser.getId();
+            boolean isTargetMember = workspaceMemberRepository.existsByWorkspace_IdAndMember_Id(targetWorkspaceId, userId);
+            if (!isTargetMember) {
+                throw new BusinessException(ErrorCode.NOT_WORKSPACE_MEMBER);
+            }
         }
 
         // 7. Cập nhật Area của Card
@@ -342,8 +350,15 @@ public class CardServiceImpl implements CardService {
         cardMovementRepository.save(movement);
 
         // 11. Lưu lịch sử CardActivity
-        String moveDesc = "đã chuyển thẻ từ cột \"" + (fromArea != null ? fromArea.getName() : "Chưa phân cột")
-                + "\" sang cột \"" + targetArea.getName() + "\"";
+        String fromDesc = fromArea != null ? fromArea.getName() : "Chưa phân cột";
+        String toDesc = targetArea.getName();
+        if (fromArea != null && fromArea.getWorkspace() != null && targetArea.getWorkspace() != null
+                && !fromArea.getWorkspace().getId().equals(targetArea.getWorkspace().getId())) {
+            fromDesc += " (Bảng " + fromArea.getWorkspace().getName() + ")";
+            toDesc += " (Bảng " + targetArea.getWorkspace().getName() + ")";
+        }
+        String moveDesc = "đã chuyển thẻ từ cột \"" + fromDesc
+                + "\" sang cột \"" + toDesc + "\"";
         if (request.getComment() != null && !request.getComment().isBlank()) {
             moveDesc += " (Ghi chú: \"" + request.getComment().trim() + "\")";
         }

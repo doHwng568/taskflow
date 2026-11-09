@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { jwtDecode } from 'jwt-decode';
 import { CommentIcon, DescriptionIcon } from './CardIcons';
 import cardApi from '../api/cardApi';
+import workspaceService from '../../workspace/services/workspaceService';
 import '../styles/Card.css';
 
 const getLocalDateString = (date = new Date()) => {
@@ -25,6 +26,26 @@ const getCurrentUsername = () => {
     }
   } catch {}
   return 'Bạn';
+};
+
+const isCurrentUserPM = () => {
+  const savedRole = localStorage.getItem('userRole');
+  if (savedRole) {
+    const normalized = savedRole.startsWith('ROLE_') ? savedRole.substring(5) : savedRole;
+    if (normalized) return normalized.toUpperCase() === 'PM';
+  }
+  try {
+    const token = localStorage.getItem('accessToken');
+    if (token) {
+      const decoded = jwtDecode(token);
+      let role = String(decoded.role || '');
+      if (role.startsWith('ROLE_')) {
+        role = role.substring(5);
+      }
+      return role.toUpperCase() === 'PM';
+    }
+  } catch {}
+  return false;
 };
 
 const createNewCommentItem = (text) => ({
@@ -708,6 +729,7 @@ export default function CardDetailModal({
   card,
   columns = [],
   currentColumnId = null,
+  workspaceId = null,
   initialView = 'details',
   anchorRect = null,
   onClose,
@@ -757,10 +779,16 @@ export default function CardDetailModal({
   const [activityError, setActivityError] = useState('');
   const [activityTab, setActivityTab] = useState('all');
   const [moveComment, setMoveComment] = useState('');
+  const commentListRef = useRef(null);
+  const isPM = useMemo(() => isCurrentUserPM(), []);
 
   const [isQuickMoveOpen, setIsQuickMoveOpen] = useState(false);
   const [openMoveDropdown, setOpenMoveDropdown] = useState(null);
-  const [selectedBoardName, setSelectedBoardName] = useState('Bảng SBA');
+  const [workspaces, setWorkspaces] = useState([]);
+  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState(() => workspaceId ?? null);
+  const [selectedWorkspaceName, setSelectedWorkspaceName] = useState('');
+  const [availableColumns, setAvailableColumns] = useState(columns);
+  const [loadingColumns, setLoadingColumns] = useState(false);
   const [moveTargetColumnId, setMoveTargetColumnId] = useState(
     () => String(currentColumnId ?? columns[0]?.id ?? '')
   );
@@ -889,12 +917,83 @@ export default function CardDetailModal({
     };
   }, [card.id]);
 
+  useEffect(() => {
+    let active = true;
+    const loadWorkspaces = async () => {
+      try {
+        const list = await workspaceService.getAll();
+        if (!active) return;
+        if (Array.isArray(list)) {
+          setWorkspaces(list);
+          const currentWs = list.find((ws) => String(ws.id) === String(workspaceId));
+          if (currentWs) {
+            setSelectedWorkspaceId(currentWs.id);
+            setSelectedWorkspaceName(currentWs.name);
+          } else if (list.length > 0) {
+            setSelectedWorkspaceId(list[0].id);
+            setSelectedWorkspaceName(list[0].name);
+          }
+        }
+      } catch {
+        // Ignore fallback
+      }
+    };
+    loadWorkspaces();
+    return () => {
+      active = false;
+    };
+  }, [workspaceId]);
+
+  useEffect(() => {
+    if (String(selectedWorkspaceId) === String(workspaceId) || !selectedWorkspaceId) {
+      setAvailableColumns(columns);
+    }
+  }, [columns, selectedWorkspaceId, workspaceId]);
+
   const targetColumnObj =
-    columns.find((col) => String(col.id) === String(moveTargetColumnId)) || columns[0];
-  const totalBoardColumns = Math.max(1, columns.length);
+    availableColumns.find((col) => String(col.id) === String(moveTargetColumnId)) || availableColumns[0];
+  const totalBoardColumns = Math.max(1, availableColumns.length);
+
+  const handleSelectWorkspace = async (ws) => {
+    setSelectedWorkspaceId(ws.id);
+    setSelectedWorkspaceName(ws.name);
+    setOpenMoveDropdown(null);
+
+    if (String(ws.id) === String(workspaceId)) {
+      setAvailableColumns(columns);
+      const defaultCol = columns.find((c) => String(c.id) !== String(currentColumnId)) || columns[0];
+      if (defaultCol) {
+        setMoveTargetColumnId(String(defaultCol.id));
+        setMoveTargetPosition(1);
+      }
+    } else {
+      try {
+        setLoadingColumns(true);
+        const res = await cardApi.getAreasApi(ws.id);
+        const areas = res?.data?.data || [];
+        const mappedCols = areas.map((a) => ({
+          id: a.id,
+          title: a.name,
+        }));
+        setAvailableColumns(mappedCols);
+        if (mappedCols.length > 0) {
+          setMoveTargetColumnId(String(mappedCols[0].id));
+          setMoveTargetPosition(1);
+        } else {
+          setMoveTargetColumnId('');
+          setMoveTargetPosition(1);
+        }
+      } catch {
+        setAvailableColumns([]);
+        setMoveTargetColumnId('');
+      } finally {
+        setLoadingColumns(false);
+      }
+    }
+  };
 
   const handleMoveColumnSelect = (nextColId) => {
-    const colIdx = columns.findIndex((col) => String(col.id) === String(nextColId));
+    const colIdx = availableColumns.findIndex((col) => String(col.id) === String(nextColId));
     setMoveTargetColumnId(String(nextColId));
     if (colIdx >= 0) {
       setMoveTargetPosition(colIdx + 1);
@@ -905,7 +1004,7 @@ export default function CardDetailModal({
   const handleMovePositionSelect = (posNumber) => {
     const pos = Number(posNumber);
     setMoveTargetPosition(pos);
-    const targetCol = columns[pos - 1];
+    const targetCol = availableColumns[pos - 1];
     if (targetCol) {
       setMoveTargetColumnId(String(targetCol.id));
     }
@@ -914,22 +1013,38 @@ export default function CardDetailModal({
 
   const handleExecuteMove = async () => {
     const matchedCol =
-      columns.find((col) => String(col.id) === String(moveTargetColumnId)) ||
-      columns[moveTargetPosition - 1];
+      availableColumns.find((col) => String(col.id) === String(moveTargetColumnId)) ||
+      availableColumns[moveTargetPosition - 1];
     const resolvedColId = matchedCol ? matchedCol.id : moveTargetColumnId;
 
-    if (String(resolvedColId) === String(currentColumnId)) {
+    if (!resolvedColId) {
+      alert('Vui lòng chọn danh sách cần chuyển đến.');
+      return;
+    }
+
+    const isCrossWorkspace = String(selectedWorkspaceId) !== String(workspaceId);
+
+    if (!isCrossWorkspace && String(resolvedColId) === String(currentColumnId)) {
       alert('Thẻ đã ở trong danh sách này. Vui lòng chọn danh sách khác.');
       return;
     }
 
     const commentToSend = moveComment.trim() ? moveComment.trim() : null;
-    const success = await onMoveCard?.(resolvedColId, moveTargetPosition, commentToSend);
+    const success = await onMoveCard?.(
+      resolvedColId,
+      moveTargetPosition,
+      commentToSend,
+      isCrossWorkspace
+    );
     if (success) {
       setMoveComment('');
       setIsQuickMoveOpen(false);
       setActivePopover(null);
-      await reloadAllHistory();
+      if (isCrossWorkspace) {
+        onClose?.();
+      } else {
+        await reloadAllHistory();
+      }
     }
   };
 
@@ -943,24 +1058,30 @@ export default function CardDetailModal({
     onUpdateCard?.(getUpdatedCard({ coverImage: '' }));
   };
 
-  const getUpdatedCard = (overrides = {}) => ({
-    ...card,
-    title: title.trim(),
-    completed,
-    description: description.trim(),
-    coverImage,
-    startDate: startEnabled ? startDate : '',
-    dueDate: dueEnabled ? dueDate : '',
-    startDateEnabled: startEnabled,
-    dueDateEnabled: dueEnabled,
-    startTime,
-    dueTime,
-    recurrence,
-    reminder,
-    labels,
-    comments,
-    ...overrides,
-  });
+  const getUpdatedCard = (overrides = {}) => {
+    const nextOverrides = { ...overrides };
+    if (!isPM && 'title' in nextOverrides) {
+      nextOverrides.title = (card.title || '').trim();
+    }
+    return {
+      ...card,
+      title: isPM ? title.trim() : (card.title || '').trim(),
+      completed,
+      description: description.trim(),
+      coverImage,
+      startDate: startEnabled ? startDate : '',
+      dueDate: dueEnabled ? dueDate : '',
+      startDateEnabled: startEnabled,
+      dueDateEnabled: dueEnabled,
+      startTime,
+      dueTime,
+      recurrence,
+      reminder,
+      labels,
+      comments,
+      ...nextOverrides,
+    };
+  };
 
   const toggleCompletion = () => {
     const nextCompleted = !completed;
@@ -969,17 +1090,17 @@ export default function CardDetailModal({
   };
 
   const saveChanges = () => {
-    const trimmedTitle = title.trim();
-    if (!trimmedTitle) return;
+    const effectiveTitle = isPM ? title.trim() : (card.title || '').trim();
+    if (!effectiveTitle) return;
 
-    onSave(getUpdatedCard({ title: trimmedTitle }));
+    onSave(getUpdatedCard({ title: effectiveTitle }));
   };
 
   const savePopoverChanges = () => {
-    const trimmedTitle = title.trim();
-    if (!trimmedTitle) return;
+    const effectiveTitle = isPM ? title.trim() : (card.title || '').trim();
+    if (!effectiveTitle) return;
 
-    onUpdateCard?.(getUpdatedCard({ title: trimmedTitle }));
+    onUpdateCard?.(getUpdatedCard({ title: effectiveTitle }));
     setPopoverSnapshot(null);
     setActivePopover(null);
   };
@@ -1017,7 +1138,7 @@ export default function CardDetailModal({
       recurrence,
       reminder,
     });
-    if (popover === 'date') {
+    if (popover === 'date' || popover === 'date-meta') {
       setCalendarTarget(!startEnabled ? 'start' : 'due');
     }
     setActivePopover(popover);
@@ -1039,7 +1160,7 @@ export default function CardDetailModal({
     setRecurrence('none');
     setReminder('none');
 
-    if (activePopover === 'date') {
+    if (activePopover === 'date' || activePopover === 'date-meta') {
       onUpdateCard?.(clearedDate);
       setPopoverSnapshot(null);
       setActivePopover(null);
@@ -1127,10 +1248,15 @@ export default function CardDetailModal({
       });
     });
     activities.forEach((act) => {
+      const rawDesc = String(act.description || '').trim();
+      if (/^đã cập nhật tiêu đề thành\s+".*"$/i.test(rawDesc)) {
+        return;
+      }
+      const cleanedDesc = rawDesc.replace(/tiêu đề thành\s+"[^"]*",\s*/i, '');
       list.push({
         itemType: 'activity',
         id: `activity-${act.id}`,
-        activity: act,
+        activity: { ...act, description: cleanedDesc },
         timestamp: act.createdAt ? new Date(act.createdAt).getTime() : 0,
       });
     });
@@ -1393,6 +1519,99 @@ export default function CardDetailModal({
     setCalendarTarget,
   };
 
+  const renderLabelPopover = () => (
+    <div className="card-editor-popover card-label-popover">
+      <header className="card-editor-popover-header">
+        <h3>Nhãn</h3>
+        <button type="button" onClick={cancelPopoverChanges} aria-label="Đóng nhãn">
+          ×
+        </button>
+      </header>
+      <input
+        className="card-modal-input card-label-search"
+        value={labelSearch}
+        onChange={(event) => setLabelSearch(event.target.value)}
+        placeholder="Tìm nhãn..."
+        aria-label="Tìm nhãn"
+      />
+      <span className="card-modal-label">Nhãn</span>
+      <div className="card-label-list">
+        {labelOptions
+          .filter((option) => option.name.toLowerCase().includes(labelSearch.toLowerCase()))
+          .map((option) => {
+            const selected = labels.find((label) => label.id === option.id);
+            const color = selected?.color || option.color;
+
+            return (
+              <div className="card-label-row" key={option.id}>
+                <input
+                  type="checkbox"
+                  checked={Boolean(selected)}
+                  onChange={() => toggleLabel(option)}
+                  aria-label={`Chọn nhãn ${option.name}`}
+                />
+                <span
+                  className="card-label-swatch"
+                  style={{ backgroundColor: color }}
+                  onClick={() => toggleLabel(option)}
+                  aria-label={option.name}
+                  title={option.name}
+                />
+                <button
+                  type="button"
+                  className="card-label-edit"
+                  onClick={() => setEditingLabelId(
+                    editingLabelId === option.id ? null : option.id
+                  )}
+                  aria-label={`Đổi màu nhãn ${option.name}`}
+                  title="Đổi màu"
+                >
+                  ✎
+                </button>
+                {editingLabelId === option.id && (
+                  <input
+                    type="color"
+                    className="card-label-color-input"
+                    value={color}
+                    onChange={(event) => updateLabelColor(option, event.target.value)}
+                    aria-label={`Màu nhãn ${option.name}`}
+                  />
+                )}
+              </div>
+            );
+          })}
+      </div>
+      <footer className="card-popover-footer">
+        <button type="button" className="card-cancel-button" onClick={cancelPopoverChanges}>
+          Hủy
+        </button>
+        <button type="button" className="card-save-button" onClick={savePopoverChanges}>
+          Lưu
+        </button>
+      </footer>
+    </div>
+  );
+
+  const renderDatePopover = () => (
+    <div className="card-editor-popover card-date-popover">
+      <header className="card-editor-popover-header">
+        <h3>Ngày</h3>
+        <button type="button" onClick={cancelPopoverChanges} aria-label="Đóng ngày">
+          ×
+        </button>
+      </header>
+      <CardDateEditor {...dateEditorProps} />
+      <footer className="card-popover-footer card-date-popover-footer">
+        <button type="button" className="card-date-remove" onClick={removeDate}>
+          Gỡ bỏ
+        </button>
+        <button type="button" className="card-save-button" onClick={savePopoverChanges}>
+          Lưu
+        </button>
+      </footer>
+    </div>
+  );
+
   const isQuickAnchored = activePanel === 'quick' && Boolean(anchorRect);
   const quickCardWidth = anchorRect?.width ? Math.round(anchorRect.width) : 252;
   const quickModalStyle = isQuickAnchored
@@ -1449,8 +1668,14 @@ export default function CardDetailModal({
                   <textarea
                     className="card-quick-title-input"
                     value={title}
-                    onChange={(event) => setTitle(event.target.value)}
-                    onFocus={(event) => event.target.select()}
+                    readOnly={!isPM}
+                    title={!isPM ? 'Chỉ PM mới có quyền thay đổi tiêu đề thẻ' : undefined}
+                    onChange={(event) => {
+                      if (isPM) setTitle(event.target.value);
+                    }}
+                    onFocus={(event) => {
+                      if (isPM) event.target.select();
+                    }}
                     onKeyDown={(event) => {
                       if (event.key === 'Enter' && !event.shiftKey) {
                         event.preventDefault();
@@ -1458,7 +1683,7 @@ export default function CardDetailModal({
                       }
                     }}
                     aria-label="Tiêu đề thẻ"
-                    autoFocus
+                    autoFocus={isPM}
                     rows={3}
                   />
                   {(description || comments.length > 0) && (
@@ -1553,7 +1778,7 @@ export default function CardDetailModal({
                     <div className="card-move-body">
                       <span className="card-move-subtitle">Chọn đích đến</span>
 
-                      <span className="card-move-field-label">Bảng</span>
+                      <span className="card-move-field-label">Bảng (Không gian làm việc)</span>
                       <div className="card-move-dropdown-wrapper">
                         <button
                           type="button"
@@ -1562,21 +1787,24 @@ export default function CardDetailModal({
                             setOpenMoveDropdown((cur) => (cur === 'board' ? null : 'board'))
                           }
                         >
-                          <span>{selectedBoardName}</span>
+                          <span>{selectedWorkspaceName || 'Chọn bảng...'}</span>
                           <DropdownChevron />
                         </button>
                         {openMoveDropdown === 'board' && (
                           <div className="card-move-select-menu" role="listbox">
-                            <button
-                              type="button"
-                              className="card-move-select-option is-selected"
-                              onClick={() => {
-                                setSelectedBoardName('Bảng SBA');
-                                setOpenMoveDropdown(null);
-                              }}
-                            >
-                              Bảng SBA
-                            </button>
+                            {workspaces.map((ws) => {
+                              const isSelected = String(ws.id) === String(selectedWorkspaceId);
+                              return (
+                                <button
+                                  type="button"
+                                  key={ws.id}
+                                  className={`card-move-select-option ${isSelected ? 'is-selected' : ''}`}
+                                  onClick={() => handleSelectWorkspace(ws)}
+                                >
+                                  {ws.name}
+                                </button>
+                              );
+                            })}
                           </div>
                         )}
                       </div>
@@ -1592,25 +1820,31 @@ export default function CardDetailModal({
                                 setOpenMoveDropdown((cur) => (cur === 'list' ? null : 'list'))
                               }
                             >
-                              <span>{targetColumnObj?.title || ''}</span>
+                              <span>{loadingColumns ? 'Đang tải...' : (targetColumnObj?.title || 'Chưa có danh sách')}</span>
                               <DropdownChevron />
                             </button>
                             {openMoveDropdown === 'list' && (
                               <div className="card-move-select-menu" role="listbox">
-                                {columns.map((col) => {
-                                  const isSelected =
-                                    String(col.id) === String(moveTargetColumnId);
-                                  return (
-                                    <button
-                                      type="button"
-                                      key={col.id}
-                                      className={`card-move-select-option ${isSelected ? 'is-selected' : ''}`}
-                                      onClick={() => handleMoveColumnSelect(col.id)}
-                                    >
-                                      {col.title}
-                                    </button>
-                                  );
-                                })}
+                                {availableColumns.length === 0 ? (
+                                  <div style={{ padding: '8px 12px', color: '#626f86', fontSize: '13px' }}>
+                                    Không có danh sách nào
+                                  </div>
+                                ) : (
+                                  availableColumns.map((col) => {
+                                    const isSelected =
+                                      String(col.id) === String(moveTargetColumnId);
+                                    return (
+                                      <button
+                                        type="button"
+                                        key={col.id}
+                                        className={`card-move-select-option ${isSelected ? 'is-selected' : ''}`}
+                                        onClick={() => handleMoveColumnSelect(col.id)}
+                                      >
+                                        {col.title}
+                                      </button>
+                                    );
+                                  })
+                                )}
                               </div>
                             )}
                           </div>
@@ -1685,17 +1919,19 @@ export default function CardDetailModal({
         ) : (
           <>
             <header className="card-modal-header">
-              <button
-                type="button"
-                className="card-modal-back"
-                onClick={() => {
-                  setActivePopover(null);
-                  setActivePanel('quick');
-                }}
-                aria-label="Quay lại"
-              >
-                ‹
-              </button>
+              {activePanel !== 'details' && (
+                <button
+                  type="button"
+                  className="card-modal-back"
+                  onClick={() => {
+                    setActivePopover(null);
+                    setActivePanel('quick');
+                  }}
+                  aria-label="Quay lại"
+                >
+                  ‹
+                </button>
+              )}
               <h2 id="card-modal-title">{panelTitle}</h2>
               <button
                 type="button"
@@ -1753,41 +1989,18 @@ export default function CardDetailModal({
                       id="card-title"
                       className="card-detail-title-input"
                       value={title}
-                      onChange={(event) => setTitle(event.target.value)}
+                      readOnly={!isPM}
+                      title={!isPM ? 'Chỉ PM mới có quyền thay đổi tiêu đề thẻ' : undefined}
+                      onChange={(event) => {
+                        if (isPM) setTitle(event.target.value);
+                      }}
                       aria-label="Tiêu đề thẻ"
-                      autoFocus
+                      autoFocus={isPM}
                     />
                   </div>
 
-                  {(card.createdByName || card.updatedByName || card.createdAt) && (
-                    <div className="card-detail-member-history-meta">
-                      {card.createdByName && (
-                        <span className="card-detail-history-pill" title="Người tạo thẻ">
-                          <span className="card-history-icon" aria-hidden="true">👤</span>
-                          <span>Tạo bởi <strong>{card.createdByName}</strong></span>
-                          {card.createdAt && (
-                            <span className="card-history-time">
-                              {' '}vào {new Date(card.createdAt).toLocaleDateString('vi-VN')}
-                            </span>
-                          )}
-                        </span>
-                      )}
-                      {card.updatedByName && (
-                        <span className="card-detail-history-pill" title="Người chỉnh sửa gần nhất">
-                          <span className="card-history-icon" aria-hidden="true">✎</span>
-                          <span>Sửa lần cuối bởi <strong>{card.updatedByName}</strong></span>
-                          {card.updatedAt && (
-                            <span className="card-history-time">
-                              {' '}lúc {new Date(card.updatedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} {new Date(card.updatedAt).toLocaleDateString('vi-VN')}
-                            </span>
-                          )}
-                        </span>
-                      )}
-                    </div>
-                  )}
-
                   <div className="card-detail-shortcuts">
-                    <div className="card-popover-anchor">
+                    <div className={`card-popover-anchor ${activePopover === 'labels' ? 'is-open' : ''}`}>
                       <button
                         type="button"
                         aria-expanded={activePopover === 'labels'}
@@ -1795,80 +2008,9 @@ export default function CardDetailModal({
                       >
                         <LabelTagIcon /> Nhãn
                       </button>
-                      {activePopover === 'labels' && (
-                        <div className="card-editor-popover card-label-popover">
-                          <header className="card-editor-popover-header">
-                            <h3>Nhãn</h3>
-                            <button type="button" onClick={cancelPopoverChanges} aria-label="Đóng nhãn">
-                              ×
-                            </button>
-                          </header>
-                          <input
-                            className="card-modal-input card-label-search"
-                            value={labelSearch}
-                            onChange={(event) => setLabelSearch(event.target.value)}
-                            placeholder="Tìm nhãn..."
-                            aria-label="Tìm nhãn"
-                          />
-                          <span className="card-modal-label">Nhãn</span>
-                          <div className="card-label-list">
-                            {labelOptions
-                              .filter((option) => option.name.toLowerCase().includes(labelSearch.toLowerCase()))
-                              .map((option) => {
-                                const selected = labels.find((label) => label.id === option.id);
-                                const color = selected?.color || option.color;
-
-                                return (
-                                  <div className="card-label-row" key={option.id}>
-                                    <input
-                                      type="checkbox"
-                                      checked={Boolean(selected)}
-                                      onChange={() => toggleLabel(option)}
-                                      aria-label={`Chọn nhãn ${option.name}`}
-                                    />
-                                    <span
-                                      className="card-label-swatch"
-                                      style={{ backgroundColor: color }}
-                                      onClick={() => toggleLabel(option)}
-                                      aria-label={option.name}
-                                      title={option.name}
-                                    />
-                                    <button
-                                      type="button"
-                                      className="card-label-edit"
-                                      onClick={() => setEditingLabelId(
-                                        editingLabelId === option.id ? null : option.id
-                                      )}
-                                      aria-label={`Đổi màu nhãn ${option.name}`}
-                                      title="Đổi màu"
-                                    >
-                                      ✎
-                                    </button>
-                                    {editingLabelId === option.id && (
-                                      <input
-                                        type="color"
-                                        className="card-label-color-input"
-                                        value={color}
-                                        onChange={(event) => updateLabelColor(option, event.target.value)}
-                                        aria-label={`Màu nhãn ${option.name}`}
-                                      />
-                                    )}
-                                  </div>
-                                );
-                              })}
-                          </div>
-                          <footer className="card-popover-footer">
-                            <button type="button" className="card-cancel-button" onClick={cancelPopoverChanges}>
-                              Hủy
-                            </button>
-                            <button type="button" className="card-save-button" onClick={savePopoverChanges}>
-                              Lưu
-                            </button>
-                          </footer>
-                        </div>
-                      )}
+                      {activePopover === 'labels' && renderLabelPopover()}
                     </div>
-                    <div className="card-popover-anchor">
+                    <div className={`card-popover-anchor ${activePopover === 'date' ? 'is-open' : ''}`}>
                       <button
                         type="button"
                         aria-expanded={activePopover === 'date'}
@@ -1876,27 +2018,9 @@ export default function CardDetailModal({
                       >
                         <ClockIcon /> Ngày
                       </button>
-                      {activePopover === 'date' && (
-                        <div className="card-editor-popover card-date-popover">
-                          <header className="card-editor-popover-header">
-                            <h3>Ngày</h3>
-                            <button type="button" onClick={cancelPopoverChanges} aria-label="Đóng ngày">
-                              ×
-                            </button>
-                          </header>
-                          <CardDateEditor {...dateEditorProps} />
-                          <footer className="card-popover-footer card-date-popover-footer">
-                            <button type="button" className="card-date-remove" onClick={removeDate}>
-                              Gỡ bỏ
-                            </button>
-                            <button type="button" className="card-save-button" onClick={savePopoverChanges}>
-                              Lưu
-                            </button>
-                          </footer>
-                        </div>
-                      )}
+                      {activePopover === 'date' && renderDatePopover()}
                     </div>
-                    <div className="card-popover-anchor">
+                    <div className={`card-popover-anchor ${activePopover === 'cover' ? 'is-open' : ''}`}>
                       <button
                         type="button"
                         aria-expanded={activePopover === 'cover'}
@@ -1914,7 +2038,7 @@ export default function CardDetailModal({
                       )}
                     </div>
 
-                    <div className="card-popover-anchor">
+                    <div className={`card-popover-anchor ${activePopover === 'move' ? 'is-open' : ''}`}>
                       <button
                         type="button"
                         aria-expanded={activePopover === 'move'}
@@ -1934,7 +2058,7 @@ export default function CardDetailModal({
                           <div className="card-move-body">
                             <span className="card-move-subtitle">Chọn đích đến</span>
 
-                            <span className="card-move-field-label">Bảng</span>
+                            <span className="card-move-field-label">Bảng (Không gian làm việc)</span>
                             <div className="card-move-dropdown-wrapper">
                               <button
                                 type="button"
@@ -1943,21 +2067,24 @@ export default function CardDetailModal({
                                   setOpenMoveDropdown((cur) => (cur === 'board' ? null : 'board'))
                                 }
                               >
-                                <span>{selectedBoardName}</span>
+                                <span>{selectedWorkspaceName || 'Chọn bảng...'}</span>
                                 <DropdownChevron />
                               </button>
                               {openMoveDropdown === 'board' && (
                                 <div className="card-move-select-menu" role="listbox">
-                                  <button
-                                    type="button"
-                                    className="card-move-select-option is-selected"
-                                    onClick={() => {
-                                      setSelectedBoardName('Bảng SBA');
-                                      setOpenMoveDropdown(null);
-                                    }}
-                                  >
-                                    Bảng SBA
-                                  </button>
+                                  {workspaces.map((ws) => {
+                                    const isSelected = String(ws.id) === String(selectedWorkspaceId);
+                                    return (
+                                      <button
+                                        type="button"
+                                        key={ws.id}
+                                        className={`card-move-select-option ${isSelected ? 'is-selected' : ''}`}
+                                        onClick={() => handleSelectWorkspace(ws)}
+                                      >
+                                        {ws.name}
+                                      </button>
+                                    );
+                                  })}
                                 </div>
                               )}
                             </div>
@@ -1973,25 +2100,31 @@ export default function CardDetailModal({
                                       setOpenMoveDropdown((cur) => (cur === 'list' ? null : 'list'))
                                     }
                                   >
-                                    <span>{targetColumnObj?.title || ''}</span>
+                                    <span>{loadingColumns ? 'Đang tải...' : (targetColumnObj?.title || 'Chưa có danh sách')}</span>
                                     <DropdownChevron />
                                   </button>
                                   {openMoveDropdown === 'list' && (
                                     <div className="card-move-select-menu" role="listbox">
-                                      {columns.map((col) => {
-                                        const isSelected =
-                                          String(col.id) === String(moveTargetColumnId);
-                                        return (
-                                          <button
-                                            type="button"
-                                            key={col.id}
-                                            className={`card-move-select-option ${isSelected ? 'is-selected' : ''}`}
-                                            onClick={() => handleMoveColumnSelect(col.id)}
-                                          >
-                                            {col.title}
-                                          </button>
-                                        );
-                                      })}
+                                      {availableColumns.length === 0 ? (
+                                        <div style={{ padding: '8px 12px', color: '#626f86', fontSize: '13px' }}>
+                                          Không có danh sách nào
+                                        </div>
+                                      ) : (
+                                        availableColumns.map((col) => {
+                                          const isSelected =
+                                            String(col.id) === String(moveTargetColumnId);
+                                          return (
+                                            <button
+                                              type="button"
+                                              key={col.id}
+                                              className={`card-move-select-option ${isSelected ? 'is-selected' : ''}`}
+                                              onClick={() => handleMoveColumnSelect(col.id)}
+                                            >
+                                              {col.title}
+                                            </button>
+                                          );
+                                        })
+                                      )}
                                     </div>
                                   )}
                                 </div>
@@ -2058,7 +2191,7 @@ export default function CardDetailModal({
                   {(labels.length > 0 || (startEnabled && startDate) || (dueEnabled && dueDate)) && (
                     <div className="card-detail-meta">
                       {labels.length > 0 && (
-                        <div className="card-detail-meta-group">
+                        <div className={`card-detail-meta-group card-popover-anchor ${activePopover === 'labels-meta' ? 'is-open' : ''}`}>
                           <span className="card-detail-meta-title">Nhãn</span>
                           <div className="card-detail-labels-row">
                             {labels.map((label) => (
@@ -2069,18 +2202,19 @@ export default function CardDetailModal({
                                 style={{ backgroundColor: label.color }}
                                 title={label.name}
                                 aria-label={`Nhãn ${label.name}`}
-                                onClick={() => openPopover('labels')}
+                                onClick={() => openPopover('labels-meta')}
                               />
                             ))}
                             <button
                               type="button"
                               className="card-detail-label-add"
                               aria-label="Thêm nhãn"
-                              onClick={() => openPopover('labels')}
+                              onClick={() => openPopover('labels-meta')}
                             >
                               ＋
                             </button>
                           </div>
+                          {activePopover === 'labels-meta' && renderLabelPopover()}
                         </div>
                       )}
 
@@ -2101,12 +2235,12 @@ export default function CardDetailModal({
                         });
 
                         return (
-                          <div className="card-detail-meta-group">
+                          <div className={`card-detail-meta-group card-popover-anchor ${activePopover === 'date-meta' ? 'is-open' : ''}`}>
                             <span className="card-detail-meta-title">Ngày</span>
                             <button
                               type="button"
                               className="card-detail-date-badge"
-                              onClick={() => openPopover('date')}
+                              onClick={() => openPopover('date-meta')}
                             >
                               <span className="card-detail-date-text">{summaryText}</span>
                               {dueStatus && (
@@ -2129,6 +2263,7 @@ export default function CardDetailModal({
                                 </svg>
                               </span>
                             </button>
+                            {activePopover === 'date-meta' && renderDatePopover()}
                           </div>
                         );
                       })()}
@@ -2163,9 +2298,6 @@ export default function CardDetailModal({
                       </button>
                     </div>
                     <div className="card-modal-footer-right">
-                      <button type="button" className="card-cancel-button" onClick={onClose}>
-                        Hủy
-                      </button>
                       <button type="button" className="card-save-button" onClick={saveChanges}>
                         Lưu
                       </button>
@@ -2173,7 +2305,14 @@ export default function CardDetailModal({
                   </footer>
                 </div>
 
-                <aside className="card-activity-panel">
+                <aside
+                  className="card-activity-panel"
+                  onWheel={(e) => {
+                    if (commentListRef.current && !e.target.closest('.card-comment-list')) {
+                      commentListRef.current.scrollTop += e.deltaY;
+                    }
+                  }}
+                >
                   <h3><CommentIcon size={18} /> Nhận xét và hoạt động</h3>
                   <div className="card-activity-tabs" role="tablist" aria-label="Bộ lọc hoạt động">
                     <button
@@ -2184,15 +2323,6 @@ export default function CardDetailModal({
                       onClick={() => setActivityTab('all')}
                     >
                       Tất cả
-                    </button>
-                    <button
-                      type="button"
-                      role="tab"
-                      aria-selected={activityTab === 'activities'}
-                      className={`card-activity-tab-btn ${activityTab === 'activities' ? 'is-active' : ''}`}
-                      onClick={() => setActivityTab('activities')}
-                    >
-                      Lịch sử hoạt động
                     </button>
                     <button
                       type="button"
@@ -2242,20 +2372,12 @@ export default function CardDetailModal({
                     </div>
                   )}
 
-                  <div className="card-comment-list" aria-live="polite">
+                  <div className="card-comment-list" ref={commentListRef} aria-live="polite">
                     {activityTab === 'comments' && (
                       comments.length === 0 ? (
                         <p className="card-comment-empty">Chưa có nhận xét nào.</p>
                       ) : (
                         comments.map((comment, index) => renderCommentItem(comment, index))
-                      )
-                    )}
-
-                    {activityTab === 'activities' && (
-                      activities.length === 0 && !loadingActivities ? (
-                        <p className="card-comment-empty">Chưa có lịch sử hoạt động nào cho thẻ này.</p>
-                      ) : (
-                        activities.map((activity) => renderActivityItem(activity))
                       )
                     )}
 

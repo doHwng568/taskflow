@@ -511,7 +511,8 @@ export default function BoardPage() {
         areaId: parseNumericId(columnId),
       });
       createdFromServer = res?.data?.data;
-    } catch {
+    } catch (err) {
+      console.error('Lỗi đồng bộ thẻ lên server:', err?.response?.data || err?.message);
       // Fallback khi server chưa kết nối DB
     }
 
@@ -539,7 +540,8 @@ export default function BoardPage() {
     targetColumnId,
     cardId,
     targetCardId = null,
-    targetPosition = null
+    targetPosition = null,
+    comment = null
   ) => {
     const hasExplicitPosition =
       targetPosition !== null &&
@@ -561,6 +563,7 @@ export default function BoardPage() {
         await cardApi.moveCardApi(numericCardId, {
           targetAreaId: numericTargetAreaId,
           ...(hasExplicitPosition ? { position: Number(targetPosition) } : {}),
+          ...(comment ? { comment } : {}),
         });
       } catch {
         // Fallback khi server chưa kết nối DB
@@ -681,7 +684,8 @@ export default function BoardPage() {
         dueDate: dueDateIso,
       });
       return res?.data?.data;
-    } catch {
+    } catch (err) {
+      console.error('Lỗi khi đồng bộ thẻ lên server:', err?.response?.data || err?.message || err);
       // Fallback khi server chưa kết nối DB
       return null;
     }
@@ -995,20 +999,25 @@ export default function BoardPage() {
           card={selectedCard.card}
           columns={activeColumns}
           currentColumnId={selectedCard.columnId}
+          workspaceId={workspaceId}
           initialView={selectedCard.view}
           anchorRect={selectedCard.anchorRect}
           onClose={() => setSelectedCard(null)}
           onSave={handleSaveCard}
           onUpdateCard={handleUpdateCard}
-          onMoveCard={(targetColumnId, targetPosition) => {
+          onMoveCard={(targetColumnId, targetPosition, comment, isCrossWorkspace) => {
             handleMoveCard(
               selectedCard.columnId,
               targetColumnId,
               selectedCard.card.id,
               null,
-              targetPosition
+              targetPosition,
+              comment
             );
-            setSelectedCard(null);
+            if (isCrossWorkspace) {
+              setSelectedCard(null);
+            }
+            return true;
           }}
           onArchive={() =>
             handleToggleArchiveCard(
