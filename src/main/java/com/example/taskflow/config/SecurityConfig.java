@@ -4,6 +4,7 @@ import com.example.taskflow.entity.User;
 import com.example.taskflow.security.CustomUserDetailsService;
 import com.example.taskflow.security.JwtAuthenticationFilter;
 import com.example.taskflow.security.JwtService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -33,6 +34,9 @@ public class SecurityConfig {
 
     private final JwtService jwtService;
     private final CustomUserDetailsService userDetailsService;
+
+    @Value("${app.cors.allowed-origins:http://localhost:5173}")
+    private String allowedOrigins;
 
     public SecurityConfig(JwtService jwtService, CustomUserDetailsService userDetailsService) {
         this.jwtService = jwtService;
@@ -69,7 +73,11 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:5173")); // URL Frontend Vite
+        List<String> origins = java.util.Arrays.stream(allowedOrigins.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .toList();
+        config.setAllowedOrigins(origins);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
