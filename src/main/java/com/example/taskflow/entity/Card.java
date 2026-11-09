@@ -58,9 +58,16 @@ public class Card {
     private User createdBy;
 
     @ManyToOne
+    @JoinColumn(name = "updated_by")
+    private User updatedBy;
+
+    @ManyToOne
     @JoinColumn(name = "assignee")
     private User assignee;
 
     @OneToMany(mappedBy = "card")
     private List<CardMovement> cardMovementList = new ArrayList<>();
+
+    @OneToMany(mappedBy = "card", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<CardActivity> cardActivityList = new ArrayList<>();
 }

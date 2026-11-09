@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { jwtDecode } from 'jwt-decode';
 import { CommentIcon, DescriptionIcon } from './CardIcons';
 import cardApi from '../api/cardApi';
 import '../styles/Card.css';
@@ -15,9 +16,21 @@ const getMonthForDate = (dateString) => {
   return new Date(date.getFullYear(), date.getMonth(), 1);
 };
 
+const getCurrentUsername = () => {
+  try {
+    const token = localStorage.getItem('accessToken');
+    if (token) {
+      const decoded = jwtDecode(token);
+      return decoded.sub || 'Bạn';
+    }
+  } catch {}
+  return 'Bạn';
+};
+
 const createNewCommentItem = (text) => ({
   id: `comment-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
   text,
+  author: getCurrentUsername(),
   createdAt: new Date().toISOString(),
 });
 
@@ -739,6 +752,9 @@ export default function CardDetailModal({
   const [movements, setMovements] = useState([]);
   const [loadingMovements, setLoadingMovements] = useState(false);
   const [movementError, setMovementError] = useState('');
+  const [activities, setActivities] = useState([]);
+  const [loadingActivities, setLoadingActivities] = useState(false);
+  const [activityError, setActivityError] = useState('');
   const [activityTab, setActivityTab] = useState('all');
   const [moveComment, setMoveComment] = useState('');
 
@@ -785,34 +801,89 @@ export default function CardDetailModal({
     }
   }, [card.id]);
 
+  const fetchActivities = useCallback(async () => {
+    const numericCardId = parseNumericId(card.id);
+    if (!numericCardId) {
+      setActivities([]);
+      return;
+    }
+    try {
+      setLoadingActivities(true);
+      setActivityError('');
+      const res = await cardApi.getCardActivitiesApi(numericCardId);
+      const data = res?.data?.data;
+      if (Array.isArray(data)) {
+        const deduped = Array.from(new Map(data.map((a) => [a.id, a])).values());
+        deduped.sort(
+          (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+        );
+        setActivities(deduped);
+      } else {
+        setActivities([]);
+      }
+    } catch (err) {
+      setActivityError(err?.response?.data?.message || 'Không thể tải lịch sử hoạt động.');
+    } finally {
+      setLoadingActivities(false);
+    }
+  }, [card.id]);
+
+  const reloadAllHistory = useCallback(async () => {
+    await Promise.allSettled([fetchMovements(), fetchActivities()]);
+  }, [fetchMovements, fetchActivities]);
+
   useEffect(() => {
     let active = true;
-    const loadMovements = async () => {
+    const loadData = async () => {
       const numericCardId = parseNumericId(card.id);
       if (!numericCardId) {
-        if (active) setMovements([]);
+        if (active) {
+          setMovements([]);
+          setActivities([]);
+        }
         return;
       }
       try {
-        const res = await cardApi.getCardMovementsApi(numericCardId);
+        setLoadingMovements(true);
+        setLoadingActivities(true);
+        const [movRes, actRes] = await Promise.allSettled([
+          cardApi.getCardMovementsApi(numericCardId),
+          cardApi.getCardActivitiesApi(numericCardId),
+        ]);
         if (!active) return;
-        const data = res?.data?.data;
-        if (Array.isArray(data)) {
-          const deduped = Array.from(new Map(data.map((m) => [m.id, m])).values());
-          deduped.sort(
+        if (movRes.status === 'fulfilled' && Array.isArray(movRes.value?.data?.data)) {
+          const mData = movRes.value.data.data;
+          const dedupedM = Array.from(new Map(mData.map((m) => [m.id, m])).values());
+          dedupedM.sort(
             (a, b) => new Date(b.movedAt || 0).getTime() - new Date(a.movedAt || 0).getTime()
           );
-          setMovements(deduped);
+          setMovements(dedupedM);
         } else {
           setMovements([]);
+        }
+        if (actRes.status === 'fulfilled' && Array.isArray(actRes.value?.data?.data)) {
+          const aData = actRes.value.data.data;
+          const dedupedA = Array.from(new Map(aData.map((a) => [a.id, a])).values());
+          dedupedA.sort(
+            (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+          );
+          setActivities(dedupedA);
+        } else {
+          setActivities([]);
         }
       } catch (err) {
         if (active) {
           setMovementError(err?.response?.data?.message || 'Không thể tải lịch sử di chuyển.');
+          setActivityError(err?.response?.data?.message || 'Không thể tải lịch sử hoạt động.');
+        }
+      } finally {
+        if (active) {
+          setLoadingMovements(false);
+          setLoadingActivities(false);
         }
       }
     };
-    loadMovements();
+    loadData();
     return () => {
       active = false;
     };
@@ -858,7 +929,7 @@ export default function CardDetailModal({
       setMoveComment('');
       setIsQuickMoveOpen(false);
       setActivePopover(null);
-      await fetchMovements();
+      await reloadAllHistory();
     }
   };
 
@@ -1055,17 +1126,88 @@ export default function CardDetailModal({
         timestamp: createdAt ? new Date(createdAt).getTime() : 0,
       });
     });
-    movements.forEach((m) => {
+    activities.forEach((act) => {
       list.push({
-        itemType: 'movement',
-        id: `movement-${m.id}`,
-        movement: m,
-        timestamp: m.movedAt ? new Date(m.movedAt).getTime() : 0,
+        itemType: 'activity',
+        id: `activity-${act.id}`,
+        activity: act,
+        timestamp: act.createdAt ? new Date(act.createdAt).getTime() : 0,
       });
+    });
+    movements.forEach((m) => {
+      const existsInAct = activities.some(
+        (a) => a.actionType === 'MOVED' && Math.abs(new Date(a.createdAt).getTime() - new Date(m.movedAt).getTime()) < 5000
+      );
+      if (!existsInAct) {
+        list.push({
+          itemType: 'movement',
+          id: `movement-${m.id}`,
+          movement: m,
+          timestamp: m.movedAt ? new Date(m.movedAt).getTime() : 0,
+        });
+      }
     });
     list.sort((a, b) => b.timestamp - a.timestamp);
     return list;
-  }, [comments, movements]);
+  }, [comments, activities, movements]);
+
+  const renderActivityItem = (act) => {
+    let icon = '•';
+    let avatarClass = 'is-activity';
+    let typeLabel = 'Cập nhật';
+
+    switch (act.actionType) {
+      case 'CREATED':
+        icon = '＋';
+        avatarClass = 'is-created';
+        typeLabel = 'Tạo thẻ';
+        break;
+      case 'UPDATED':
+        icon = '✎';
+        avatarClass = 'is-updated';
+        typeLabel = 'Chỉnh sửa';
+        break;
+      case 'MOVED':
+        icon = '⇄';
+        avatarClass = 'is-movement';
+        typeLabel = 'Di chuyển';
+        break;
+      case 'ARCHIVED':
+        icon = '📦';
+        avatarClass = 'is-archived';
+        typeLabel = 'Lưu trữ';
+        break;
+      case 'RESTORED':
+        icon = '↺';
+        avatarClass = 'is-restored';
+        typeLabel = 'Khôi phục';
+        break;
+      default:
+        icon = '•';
+    }
+
+    return (
+      <article className="card-comment card-activity-record" key={`activity-${act.id}`}>
+        <span className={`card-comment-avatar ${avatarClass}`} aria-hidden="true" title={typeLabel}>
+          {icon}
+        </span>
+        <div className="card-comment-content">
+          <div className="card-comment-header">
+            <strong>{act.userName || (act.userId ? `Thành viên #${act.userId}` : 'Thành viên')}</strong>
+            <span className="card-activity-type-pill">{typeLabel}</span>
+          </div>
+          <p className="card-movement-text">
+            {act.description}
+          </p>
+          {act.createdAt && (
+            <time dateTime={act.createdAt}>
+              {new Date(act.createdAt).toLocaleString('vi-VN')}
+            </time>
+          )}
+        </div>
+      </article>
+    );
+  };
 
   const renderMovementItem = (movement) => (
     <article className="card-comment card-movement-record" key={`movement-${movement.id}`}>
@@ -1106,13 +1248,15 @@ export default function CardDetailModal({
     const commentKey = comment.id || `${index}-${commentText}`;
     const isMenuOpen = openCommentMenuKey === commentKey;
     const isEditing = editingCommentKey === commentKey;
+    const authorName = typeof comment === 'object' && comment.author ? comment.author : 'Bạn';
+    const avatarLetter = authorName ? authorName.charAt(0).toUpperCase() : 'B';
 
     return (
       <article className="card-comment" key={commentKey}>
-        <span className="card-comment-avatar" aria-hidden="true">T</span>
+        <span className="card-comment-avatar" aria-hidden="true">{avatarLetter}</span>
         <div className="card-comment-content">
           <div className="card-comment-header">
-            <strong>Bạn</strong>
+            <strong>{authorName}</strong>
             <div className="card-comment-menu-wrapper">
               <button
                 type="button"
@@ -1615,6 +1759,33 @@ export default function CardDetailModal({
                     />
                   </div>
 
+                  {(card.createdByName || card.updatedByName || card.createdAt) && (
+                    <div className="card-detail-member-history-meta">
+                      {card.createdByName && (
+                        <span className="card-detail-history-pill" title="Người tạo thẻ">
+                          <span className="card-history-icon" aria-hidden="true">👤</span>
+                          <span>Tạo bởi <strong>{card.createdByName}</strong></span>
+                          {card.createdAt && (
+                            <span className="card-history-time">
+                              {' '}vào {new Date(card.createdAt).toLocaleDateString('vi-VN')}
+                            </span>
+                          )}
+                        </span>
+                      )}
+                      {card.updatedByName && (
+                        <span className="card-detail-history-pill" title="Người chỉnh sửa gần nhất">
+                          <span className="card-history-icon" aria-hidden="true">✎</span>
+                          <span>Sửa lần cuối bởi <strong>{card.updatedByName}</strong></span>
+                          {card.updatedAt && (
+                            <span className="card-history-time">
+                              {' '}lúc {new Date(card.updatedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} {new Date(card.updatedAt).toLocaleDateString('vi-VN')}
+                            </span>
+                          )}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
                   <div className="card-detail-shortcuts">
                     <div className="card-popover-anchor">
                       <button
@@ -2017,6 +2188,15 @@ export default function CardDetailModal({
                     <button
                       type="button"
                       role="tab"
+                      aria-selected={activityTab === 'activities'}
+                      className={`card-activity-tab-btn ${activityTab === 'activities' ? 'is-active' : ''}`}
+                      onClick={() => setActivityTab('activities')}
+                    >
+                      Lịch sử hoạt động
+                    </button>
+                    <button
+                      type="button"
+                      role="tab"
                       aria-selected={activityTab === 'movements'}
                       className={`card-activity-tab-btn ${activityTab === 'movements' ? 'is-active' : ''}`}
                       onClick={() => setActivityTab('movements')}
@@ -2049,14 +2229,14 @@ export default function CardDetailModal({
                     </form>
                   )}
 
-                  {loadingMovements && (
-                    <p className="card-activity-status">Đang tải lịch sử di chuyển...</p>
+                  {(loadingActivities || loadingMovements) && (
+                    <p className="card-activity-status">Đang tải lịch sử hoạt động...</p>
                   )}
 
-                  {movementError && (
+                  {(activityError || movementError) && (
                     <div className="card-activity-error" role="alert">
-                      <span>{movementError}</span>
-                      <button type="button" onClick={fetchMovements}>
+                      <span>{activityError || movementError}</span>
+                      <button type="button" onClick={reloadAllHistory}>
                         Thử lại
                       </button>
                     </div>
@@ -2071,6 +2251,14 @@ export default function CardDetailModal({
                       )
                     )}
 
+                    {activityTab === 'activities' && (
+                      activities.length === 0 && !loadingActivities ? (
+                        <p className="card-comment-empty">Chưa có lịch sử hoạt động nào cho thẻ này.</p>
+                      ) : (
+                        activities.map((activity) => renderActivityItem(activity))
+                      )
+                    )}
+
                     {activityTab === 'movements' && (
                       movements.length === 0 && !loadingMovements ? (
                         <p className="card-comment-empty">Chưa có lịch sử di chuyển nào cho thẻ này.</p>
@@ -2080,14 +2268,18 @@ export default function CardDetailModal({
                     )}
 
                     {activityTab === 'all' && (
-                      combinedActivities.length === 0 && !loadingMovements ? (
+                      combinedActivities.length === 0 && !loadingActivities && !loadingMovements ? (
                         <p className="card-comment-empty">Chưa có hoạt động nào.</p>
                       ) : (
-                        combinedActivities.map((item) =>
-                          item.itemType === 'movement'
-                            ? renderMovementItem(item.movement)
-                            : renderCommentItem(item.rawComment, item.index)
-                        )
+                        combinedActivities.map((item) => {
+                          if (item.itemType === 'activity') {
+                            return renderActivityItem(item.activity);
+                          }
+                          if (item.itemType === 'movement') {
+                            return renderMovementItem(item.movement);
+                          }
+                          return renderCommentItem(item.rawComment, item.index);
+                        })
                       )
                     )}
                   </div>

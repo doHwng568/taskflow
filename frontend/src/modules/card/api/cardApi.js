@@ -53,6 +53,10 @@ const cardApi = {
     return api.get(`/api/cards/${cardId}/movements`);
   },
 
+  getCardActivitiesApi(cardId) {
+    return api.get(`/api/cards/${cardId}/activities`);
+  },
+
   deleteCardApi(cardId) {
     return api.delete(`/api/cards/${cardId}`);
   },

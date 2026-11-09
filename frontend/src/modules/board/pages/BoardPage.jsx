@@ -111,6 +111,16 @@ const mapCardFromServer = (serverCard, existingLocalCard = null) => {
     dueTime,
     dueDateEnabled: Boolean(dueDate),
     color: existingLocalCard?.color || '#ffffff',
+    createdById: serverCard.createdById ?? existingLocalCard?.createdById ?? null,
+    createdByName: serverCard.createdByName ?? existingLocalCard?.createdByName ?? null,
+    createdAt: serverCard.createdAt ?? existingLocalCard?.createdAt ?? null,
+    updatedById: serverCard.updatedById ?? existingLocalCard?.updatedById ?? null,
+    updatedByName: serverCard.updatedByName ?? existingLocalCard?.updatedByName ?? null,
+    updatedAt: serverCard.updatedAt ?? existingLocalCard?.updatedAt ?? null,
+    assigneeId: serverCard.assigneeId ?? existingLocalCard?.assigneeId ?? null,
+    assigneeName: serverCard.assigneeName ?? existingLocalCard?.assigneeName ?? null,
+    priority: serverCard.priority ?? existingLocalCard?.priority ?? 'MEDIUM',
+    type: serverCard.type ?? existingLocalCard?.type ?? 'DOCUMENTATION',
   };
 };
 
@@ -662,7 +672,7 @@ export default function BoardPage() {
     const commentList = Array.isArray(updatedCard.comments) ? updatedCard.comments : [];
 
     try {
-      await cardApi.updateCardApi(numericCardId, {
+      const res = await cardApi.updateCardApi(numericCardId, {
         title: updatedCard.title,
         content: updatedCard.description?.trim() || '',
         coverImage: updatedCard.coverImage || null,
@@ -670,13 +680,22 @@ export default function BoardPage() {
         archived: Boolean(updatedCard.archived),
         dueDate: dueDateIso,
       });
+      return res?.data?.data;
     } catch {
       // Fallback khi server chưa kết nối DB
+      return null;
     }
   };
 
   const handleSaveCard = async (updatedCard) => {
-    await syncCardUpdateToBackend(updatedCard);
+    const serverCard = await syncCardUpdateToBackend(updatedCard);
+    const finalCard = serverCard
+      ? {
+          ...updatedCard,
+          updatedByName: serverCard.updatedByName ?? updatedCard.updatedByName,
+          updatedAt: serverCard.updatedAt ?? updatedCard.updatedAt,
+        }
+      : updatedCard;
 
     setColumns((currentColumns) =>
       currentColumns.map((column) =>
@@ -684,7 +703,7 @@ export default function BoardPage() {
           ? {
             ...column,
             cards: column.cards.map((card) =>
-              card.id === updatedCard.id ? updatedCard : card
+              card.id === finalCard.id ? finalCard : card
             ),
           }
           : column
@@ -697,7 +716,14 @@ export default function BoardPage() {
   const handleUpdateCard = async (updatedCard) => {
     if (!selectedCard) return;
 
-    await syncCardUpdateToBackend(updatedCard);
+    const serverCard = await syncCardUpdateToBackend(updatedCard);
+    const finalCard = serverCard
+      ? {
+          ...updatedCard,
+          updatedByName: serverCard.updatedByName ?? updatedCard.updatedByName,
+          updatedAt: serverCard.updatedAt ?? updatedCard.updatedAt,
+        }
+      : updatedCard;
 
     setColumns((currentColumns) =>
       currentColumns.map((column) =>
@@ -705,14 +731,14 @@ export default function BoardPage() {
           ? {
             ...column,
             cards: column.cards.map((card) =>
-              card.id === updatedCard.id ? updatedCard : card
+              card.id === finalCard.id ? finalCard : card
             ),
           }
           : column
       )
     );
     setSelectedCard((currentSelection) =>
-      currentSelection ? { ...currentSelection, card: updatedCard } : currentSelection
+      currentSelection ? { ...currentSelection, card: finalCard } : currentSelection
     );
   };
 

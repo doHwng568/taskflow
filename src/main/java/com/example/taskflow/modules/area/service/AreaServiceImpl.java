@@ -17,6 +17,7 @@ import com.example.taskflow.modules.area.dto.request.PinAreaRequest;
 import com.example.taskflow.modules.area.dto.request.RenameAreaRequest;
 import com.example.taskflow.modules.area.dto.request.UpdateAreaColorRequest;
 import com.example.taskflow.modules.card.dto.CardResponse;
+import com.example.taskflow.modules.card.repositories.CardActivityRepository;
 import com.example.taskflow.modules.card.repositories.CardRepository;
 import com.example.taskflow.modules.cardmovement.Repositories.CardMovementRepository;
 import com.example.taskflow.modules.workspace.Repositories.WorkspaceMemberRepository;
@@ -45,6 +46,7 @@ public class AreaServiceImpl implements AreaService {
     private final AreaRepository areaRepository;
     private final CardRepository cardRepository;
     private final CardMovementRepository cardMovementRepository;
+    private final CardActivityRepository cardActivityRepository;
     private final WorkspaceRepository workspaceRepository;
     private final WorkspaceMemberRepository workspaceMemberRepository;
 
@@ -52,11 +54,13 @@ public class AreaServiceImpl implements AreaService {
             AreaRepository areaRepository,
             CardRepository cardRepository,
             CardMovementRepository cardMovementRepository,
+            CardActivityRepository cardActivityRepository,
             WorkspaceRepository workspaceRepository, WorkspaceMemberRepository workspaceMemberRepository
     ) {
         this.areaRepository = areaRepository;
         this.cardRepository = cardRepository;
         this.cardMovementRepository = cardMovementRepository;
+        this.cardActivityRepository = cardActivityRepository;
         this.workspaceRepository = workspaceRepository;
         this.workspaceMemberRepository = workspaceMemberRepository;
     }
@@ -162,6 +166,7 @@ public class AreaServiceImpl implements AreaService {
             throw new BusinessException(ErrorCode.AREA_NOT_FOUND);
         }
 
+        cardActivityRepository.deleteByCardsInArea(areaId);
         cardMovementRepository.deleteByCardsInArea(areaId);
         cardMovementRepository.clearFromArea(areaId);
         cardMovementRepository.clearToArea(areaId);

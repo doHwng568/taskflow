@@ -2218,3 +2218,88 @@
   margin-bottom: 12px;
   font-size: 13px;
 }
+
+/* Member Activity & History Metadata Styles */
+.card-detail-member-history-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0 12px;
+}
+
+.card-detail-history-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: #f4f5f7;
+  color: #44546f;
+  font-size: 12px;
+  line-height: 1.3;
+  border: 1px solid #e2e4e8;
+}
+
+.card-detail-history-pill strong {
+  color: #172b4d;
+}
+
+.card-history-icon {
+  font-size: 13px;
+  opacity: 0.85;
+}
+
+.card-history-time {
+  color: #626f86;
+  font-size: 11px;
+}
+
+.card-comment-avatar.is-created {
+  background: #e3fcef;
+  color: #006644;
+  font-size: 14px;
+}
+
+.card-comment-avatar.is-updated {
+  background: #fff0b3;
+  color: #974f00;
+  font-size: 13px;
+}
+
+.card-comment-avatar.is-archived {
+  background: #f4f5f7;
+  color: #44546f;
+  font-size: 13px;
+}
+
+.card-comment-avatar.is-restored {
+  background: #e6fcff;
+  color: #008da6;
+  font-size: 13px;
+}
+
+.card-comment-avatar.is-activity {
+  background: #eae6ff;
+  color: #403294;
+  font-size: 13px;
+}
+
+.card-activity-type-pill {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  margin-left: 6px;
+  background: #f1f2f4;
+  color: #44546f;
+}
+
+.card-activity-record .card-comment-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 2px;
+}

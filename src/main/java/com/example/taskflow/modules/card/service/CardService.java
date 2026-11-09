@@ -1,10 +1,6 @@
 package com.example.taskflow.modules.card.service;
 
-import com.example.taskflow.modules.card.dto.CardMovementResponse;
-import com.example.taskflow.modules.card.dto.CreateCardRequest;
-import com.example.taskflow.modules.card.dto.MoveCardRequest;
-import com.example.taskflow.modules.card.dto.UpdateCardRequest;
-import com.example.taskflow.modules.card.dto.CardResponse;
+import com.example.taskflow.modules.card.dto.*;
 
 import java.util.List;
 
@@ -16,15 +12,25 @@ public interface CardService {
 
     CardResponse createCard(CreateCardRequest request);
 
+    CardResponse createCard(CreateCardRequest request, String username);
+
     CardResponse updateCard(Long cardId, UpdateCardRequest request);
+
+    CardResponse updateCard(Long cardId, UpdateCardRequest request, String username);
 
     CardResponse moveCard(Long cardId, MoveCardRequest request, String username);
 
     List<CardMovementResponse> getCardMovements(Long cardId);
 
+    List<CardActivityResponse> getCardActivities(Long cardId);
+
     CardResponse archiveCard(Long cardId);
 
+    CardResponse archiveCard(Long cardId, String username);
+
     CardResponse restoreCard(Long cardId);
+
+    CardResponse restoreCard(Long cardId, String username);
 
     void deleteCard(Long cardId);
 }
