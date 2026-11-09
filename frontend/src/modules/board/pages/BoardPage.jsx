@@ -1037,21 +1037,6 @@ export default function BoardPage() {
             </button>
           )}
         </main>
-
-        <nav className="board-bottom-nav" aria-label="Điều hướng bảng">
-          <button className="board-nav-item">
-            <span aria-hidden="true">▣</span> Hộp thư đến
-          </button>
-          <button className="board-nav-item">
-            <span aria-hidden="true">▦</span> Trình lập kế hoạch
-          </button>
-          <button className="board-nav-item is-active" aria-current="page">
-            <span aria-hidden="true">▥</span> Bảng thông tin
-          </button>
-          <button className="board-nav-item">
-            <span aria-hidden="true">▤</span> Chuyển đổi các bảng
-          </button>
-        </nav>
         {selectedCard && (
           <CardDetailModal
             key={selectedCard.card.id}
