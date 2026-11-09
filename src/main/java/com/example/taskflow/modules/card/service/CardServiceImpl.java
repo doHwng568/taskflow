@@ -188,13 +188,26 @@ public class CardServiceImpl implements CardService {
         }
         if (request.getAssigneeId() != null) {
             Long currentAssigneeId = card.getAssignee() != null ? card.getAssignee().getId() : null;
-            if (!Objects.equals(currentAssigneeId, request.getAssigneeId())) {
+            if (request.getAssigneeId() <= 0) {
+                if (currentAssigneeId != null) {
+                    if (currentUser == null || currentUser.getRole() != Role.PM) {
+                        throw new BusinessException(ErrorCode.ACCESS_DENIED);
+                    }
+                    card.setAssignee(null);
+                    changes.add("xóa người thực hiện");
+                }
+            } else if (!Objects.equals(currentAssigneeId, request.getAssigneeId())) {
+                if (currentUser == null || currentUser.getRole() != Role.PM) {
+                    throw new BusinessException(ErrorCode.ACCESS_DENIED);
+                }
                 User newAssignee = userRepository.findById(request.getAssigneeId())
                         .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
                 String name = newAssignee.getFullName() != null && !newAssignee.getFullName().isBlank()
                         ? newAssignee.getFullName()
                         : newAssignee.getUsername();
-                changes.add("người thực hiện thành " + name);
+                String roleName = newAssignee.getRole() != null ? " (" + newAssignee.getRole() + ")" : "";
+                changes.add("người thực hiện thành " + name + roleName);
+                card.setAssignee(newAssignee);
             }
         }
         boolean commentsChanged = false;
@@ -224,12 +237,6 @@ public class CardServiceImpl implements CardService {
             card.setType(request.getType());
         }
         card.setDueDate(request.getDueDate());
-
-        if (request.getAssigneeId() != null) {
-            User assignee = userRepository.findById(request.getAssigneeId())
-                    .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
-            card.setAssignee(assignee);
-        }
 
         LocalDateTime now = LocalDateTime.now();
         card.setUpdatedAt(now);

@@ -3,6 +3,7 @@ import { jwtDecode } from 'jwt-decode';
 import { CommentIcon, DescriptionIcon } from './CardIcons';
 import cardApi from '../api/cardApi';
 import workspaceService from '../../workspace/services/workspaceService';
+import api from '../../../services/api';
 import '../styles/Card.css';
 
 const getLocalDateString = (date = new Date()) => {
@@ -288,6 +289,133 @@ function ArchiveIcon() {
       <path d="M4 9v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9" />
       <line x1="10" y1="13" x2="14" y2="13" />
     </svg>
+  );
+}
+
+function MemberUserIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
+  );
+}
+
+const ROLE_CONFIG = {
+  PM: { label: 'PM (Quản lý dự án)', shortLabel: 'PM', className: 'role-badge-pm' },
+  LEADER: { label: 'Leader (Trưởng nhóm)', shortLabel: 'LEADER', className: 'role-badge-leader' },
+  DEV: { label: 'Dev (Lập trình viên)', shortLabel: 'DEV', className: 'role-badge-dev' },
+  TESTER: { label: 'Tester (Kiểm thử)', shortLabel: 'TESTER', className: 'role-badge-tester' },
+  MEMBER: { label: 'Member (Thành viên)', shortLabel: 'MEMBER', className: 'role-badge-member' },
+};
+
+const getInitials = (name) => {
+  if (!name) return '?';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+};
+
+const getAvatarColor = (id = 0, name = '') => {
+  const colors = ['#0c66e4', '#1f845a', '#e56910', '#6554c0', '#008da6', '#c9372c'];
+  const hash = Number(id || 0) + (name ? name.charCodeAt(0) : 0);
+  return colors[Math.abs(hash) % colors.length];
+};
+
+function CardMemberPopover({
+  members = [],
+  assigneeId,
+  isPM,
+  onSelectMember,
+  onClose,
+  search,
+  onSearchChange,
+}) {
+  const filteredMembers = members.filter((m) => {
+    const term = (search || '').toLowerCase();
+    const fullName = (m.fullName || '').toLowerCase();
+    const username = (m.username || '').toLowerCase();
+    const role = (m.role || m.userRole || '').toLowerCase();
+    return fullName.includes(term) || username.includes(term) || role.includes(term);
+  });
+
+  return (
+    <div className="card-member-popover" role="dialog" aria-label="Thành viên">
+      <header className="card-member-popover-header">
+        <h3>Thành viên</h3>
+        <button type="button" onClick={onClose} aria-label="Đóng bảng thành viên">
+          ×
+        </button>
+      </header>
+
+      <div className="card-member-body">
+        <input
+          type="text"
+          className="card-member-search-input"
+          placeholder="Tìm kiếm thành viên..."
+          value={search}
+          onChange={(e) => onSearchChange(e.target.value)}
+          autoFocus
+        />
+
+        {!isPM && (
+          <div className="card-member-notice" role="alert">
+            ⚠️ Chỉ PM (Quản lý dự án) mới có quyền giao nhiệm vụ cho thẻ.
+          </div>
+        )}
+
+        <span className="card-member-subtitle">Thành viên ({filteredMembers.length})</span>
+        <div className="card-member-list">
+          {filteredMembers.length === 0 ? (
+            <p style={{ fontSize: '13px', color: '#626f86', margin: '8px 0' }}>
+              Không tìm thấy thành viên phù hợp
+            </p>
+          ) : (
+            filteredMembers.map((member) => {
+              const isAssigned = String(assigneeId) === String(member.id);
+              const roleKey = (member.role || member.userRole || 'MEMBER').toUpperCase();
+              const roleInfo = ROLE_CONFIG[roleKey] || ROLE_CONFIG.MEMBER;
+              const avatarColor = getAvatarColor(member.id, member.username);
+
+              return (
+                <button
+                  type="button"
+                  key={member.id}
+                  disabled={!isPM}
+                  className={`card-member-item ${isAssigned ? 'is-assigned' : ''}`}
+                  onClick={() => onSelectMember(member)}
+                  title={!isPM ? 'Chỉ PM mới có quyền giao nhiệm vụ' : (isAssigned ? 'Bấm để hủy giao nhiệm vụ' : 'Bấm để giao nhiệm vụ')}
+                >
+                  <div className="card-member-avatar" style={{ backgroundColor: avatarColor }}>
+                    {getInitials(member.fullName || member.username)}
+                  </div>
+                  <div className="card-member-info">
+                    <div className="card-member-name-row">
+                      <span className="card-member-name">{member.fullName || member.username}</span>
+                      <span className={`card-role-badge ${roleInfo.className}`}>
+                        {roleInfo.shortLabel}
+                      </span>
+                    </div>
+                    <span className="card-member-username">@{member.username}</span>
+                  </div>
+                  {isAssigned && <span className="card-member-check">✓</span>}
+                </button>
+              );
+            })
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -746,6 +874,7 @@ export default function CardDetailModal({
   const [description, setDescription] = useState(card.description || '');
   const [coverImage, setCoverImage] = useState(card.coverImage || '');
   const [isQuickCoverOpen, setIsQuickCoverOpen] = useState(false);
+  const [isQuickMemberOpen, setIsQuickMemberOpen] = useState(false);
   const [startDate, setStartDate] = useState(card.startDate || '');
   const [dueDate, setDueDate] = useState(card.dueDate || '');
   const [startEnabled, setStartEnabled] = useState(card.startDateEnabled ?? Boolean(card.startDate));
@@ -781,6 +910,76 @@ export default function CardDetailModal({
   const [moveComment, setMoveComment] = useState('');
   const commentListRef = useRef(null);
   const isPM = useMemo(() => isCurrentUserPM(), []);
+
+  const [assigneeId, setAssigneeId] = useState(card.assigneeId || null);
+  const [assigneeName, setAssigneeName] = useState(card.assigneeName || '');
+  const [assigneeRole, setAssigneeRole] = useState(card.assigneeRole || '');
+  const [assigneeUsername, setAssigneeUsername] = useState(card.assigneeUsername || '');
+  const [members, setMembers] = useState([]);
+  const [loadingMembers, setLoadingMembers] = useState(false);
+  const [memberSearch, setMemberSearch] = useState('');
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchUsers = async () => {
+      try {
+        setLoadingMembers(true);
+        let userList = [];
+        try {
+          const res = await api.get('/api/users');
+          if (res?.data?.data && Array.isArray(res.data.data)) {
+            userList = res.data.data;
+          }
+        } catch {
+          if (workspaceId) {
+            const wsMembers = await workspaceService.getMembers(workspaceId);
+            if (Array.isArray(wsMembers)) {
+              userList = wsMembers.map((m) => ({
+                id: m.userId || m.id,
+                username: m.username,
+                fullName: m.fullName,
+                email: m.email,
+                role: m.userRole || 'MEMBER',
+              }));
+            }
+          }
+        }
+        if (isMounted) {
+          setMembers(userList);
+        }
+      } catch (err) {
+        console.error('Failed to load members for card assignment:', err);
+      } finally {
+        if (isMounted) setLoadingMembers(false);
+      }
+    };
+    fetchUsers();
+    return () => {
+      isMounted = false;
+    };
+  }, [workspaceId]);
+
+  const handleSelectMember = (member) => {
+    if (!isPM) return;
+    const isCurrentlyAssigned = String(assigneeId) === String(member.id);
+    const newAssigneeId = isCurrentlyAssigned ? null : member.id;
+    const newAssigneeName = isCurrentlyAssigned ? '' : (member.fullName || member.username);
+    const newAssigneeRole = isCurrentlyAssigned ? '' : (member.role || member.userRole || 'MEMBER');
+    const newAssigneeUsername = isCurrentlyAssigned ? '' : member.username;
+
+    setAssigneeId(newAssigneeId);
+    setAssigneeName(newAssigneeName);
+    setAssigneeRole(newAssigneeRole);
+    setAssigneeUsername(newAssigneeUsername);
+
+    const updated = getUpdatedCard({
+      assigneeId: newAssigneeId ?? 0,
+      assigneeName: newAssigneeName,
+      assigneeRole: newAssigneeRole,
+      assigneeUsername: newAssigneeUsername,
+    });
+    onUpdateCard?.(updated);
+  };
 
   const [isQuickMoveOpen, setIsQuickMoveOpen] = useState(false);
   const [openMoveDropdown, setOpenMoveDropdown] = useState(null);
@@ -1039,6 +1238,7 @@ export default function CardDetailModal({
     if (success) {
       setMoveComment('');
       setIsQuickMoveOpen(false);
+      setIsQuickMemberOpen(false);
       setActivePopover(null);
       if (isCrossWorkspace) {
         onClose?.();
@@ -1063,9 +1263,19 @@ export default function CardDetailModal({
     if (!isPM && 'title' in nextOverrides) {
       nextOverrides.title = (card.title || '').trim();
     }
+    if (!isPM && 'assigneeId' in nextOverrides) {
+      nextOverrides.assigneeId = card.assigneeId || null;
+      nextOverrides.assigneeName = card.assigneeName || '';
+      nextOverrides.assigneeRole = card.assigneeRole || '';
+      nextOverrides.assigneeUsername = card.assigneeUsername || '';
+    }
     return {
       ...card,
       title: isPM ? title.trim() : (card.title || '').trim(),
+      assigneeId: isPM ? (assigneeId || null) : (card.assigneeId || null),
+      assigneeName: isPM ? (assigneeName || '') : (card.assigneeName || ''),
+      assigneeRole: isPM ? (assigneeRole || '') : (card.assigneeRole || ''),
+      assigneeUsername: isPM ? (assigneeUsername || '') : (card.assigneeUsername || ''),
       completed,
       description: description.trim(),
       coverImage,
@@ -1140,6 +1350,9 @@ export default function CardDetailModal({
     });
     if (popover === 'date' || popover === 'date-meta') {
       setCalendarTarget(!startEnabled ? 'start' : 'due');
+    }
+    if (popover === 'members' || popover === 'members-meta') {
+      setMemberSearch('');
     }
     setActivePopover(popover);
   };
@@ -1686,16 +1899,28 @@ export default function CardDetailModal({
                     autoFocus={isPM}
                     rows={3}
                   />
-                  {(description || comments.length > 0) && (
-                    <div className="card-quick-badges">
-                      {description && (
-                        <span className="card-badge-item" title="Thẻ đã có mô tả">
-                          <DescriptionIcon size={14} />
-                        </span>
-                      )}
-                      {comments.length > 0 && (
-                        <span className="card-badge-item" title="Nhận xét">
-                          <CommentIcon size={14} /> {comments.length}
+                  {(description || comments.length > 0 || (assigneeId && assigneeName)) && (
+                    <div className="card-quick-badges" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {description && (
+                          <span className="card-badge-item" title="Thẻ đã có mô tả">
+                            <DescriptionIcon size={14} />
+                          </span>
+                        )}
+                        {comments.length > 0 && (
+                          <span className="card-badge-item" title="Nhận xét">
+                            <CommentIcon size={14} /> {comments.length}
+                          </span>
+                        )}
+                      </div>
+                      {assigneeId && assigneeName && (
+                        <span
+                          className="board-card-assignee"
+                          style={{ marginLeft: 'auto' }}
+                          title={`Được giao cho: ${assigneeName}${assigneeRole ? ` (${assigneeRole})` : ''}`}
+                          aria-label={`Người thực hiện: ${assigneeName}`}
+                        >
+                          {getInitials(assigneeName)}
                         </span>
                       )}
                     </div>
@@ -1713,6 +1938,7 @@ export default function CardDetailModal({
               <button type="button" onClick={() => {
                 setActivePopover(null);
                 setIsQuickMoveOpen(false);
+                setIsQuickMemberOpen(false);
                 setIsQuickCoverOpen(false);
                 setActivePanel('labels');
               }}>
@@ -1725,6 +1951,7 @@ export default function CardDetailModal({
                   aria-expanded={isQuickCoverOpen}
                   onClick={() => {
                     setIsQuickMoveOpen(false);
+                    setIsQuickMemberOpen(false);
                     setIsQuickCoverOpen((open) => !open);
                   }}
                 >
@@ -1739,9 +1966,36 @@ export default function CardDetailModal({
                   />
                 )}
               </div>
+              <div className="card-quick-move-anchor">
+                <button
+                  type="button"
+                  className={isQuickMemberOpen ? 'is-active-move' : ''}
+                  aria-expanded={isQuickMemberOpen}
+                  onClick={() => {
+                    setIsQuickMoveOpen(false);
+                    setIsQuickCoverOpen(false);
+                    setMemberSearch('');
+                    setIsQuickMemberOpen((open) => !open);
+                  }}
+                >
+                  <MemberUserIcon /> Thành viên
+                </button>
+                {isQuickMemberOpen && (
+                  <CardMemberPopover
+                    members={members}
+                    assigneeId={assigneeId}
+                    isPM={isPM}
+                    onSelectMember={handleSelectMember}
+                    onClose={() => setIsQuickMemberOpen(false)}
+                    search={memberSearch}
+                    onSearchChange={setMemberSearch}
+                  />
+                )}
+              </div>
               <button type="button" onClick={() => {
                 setActivePopover(null);
                 setIsQuickMoveOpen(false);
+                setIsQuickMemberOpen(false);
                 setIsQuickCoverOpen(false);
                 setActivePanel('date');
               }}>
@@ -1754,6 +2008,7 @@ export default function CardDetailModal({
                   aria-expanded={isQuickMoveOpen}
                   onClick={() => {
                     setIsQuickCoverOpen(false);
+                    setIsQuickMemberOpen(false);
                     setIsQuickMoveOpen((open) => !open);
                   }}
                 >
@@ -2038,6 +2293,27 @@ export default function CardDetailModal({
                       )}
                     </div>
 
+                    <div className={`card-popover-anchor ${activePopover === 'members' ? 'is-open' : ''}`}>
+                      <button
+                        type="button"
+                        aria-expanded={activePopover === 'members'}
+                        onClick={() => openPopover('members')}
+                      >
+                        <MemberUserIcon /> Thành viên
+                      </button>
+                      {activePopover === 'members' && (
+                        <CardMemberPopover
+                          members={members}
+                          assigneeId={assigneeId}
+                          isPM={isPM}
+                          onSelectMember={handleSelectMember}
+                          onClose={cancelPopoverChanges}
+                          search={memberSearch}
+                          onSearchChange={setMemberSearch}
+                        />
+                      )}
+                    </div>
+
                     <div className={`card-popover-anchor ${activePopover === 'move' ? 'is-open' : ''}`}>
                       <button
                         type="button"
@@ -2188,8 +2464,57 @@ export default function CardDetailModal({
                     </div>
                   </div>
 
-                  {(labels.length > 0 || (startEnabled && startDate) || (dueEnabled && dueDate)) && (
+                  {(labels.length > 0 || (startEnabled && startDate) || (dueEnabled && dueDate) || Boolean(assigneeId && assigneeName)) && (
                     <div className="card-detail-meta">
+                      {Boolean(assigneeId && assigneeName) && (
+                        <div className={`card-detail-meta-group card-popover-anchor ${activePopover === 'members-meta' ? 'is-open' : ''}`}>
+                          <span className="card-detail-meta-title">Thành viên</span>
+                          <div className="card-detail-labels-row" style={{ alignItems: 'center' }}>
+                            <button
+                              type="button"
+                              className="card-detail-member-badge"
+                              onClick={() => openPopover('members-meta')}
+                              title={`Người thực hiện: ${assigneeName}${assigneeRole ? ` (${assigneeRole})` : ''}`}
+                            >
+                              <div
+                                className="card-detail-member-avatar"
+                                style={{ backgroundColor: getAvatarColor(assigneeId, assigneeUsername) }}
+                              >
+                                {getInitials(assigneeName)}
+                              </div>
+                              <span className="card-detail-member-name">{assigneeName}</span>
+                              {assigneeRole && (
+                                <span className={`card-role-badge ${ROLE_CONFIG[assigneeRole]?.className || 'role-badge-member'}`}>
+                                  {assigneeRole}
+                                </span>
+                              )}
+                            </button>
+                            {isPM && (
+                              <button
+                                type="button"
+                                className="card-detail-member-add"
+                                aria-label="Thay đổi thành viên"
+                                onClick={() => openPopover('members-meta')}
+                                title="Thay đổi thành viên"
+                              >
+                                ＋
+                              </button>
+                            )}
+                          </div>
+                          {activePopover === 'members-meta' && (
+                            <CardMemberPopover
+                              members={members}
+                              assigneeId={assigneeId}
+                              isPM={isPM}
+                              onSelectMember={handleSelectMember}
+                              onClose={cancelPopoverChanges}
+                              search={memberSearch}
+                              onSearchChange={setMemberSearch}
+                            />
+                          )}
+                        </div>
+                      )}
+
                       {labels.length > 0 && (
                         <div className={`card-detail-meta-group card-popover-anchor ${activePopover === 'labels-meta' ? 'is-open' : ''}`}>
                           <span className="card-detail-meta-title">Nhãn</span>

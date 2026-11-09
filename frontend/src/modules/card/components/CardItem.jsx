@@ -19,6 +19,12 @@ const getCardDateBadgeStatus = (card) => {
   return '';
 };
 
+const getAssigneeInitial = (name) => {
+  if (!name) return '?';
+  const parts = name.trim().split(/\s+/);
+  return parts[parts.length - 1].charAt(0).toUpperCase();
+};
+
 export default function CardItem({
   card,
   columnId,
@@ -146,7 +152,7 @@ export default function CardItem({
           </span>
         )}
 
-        {(hasAnyDate || commentCount > 0) && (
+        {(hasAnyDate || commentCount > 0 || card.assigneeName) && (
           <span className="board-card-details">
             {hasAnyDate && (
               <span className={`board-card-due-date ${dateStatusClass}`.trim()}>
@@ -157,6 +163,15 @@ export default function CardItem({
               <span className="card-badge-item" aria-label={`${commentCount} nhận xét`} title="Nhận xét">
                 <CommentIcon size={16} />
                 <span className="card-badge-count">{commentCount}</span>
+              </span>
+            )}
+            {card.assigneeName && (
+              <span
+                className="board-card-assignee"
+                title={`Được giao cho: ${card.assigneeName}${card.assigneeRole ? ` (${card.assigneeRole})` : ''}`}
+                aria-label={`Người thực hiện: ${card.assigneeName}`}
+              >
+                {getAssigneeInitial(card.assigneeName)}
               </span>
             )}
           </span>

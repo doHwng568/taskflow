@@ -676,14 +676,18 @@ export default function BoardPage() {
     const commentList = Array.isArray(updatedCard.comments) ? updatedCard.comments : [];
 
     try {
-      const res = await cardApi.updateCardApi(numericCardId, {
+      const payload = {
         title: updatedCard.title,
         content: updatedCard.description?.trim() || '',
         coverImage: updatedCard.coverImage || null,
         comments: JSON.stringify(commentList),
         archived: Boolean(updatedCard.archived),
         dueDate: dueDateIso,
-      });
+      };
+      if (updatedCard.assigneeId !== undefined) {
+        payload.assigneeId = updatedCard.assigneeId || 0;
+      }
+      const res = await cardApi.updateCardApi(numericCardId, payload);
       return res?.data?.data;
     } catch (err) {
       console.error('Lỗi khi đồng bộ thẻ lên server:', err?.response?.data || err?.message || err);
@@ -699,6 +703,10 @@ export default function BoardPage() {
           ...updatedCard,
           updatedByName: serverCard.updatedByName ?? updatedCard.updatedByName,
           updatedAt: serverCard.updatedAt ?? updatedCard.updatedAt,
+          assigneeId: serverCard.assigneeId ?? updatedCard.assigneeId,
+          assigneeName: serverCard.assigneeName ?? updatedCard.assigneeName,
+          assigneeRole: serverCard.assigneeRole ?? updatedCard.assigneeRole,
+          assigneeUsername: serverCard.assigneeUsername ?? updatedCard.assigneeUsername,
         }
       : updatedCard;
 
@@ -727,6 +735,10 @@ export default function BoardPage() {
           ...updatedCard,
           updatedByName: serverCard.updatedByName ?? updatedCard.updatedByName,
           updatedAt: serverCard.updatedAt ?? updatedCard.updatedAt,
+          assigneeId: serverCard.assigneeId ?? updatedCard.assigneeId,
+          assigneeName: serverCard.assigneeName ?? updatedCard.assigneeName,
+          assigneeRole: serverCard.assigneeRole ?? updatedCard.assigneeRole,
+          assigneeUsername: serverCard.assigneeUsername ?? updatedCard.assigneeUsername,
         }
       : updatedCard;
 

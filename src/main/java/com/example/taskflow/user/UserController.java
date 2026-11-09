@@ -24,8 +24,8 @@ public class UserController {
         this.userService = userService;
     }
 
-    // 1. Lấy danh sách tất cả nhân viên (Chỉ PM)
-    @PreAuthorize("hasRole('PM')")
+    // 1. Lấy danh sách người dùng trong hệ thống để phân quyền / giao nhiệm vụ
+    @PreAuthorize("isAuthenticated()")
     @GetMapping
     public ResponseEntity<ApiResponse<List<UserResponse>>> getAllUsers() {
         List<UserResponse> users = userService.getAllUsers();
