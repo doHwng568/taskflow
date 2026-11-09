@@ -65,100 +65,68 @@ function Header() {
     };
 
     return (
-        <Navbar expand="lg" className="border-bottom py-2">
+        <Navbar expand="lg" className="tf-navbar">
             <Container>
-                <Navbar.Brand
-                    as={Link}
-                    to="/home"
-                    className="fw-bold text-primary fs-4"
-                >
+                <Link to="/home" className="tf-brand">
                     TaskFlow
-                </Navbar.Brand>
+                </Link>
 
                 <Navbar.Toggle aria-controls="basic-navbar-nav" />
 
                 <Navbar.Collapse id="basic-navbar-nav">
-                    <Nav className="ms-auto align-items-center gap-2">
+                    <Nav className="ms-auto align-items-center gap-2 flex-wrap">
                         {!isLogged ? (
                             <>
-                                <Nav.Link
-                                    as={Link}
-                                    to="/login"
-                                    className="btn btn-outline-primary btn-sm px-3"
-                                >
-                                    Login
-                                </Nav.Link>
+                                <Link to="/login" className="tf-header-btn">
+                                    Đăng nhập
+                                </Link>
 
-                                <Nav.Link
-                                    as={Link}
-                                    to="/register"
-                                    className="btn btn-primary btn-sm px-3"
-                                >
-                                    Register
-                                </Nav.Link>
+                                <Link to="/register" className="tf-header-btn">
+                                    Đăng ký
+                                </Link>
 
                                 <ThemeToggle />
                             </>
                         ) : (
                             <>
-                                <span className="navbar-text me-2">
-                                    Hello,{" "}
-                                    <strong className="text-dark">
-                                        {username}
-                                    </strong>
-
+                                <span className="tf-header-greeting">
+                                    Hello, <strong>{username}</strong>
                                     {role && (
-                                        <span className="badge bg-secondary ms-1">
+                                        <span className="tf-role-badge">
                                             {role}
                                         </span>
                                     )}
                                 </span>
 
-                                <Nav.Link
-                                    as={Link}
-                                    to="/workspace"
-                                    className="btn btn-primary btn-sm px-3"
-                                >
+                                <Link to="/workspace" className="tf-header-btn">
                                     My Workspaces
-                                </Nav.Link>
+                                </Link>
 
                                 {isPM && (
                                     <>
-                                        <Nav.Link
-                                            as={Link}
-                                            to="/users"
-                                            className="btn btn-outline-primary btn-sm px-3"
-                                        >
+                                        <Link to="/users" className="tf-header-btn">
                                             Quản lý nhân viên
-                                        </Nav.Link>
+                                        </Link>
 
-                                        <Nav.Link
-                                            as={Link}
-                                            to="/permissions"
-                                            className="btn btn-outline-primary btn-sm px-3"
-                                        >
+                                        <Link to="/permissions" className="tf-header-btn">
                                             Phân quyền
-                                        </Nav.Link>
+                                        </Link>
                                     </>
                                 )}
 
-                                <Nav.Link
-                                    as={Link}
-                                    to="/profile"
-                                    className="btn btn-outline-secondary btn-sm px-3"
-                                >
+                                <Link to="/profile" className="tf-header-btn">
                                     Hồ sơ
-                                </Nav.Link>
+                                </Link>
 
                                 <ThemeToggle />
 
-                                <Nav.Link
-                                    as="button"
+                                <button
+                                    type="button"
                                     onClick={handleLogout}
-                                    className="btn btn-outline-danger btn-sm px-3"
+                                    className="tf-header-btn tf-header-btn-logout"
                                 >
                                     Logout
-                                </Nav.Link>
+                                </button>
                             </>
                         )}
                     </Nav>

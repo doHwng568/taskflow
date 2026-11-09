@@ -1,4 +1,3 @@
-import Button from "react-bootstrap/Button";
 import useThemeStore from "../../store/themeStore";
 
 function ThemeToggle() {
@@ -8,16 +7,15 @@ function ThemeToggle() {
     const isDark = theme === "dark";
 
     return (
-        <Button
+        <button
             type="button"
-            variant={isDark ? "outline-light" : "outline-dark"}
-            size="sm"
+            className="tf-header-btn"
             onClick={toggleTheme}
-            title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+            title={isDark ? "Chuyển sang giao diện Sáng" : "Chuyển sang giao diện Tối"}
             aria-label="Toggle theme"
         >
             {isDark ? "☀ Light" : "☾ Dark"}
-        </Button>
+        </button>
     );
 }
 

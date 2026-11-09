@@ -1,92 +1,103 @@
 /* =========================================================
-   1. LIGHT THEME (MẶC ĐỊNH - CHỮ ĐEN #000000)
+   1. LIGHT THEME (MẶC ĐỊNH - CHỮ ĐEN, ẢNH NỀN SÁNG RÕ)
 ========================================================= */
 :root,
 html[data-theme="light"] {
   color-scheme: light;
 
-  /* Ảnh nền chung lấy từ BoardPage */
+  /* Ảnh nền chung từ trang Board */
   --app-bg-image: url('https://images.unsplash.com/photo-1512453979798-5ea266f8880c?q=80&w=2000');
+
+  /* Lớp phủ sáng giống hệt code BoardPage ban đầu */
   --app-bg-overlay: linear-gradient(
     180deg,
-    rgba(248, 250, 252, 0.72) 0%,
-    rgba(241, 245, 249, 0.82) 100%
+    rgb(0 64 142 / 48%),
+    rgb(0 35 69 / 22%)
   );
 
-  /* Bảng màu chữ: Đen tuyệt đối theo yêu cầu */
+  /* Màu chữ: Đen tuyệt đối cho Light Theme */
   --app-text: #000000;
   --app-muted: #262626;
 
   /* Bề mặt Component */
-  --app-bg: transparent;
-  --app-surface: rgba(255, 255, 255, 0.88);
+  --app-surface: rgba(255, 255, 255, 0.92);
   --app-surface-solid: #ffffff;
-  --app-surface-subtle: rgba(241, 245, 249, 0.92);
-  --app-surface-hover: rgba(226, 232, 240, 0.75);
+  --app-surface-subtle: rgba(241, 245, 249, 0.94);
+  --app-surface-hover: rgba(0, 0, 0, 0.07);
   --app-card-bg: #ffffff;
   --app-input-bg: #ffffff;
 
-  /* Viền, Màu nhấn & Đổ bóng */
-  --app-border: rgba(0, 0, 0, 0.12);
-  --app-border-strong: rgba(0, 0, 0, 0.22);
+  /* Khung Login giống ảnh mẫu */
+  --auth-box-bg: #e2e6ea;
+  --auth-box-border: rgba(0, 0, 0, 0.15);
+  --auth-accent: #d9534f;
+  --auth-accent-hover: #c9302c;
+
+  /* Viền & Đổ bóng */
+  --app-border: rgba(0, 0, 0, 0.14);
+  --app-border-strong: rgba(0, 0, 0, 0.24);
   --app-primary: #1d4ed8;
   --app-primary-hover: #1e40af;
-  --app-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
-  --app-shadow-md: 0 6px 18px rgba(0, 0, 0, 0.1);
-  --app-shadow-lg: 0 16px 36px rgba(0, 0, 0, 0.16);
+  --app-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --app-shadow-md: 0 6px 18px rgba(0, 0, 0, 0.15);
+  --app-shadow-lg: 0 16px 36px rgba(0, 0, 0, 0.25);
 
-  /* Đồng bộ biến Bootstrap */
   --bs-body-color: #000000;
-  --bs-border-color: rgba(0, 0, 0, 0.12);
+  --bs-border-color: rgba(0, 0, 0, 0.14);
   --bs-secondary-color: #262626;
   --bs-emphasis-color: #000000;
 }
 
 /* =========================================================
-   2. DARK THEME (CHỮ TRẮNG #ffffff)
+   2. DARK THEME (CHỮ TRẮNG, ẢNH NỀN TỐI ĐI NHƯ CODE GỐC)
 ========================================================= */
 html[data-theme="dark"] {
   color-scheme: dark;
 
+  /* Lớp phủ tối giống hệt code theme.css ban đầu của bạn */
   --app-bg-overlay: linear-gradient(
     180deg,
-    rgba(11, 15, 25, 0.76) 0%,
-    rgba(11, 15, 25, 0.88) 100%
+    rgb(17 24 39 / 78%),
+    rgb(17 24 39 / 92%)
   );
 
-  /* Bảng màu chữ: Trắng tuyệt đối theo yêu cầu */
+  /* Màu chữ: Trắng tuyệt đối cho Dark Theme */
   --app-text: #ffffff;
   --app-muted: #d1d5db;
 
   /* Bề mặt Component */
-  --app-bg: transparent;
-  --app-surface: rgba(17, 24, 39, 0.88);
-  --app-surface-solid: #1e293b;
-  --app-surface-subtle: rgba(15, 23, 42, 0.92);
-  --app-surface-hover: rgba(51, 65, 85, 0.65);
+  --app-surface: rgba(17, 24, 39, 0.92);
+  --app-surface-solid: #1f2937;
+  --app-surface-subtle: rgba(15, 23, 42, 0.94);
+  --app-surface-hover: rgba(255, 255, 255, 0.1);
   --app-card-bg: #1e293b;
   --app-input-bg: #0f172a;
 
-  /* Viền, Màu nhấn & Đổ bóng */
-  --app-border: rgba(255, 255, 255, 0.14);
-  --app-border-strong: rgba(255, 255, 255, 0.26);
+  /* Khung Login ở chế độ tối */
+  --auth-box-bg: #1f2937;
+  --auth-box-border: rgba(255, 255, 255, 0.16);
+  --auth-accent: #e0564b;
+  --auth-accent-hover: #c9463c;
+
+  /* Viền & Đổ bóng */
+  --app-border: rgba(255, 255, 255, 0.15);
+  --app-border-strong: rgba(255, 255, 255, 0.28);
   --app-primary: #3b82f6;
   --app-primary-hover: #2563eb;
-  --app-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.35);
-  --app-shadow-md: 0 6px 18px rgba(0, 0, 0, 0.45);
-  --app-shadow-lg: 0 16px 36px rgba(0, 0, 0, 0.65);
+  --app-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --app-shadow-md: 0 6px 18px rgba(0, 0, 0, 0.5);
+  --app-shadow-lg: 0 16px 36px rgba(0, 0, 0, 0.7);
 
-  /* Đồng bộ biến Bootstrap */
   --bs-body-bg: transparent;
   --bs-body-color: #ffffff;
-  --bs-border-color: rgba(255, 255, 255, 0.14);
+  --bs-border-color: rgba(255, 255, 255, 0.15);
   --bs-secondary-color: #d1d5db;
   --bs-emphasis-color: #ffffff;
-  --bs-tertiary-bg: #1e293b;
+  --bs-tertiary-bg: #1f2937;
 }
 
 /* =========================================================
-   3. NỀN CHUNG TOÀN CỤC & KIỂU CHỮ
+   3. ẢNH NỀN CHUNG & LỚP PHỦ TỐI/SÁNG TRỰC TIẾP TRÊN BODY
 ========================================================= */
 *,
 *::before,
@@ -101,27 +112,15 @@ body {
   min-height: 100vh;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   color: var(--app-text) !important;
-  background-color: #0f172a;
-  background-image: var(--app-bg-image);
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  background-attachment: fixed;
+  background-color: #0b1324 !important;
+  /* Gộp trực tiếp lớp phủ và ảnh nền để đổi theme là ảnh tối đi ngay */
+  background-image: var(--app-bg-overlay), var(--app-bg-image) !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  background-attachment: fixed !important;
   -webkit-font-smoothing: antialiased;
   transition: color 0.15s ease;
-}
-
-/* Lớp phủ trên ảnh nền giúp chữ Đen (Light) và Trắng (Dark) luôn rõ nét */
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  background: var(--app-bg-overlay);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  pointer-events: none;
-  transition: background 0.2s ease;
 }
 
 #root {
@@ -131,14 +130,284 @@ body::before {
   color: var(--app-text);
 }
 
-/* Bỏ nền đặc của các wrapper Bootstrap để lộ ảnh nền chung */
+/* Xóa nền đặc của các khung bọc để luôn nhìn thấy ảnh nền chung */
 .bg-light,
-.min-vh-100.bg-light {
-  background-color: transparent !important;
+.min-vh-100.bg-light,
+.board-page {
+  background: transparent !important;
+  background-image: none !important;
+}
+
+.board-page::before {
+  display: none !important;
 }
 
 /* =========================================================
-   4. ĐỒNG BỘ MÀU CHỮ & CÁC COMPONENT BOOTSTRAP
+   4. HEADER: THỐNG NHẤT 100% MÀU CHỮ ĐEN (LIGHT) / TRẮNG (DARK)
+========================================================= */
+.tf-navbar {
+  background: var(--app-surface) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--app-border) !important;
+  box-shadow: var(--app-shadow-sm);
+  padding: 10px 0;
+}
+
+.tf-brand {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--app-text) !important;
+  text-decoration: none;
+  letter-spacing: -0.02em;
+}
+
+.tf-brand:hover {
+  color: var(--app-text) !important;
+  opacity: 0.85;
+}
+
+.tf-header-greeting {
+  font-size: 14px;
+  color: var(--app-text) !important;
+  margin-right: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tf-header-greeting strong {
+  color: var(--app-text) !important;
+  font-weight: 700;
+}
+
+.tf-role-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 5px;
+  background: var(--app-surface-hover);
+  border: 1px solid var(--app-border-strong);
+  color: var(--app-text) !important;
+}
+
+.tf-header-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 13px;
+  border-radius: 6px;
+  border: 1px solid var(--app-border-strong);
+  background: transparent;
+  color: var(--app-text) !important;
+  font-size: 13.5px;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.tf-header-btn:hover {
+  background: var(--app-surface-hover);
+  border-color: var(--app-text);
+  color: var(--app-text) !important;
+}
+
+.tf-header-btn-logout:hover {
+  background: rgba(220, 38, 38, 0.15);
+  border-color: #dc2626;
+}
+
+/* =========================================================
+   5. GIAO DIỆN ĐĂNG NHẬP / ĐĂNG KÝ GIỐNG ẢNH MẪU
+========================================================= */
+.auth-page-wrapper {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+}
+
+.auth-modal-card {
+  width: 100%;
+  max-width: 410px;
+  background: var(--auth-box-bg);
+  border: 1px solid var(--auth-box-border);
+  border-radius: 6px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+  color: var(--app-text);
+}
+
+.auth-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px 10px;
+}
+
+.auth-modal-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--auth-accent) !important;
+}
+
+.auth-modal-title svg {
+  color: var(--auth-accent);
+  flex-shrink: 0;
+}
+
+.auth-modal-close {
+  border: 0;
+  background: transparent;
+  color: var(--app-muted) !important;
+  font-size: 18px;
+  line-height: 1;
+  padding: 2px 6px;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.auth-modal-close:hover {
+  color: var(--app-text) !important;
+}
+
+.auth-modal-body {
+  padding: 10px 22px 24px;
+}
+
+.auth-field-group {
+  margin-bottom: 12px;
+}
+
+.auth-field-label {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--auth-accent) !important;
+}
+
+.auth-input {
+  width: 100%;
+  height: 36px;
+  padding: 6px 11px;
+  font-size: 13.5px;
+  color: var(--app-text) !important;
+  background-color: var(--app-input-bg) !important;
+  border: 1px solid #94a3b8;
+  border-radius: 4px;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.auth-input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.auth-password-group {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+}
+
+.auth-password-group .auth-input {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  border-right: 0;
+}
+
+.auth-password-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  border: 1px solid #94a3b8;
+  border-top-right-radius: 4px;
+  border-bottom-right-radius: 4px;
+  background: var(--app-surface-subtle);
+  color: #2563eb !important;
+  cursor: pointer;
+}
+
+.auth-password-toggle:hover {
+  background: var(--app-surface-hover);
+}
+
+.auth-field-error {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--auth-accent) !important;
+}
+
+.auth-remember-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 10px 0 8px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--app-text) !important;
+  cursor: pointer;
+}
+
+.auth-remember-row input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: #2563eb;
+  cursor: pointer;
+}
+
+.auth-switch-row {
+  margin-bottom: 14px;
+  font-size: 12.5px;
+  color: var(--app-muted) !important;
+}
+
+.auth-switch-link {
+  color: #2563eb !important;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+html[data-theme="dark"] .auth-switch-link {
+  color: #60a5fa !important;
+}
+
+.auth-switch-link:hover {
+  text-decoration: underline;
+}
+
+.auth-submit-btn {
+  width: 100%;
+  height: 38px;
+  border: 0;
+  border-radius: 4px;
+  background: var(--auth-accent);
+  color: #ffffff !important;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.auth-submit-btn:hover {
+  background: var(--auth-accent-hover);
+}
+
+/* =========================================================
+   6. ĐỒNG BỘ MÀU CHỮ & CÁC COMPONENT TRONG TOÀN DỰ ÁN
 ========================================================= */
 h1, h2, h3, h4, h5, h6,
 .h1, .h2, .h3, .h4, .h5, .h6,
@@ -146,36 +415,14 @@ p, span, label, th, td, li, strong, small {
   color: var(--app-text);
 }
 
-.text-dark {
+.text-dark,
+.text-primary {
   color: var(--app-text) !important;
 }
 
 .text-secondary,
 .text-muted {
   color: var(--app-muted) !important;
-}
-
-.text-primary {
-  color: var(--app-primary) !important;
-}
-
-/* Thanh điều hướng chính (Header) */
-.navbar,
-.navbar.bg-white {
-  background: var(--app-surface) !important;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--app-border) !important;
-  box-shadow: var(--app-shadow-sm) !important;
-}
-
-.navbar .navbar-brand {
-  color: var(--app-primary) !important;
-  letter-spacing: -0.02em;
-}
-
-.navbar .navbar-text {
-  color: var(--app-text) !important;
 }
 
 /* Card, Modal, Dropdown, List Group */
@@ -207,7 +454,7 @@ html[data-theme="dark"] .btn-close {
   filter: invert(1) grayscale(100%) brightness(200%);
 }
 
-/* Ô nhập liệu (Form Control / Select) */
+/* Ô nhập liệu Bootstrap */
 .form-control,
 .form-select {
   background-color: var(--app-input-bg) !important;
@@ -228,13 +475,7 @@ html[data-theme="dark"] .btn-close {
   opacity: 0.7;
 }
 
-.form-control:focus,
-.form-select:focus {
-  border-color: var(--app-primary) !important;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2) !important;
-}
-
-/* Bảng dữ liệu (Table trong WorkspaceDetail, UserManagement, PermissionMatrix) */
+/* Bảng dữ liệu */
 .table {
   --bs-table-bg: transparent !important;
   --bs-table-color: var(--app-text) !important;
@@ -263,7 +504,6 @@ thead.table-light {
   border-color: var(--app-border) !important;
 }
 
-/* Khung Empty State ở MainWorkspace */
 .border.rounded-4 {
   background: var(--app-surface) !important;
   backdrop-filter: blur(12px);
@@ -271,7 +511,6 @@ thead.table-light {
   color: var(--app-text) !important;
 }
 
-/* Đảm bảo chữ trên Badge và Button nền đậm luôn giữ độ tương phản */
 .badge.bg-primary,
 .badge.bg-danger,
 .badge.bg-success,
