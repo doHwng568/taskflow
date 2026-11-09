@@ -1,7 +1,7 @@
-/* CSS cho tính năng 5 (lưu trữ), 6 (đổi màu), 7 (kéo thả area).
-   Import SAU BoardPage.css để ghi đè được. */
+﻿/* CSS cho tÃ­nh nÄƒng 5 (lÆ°u trá»¯), 6 (Ä‘á»•i mÃ u), 7 (kÃ©o tháº£ area).
+   Import SAU BoardPage.css Ä‘á»ƒ ghi Ä‘Ã¨ Ä‘Æ°á»£c. */
 
-/* ---------- Tính năng 6: màu area ---------- */
+/* ---------- TÃ­nh nÄƒng 6: mÃ u area ---------- */
 .board-column.has-color {
   background: var(--area-color) !important;
 }
@@ -56,7 +56,7 @@
   opacity: 0.45;
 }
 
-/* ---------- Tính năng 7: kéo thả area ---------- */
+/* ---------- TÃ­nh nÄƒng 7: kÃ©o tháº£ area ---------- */
 .board-column-heading[draggable="true"] {
   cursor: grab;
 }
@@ -69,7 +69,7 @@
   opacity: 0.45;
 }
 
-/* Vạch xanh cho biết area sẽ được thả vào trước / sau cột này */
+/* Váº¡ch xanh cho biáº¿t area sáº½ Ä‘Æ°á»£c tháº£ vÃ o trÆ°á»›c / sau cá»™t nÃ y */
 .board-column.is-area-drop-before {
   box-shadow: -6px 0 0 0 #579dff, 0 2px 8px rgb(0 0 0 / 24%);
 }
@@ -78,7 +78,7 @@
   box-shadow: 6px 0 0 0 #579dff, 0 2px 8px rgb(0 0 0 / 24%);
 }
 
-/* ---------- Tính năng 5: nút và bảng "Đã lưu trữ" ---------- */
+/* ---------- TÃ­nh nÄƒng 5: nÃºt vÃ  báº£ng "ÄÃ£ lÆ°u trá»¯" ---------- */
 .board-archive-button {
   padding: 6px 10px;
   border: 0;
@@ -314,7 +314,7 @@
   opacity: 0.5;
 }
 
-/* Ghim / di chuyển area */
+/* Ghim / di chuyá»ƒn area */
 .board-column-pin-badge {
   font-size: 12px;
   line-height: 1;
@@ -378,7 +378,7 @@
   color: #9fadbc;
 }
 
-/* ---------- Menu thao t�c v?i danh s�ch: can ch?nh g?n g�ng ---------- */
+/* ---------- Menu thao tác v?i danh sách: can ch?nh g?n gàng ---------- */
 .board-list-menu {
   left: 6px;
   right: 6px;
@@ -422,7 +422,7 @@
 .board-list-menu-positions { padding: 2px 0 6px; }
 
 
-/* Ti�u d? can tr�i th?ng h�ng v?i c�c m?c */
+/* Tiêu d? can trái th?ng hàng v?i các m?c */
 .board-list-menu-header { padding: 4px 4px 10px 10px; }
 .board-list-menu-header span { flex: 1; text-align: left; padding-left: 0; }
 .board-list-menu-option, .board-list-menu-option span { text-align: left; }
