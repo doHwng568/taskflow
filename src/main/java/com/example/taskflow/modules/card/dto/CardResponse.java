@@ -1,5 +1,6 @@
 package com.example.taskflow.modules.card.dto;
 
+import com.example.taskflow.common.enums.Role;
 import com.example.taskflow.common.enums.TaskPriority;
 import com.example.taskflow.common.enums.TaskType;
 import com.example.taskflow.entity.Card;
@@ -36,6 +37,8 @@ public class CardResponse {
     private String updatedByName;
     private Long assigneeId;
     private String assigneeName;
+    private String assigneeUsername;
+    private Role assigneeRole;
 
     public static CardResponse fromEntity(Card card) {
         String createdByName = null;
@@ -55,11 +58,15 @@ public class CardResponse {
         }
 
         String assigneeName = null;
+        String assigneeUsername = null;
+        Role assigneeRole = null;
         if (card.getAssignee() != null) {
             assigneeName = card.getAssignee().getFullName();
             if (assigneeName == null || assigneeName.isBlank()) {
                 assigneeName = card.getAssignee().getUsername();
             }
+            assigneeUsername = card.getAssignee().getUsername();
+            assigneeRole = card.getAssignee().getRole();
         }
 
         return CardResponse.builder()
@@ -83,6 +90,8 @@ public class CardResponse {
                 .updatedByName(updatedByName)
                 .assigneeId(card.getAssignee() != null ? card.getAssignee().getId() : null)
                 .assigneeName(assigneeName)
+                .assigneeUsername(assigneeUsername)
+                .assigneeRole(assigneeRole)
                 .build();
     }
 }

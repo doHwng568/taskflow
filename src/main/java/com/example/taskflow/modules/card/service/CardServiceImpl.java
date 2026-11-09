@@ -20,13 +20,34 @@ import com.example.taskflow.user.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
 @Service
 public class CardServiceImpl implements CardService {
+
+    private String formatDueDateVi(LocalDateTime date) {
+        if (date == null) return "";
+        LocalDate today = LocalDate.now();
+        LocalDate target = date.toLocalDate();
+        String timeStr = date.format(DateTimeFormatter.ofPattern("HH:mm"));
+        if (target.equals(today)) {
+            return "Hôm nay lúc " + timeStr;
+        } else if (target.equals(today.plusDays(1))) {
+            return "Ngày mai lúc " + timeStr;
+        } else if (target.equals(today.minusDays(1))) {
+            return "Hôm qua lúc " + timeStr;
+        } else if (target.getYear() == today.getYear()) {
+            return target.getDayOfMonth() + " thg " + target.getMonthValue() + " lúc " + timeStr;
+        } else {
+            return target.getDayOfMonth() + " thg " + target.getMonthValue() + ", " + target.getYear() + " lúc " + timeStr;
+        }
+    }
+
 
     private final CardRepository cardRepository;
     private final AreaRepository areaRepository;
@@ -175,10 +196,25 @@ public class CardServiceImpl implements CardService {
         if (request.getType() != null && !Objects.equals(card.getType(), request.getType())) {
             changes.add("loại thẻ thành " + request.getType());
         }
-        if (request.getDueDate() != null && !Objects.equals(card.getDueDate(), request.getDueDate())) {
-            changes.add("hạn chót");
-        } else if (request.getDueDate() == null && card.getDueDate() != null) {
-            changes.add("xóa hạn chót");
+        String dateChangeAction = null;
+        boolean dueDateChanged = false;
+        if (request.getDueDate() != null && card.getDueDate() != null) {
+            dueDateChanged = !card.getDueDate().withNano(0).isEqual(request.getDueDate().withNano(0));
+        } else if (request.getDueDate() != null || card.getDueDate() != null) {
+            dueDateChanged = true;
+        }
+
+        if (dueDateChanged) {
+            if (request.getDueDate() == null) {
+                dateChangeAction = "đã gỡ bỏ ngày hết hạn khỏi thẻ này";
+                changes.add("xóa hạn chót");
+            } else if (card.getDueDate() == null) {
+                dateChangeAction = "đã đặt ngày hết hạn cho thẻ này là " + formatDueDateVi(request.getDueDate());
+                changes.add("hạn chót là " + formatDueDateVi(request.getDueDate()));
+            } else {
+                dateChangeAction = "đã thay đổi ngày hết hạn của thẻ này thành " + formatDueDateVi(request.getDueDate());
+                changes.add("hạn chót thành " + formatDueDateVi(request.getDueDate()));
+            }
         }
         if (request.getCoverImage() != null && !Objects.equals(card.getCoverImage(), request.getCoverImage())) {
             changes.add("ảnh bìa");
@@ -188,13 +224,26 @@ public class CardServiceImpl implements CardService {
         }
         if (request.getAssigneeId() != null) {
             Long currentAssigneeId = card.getAssignee() != null ? card.getAssignee().getId() : null;
-            if (!Objects.equals(currentAssigneeId, request.getAssigneeId())) {
+            if (request.getAssigneeId() <= 0) {
+                if (currentAssigneeId != null) {
+                    if (currentUser == null || currentUser.getRole() != Role.PM) {
+                        throw new BusinessException(ErrorCode.ACCESS_DENIED);
+                    }
+                    card.setAssignee(null);
+                    changes.add("xóa người thực hiện");
+                }
+            } else if (!Objects.equals(currentAssigneeId, request.getAssigneeId())) {
+                if (currentUser == null || currentUser.getRole() != Role.PM) {
+                    throw new BusinessException(ErrorCode.ACCESS_DENIED);
+                }
                 User newAssignee = userRepository.findById(request.getAssigneeId())
                         .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
                 String name = newAssignee.getFullName() != null && !newAssignee.getFullName().isBlank()
                         ? newAssignee.getFullName()
                         : newAssignee.getUsername();
-                changes.add("người thực hiện thành " + name);
+                String roleName = newAssignee.getRole() != null ? " (" + newAssignee.getRole() + ")" : "";
+                changes.add("người thực hiện thành " + name + roleName);
+                card.setAssignee(newAssignee);
             }
         }
         boolean commentsChanged = false;
@@ -225,12 +274,6 @@ public class CardServiceImpl implements CardService {
         }
         card.setDueDate(request.getDueDate());
 
-        if (request.getAssigneeId() != null) {
-            User assignee = userRepository.findById(request.getAssigneeId())
-                    .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
-            card.setAssignee(assignee);
-        }
-
         LocalDateTime now = LocalDateTime.now();
         card.setUpdatedAt(now);
         if (currentUser != null) {
@@ -240,14 +283,14 @@ public class CardServiceImpl implements CardService {
         Card updatedCard = cardRepository.save(card);
 
         // Lưu hoạt động sửa thẻ (không ghi lịch sử khi chỉ đổi tiêu đề)
-        if (!changes.isEmpty() || commentsChanged || !titleChanged) {
+        if (!changes.isEmpty() || commentsChanged) {
             String desc;
-            if (!changes.isEmpty()) {
+            if (dateChangeAction != null && changes.size() == 1) {
+                desc = dateChangeAction;
+            } else if (!changes.isEmpty()) {
                 desc = "đã cập nhật " + String.join(", ", changes);
-            } else if (commentsChanged) {
-                desc = "đã cập nhật nhận xét của thẻ";
             } else {
-                desc = "đã cập nhật thông tin thẻ";
+                desc = "đã cập nhật nhận xét của thẻ";
             }
 
             CardActivity activity = new CardActivity();

@@ -681,21 +681,40 @@ export default function BoardPage() {
     const numericCardId = parseNumericId(updatedCard.id);
     if (!numericCardId) return;
 
-    const dueDateIso = updatedCard.dueDate
-      ? `${updatedCard.dueDate}T${updatedCard.dueTime || '17:00'}:00`
-      : null;
+    let dueDateIso = null;
+    if (updatedCard.dueDate && updatedCard.dueDateEnabled !== false) {
+      const rawDue = String(updatedCard.dueDate).trim();
+      const datePart = rawDue.includes('T') ? rawDue.split('T')[0] : rawDue;
+      if (datePart) {
+        let timePart = '17:00:00';
+        if (updatedCard.dueTime) {
+          const t = String(updatedCard.dueTime).trim();
+          timePart = t.length === 5 ? `${t}:00` : (t.length === 8 ? t : '17:00:00');
+        } else if (rawDue.includes('T')) {
+          const t = rawDue.split('T')[1];
+          if (t) {
+            timePart = t.length >= 8 ? t.substring(0, 8) : (t.length === 5 ? `${t}:00` : '17:00:00');
+          }
+        }
+        dueDateIso = `${datePart}T${timePart}`;
+      }
+    }
 
     const commentList = Array.isArray(updatedCard.comments) ? updatedCard.comments : [];
 
     try {
-      const res = await cardApi.updateCardApi(numericCardId, {
+      const payload = {
         title: updatedCard.title,
         content: updatedCard.description?.trim() || '',
         coverImage: updatedCard.coverImage || null,
         comments: JSON.stringify(commentList),
         archived: Boolean(updatedCard.archived),
         dueDate: dueDateIso,
-      });
+      };
+      if (updatedCard.assigneeId !== undefined) {
+        payload.assigneeId = updatedCard.assigneeId || 0;
+      }
+      const res = await cardApi.updateCardApi(numericCardId, payload);
       return res?.data?.data;
     } catch (err) {
       console.error('Lỗi khi đồng bộ thẻ lên server:', err?.response?.data || err?.message || err);
@@ -706,11 +725,28 @@ export default function BoardPage() {
 
   const handleSaveCard = async (updatedCard) => {
     const serverCard = await syncCardUpdateToBackend(updatedCard);
+    let serverDueDate = updatedCard.dueDate;
+    let serverDueTime = updatedCard.dueTime || '17:00';
+    if (serverCard?.dueDate) {
+      const [d, t] = String(serverCard.dueDate).split('T');
+      serverDueDate = d || '';
+      if (t) serverDueTime = t.slice(0, 5);
+    } else if (serverCard && serverCard.dueDate === null) {
+      serverDueDate = '';
+    }
+
     const finalCard = serverCard
       ? {
           ...updatedCard,
           updatedByName: serverCard.updatedByName ?? updatedCard.updatedByName,
           updatedAt: serverCard.updatedAt ?? updatedCard.updatedAt,
+          assigneeId: serverCard.assigneeId ?? updatedCard.assigneeId,
+          assigneeName: serverCard.assigneeName ?? updatedCard.assigneeName,
+          assigneeRole: serverCard.assigneeRole ?? updatedCard.assigneeRole,
+          assigneeUsername: serverCard.assigneeUsername ?? updatedCard.assigneeUsername,
+          dueDate: serverDueDate,
+          dueTime: serverDueTime,
+          dueDateEnabled: Boolean(serverDueDate),
         }
       : updatedCard;
 
@@ -728,17 +764,35 @@ export default function BoardPage() {
     );
 
     setSelectedCard(null);
+    return finalCard;
   };
 
   const handleUpdateCard = async (updatedCard) => {
     if (!selectedCard) return;
 
     const serverCard = await syncCardUpdateToBackend(updatedCard);
+    let serverDueDate = updatedCard.dueDate;
+    let serverDueTime = updatedCard.dueTime || '17:00';
+    if (serverCard?.dueDate) {
+      const [d, t] = String(serverCard.dueDate).split('T');
+      serverDueDate = d || '';
+      if (t) serverDueTime = t.slice(0, 5);
+    } else if (serverCard && serverCard.dueDate === null) {
+      serverDueDate = '';
+    }
+
     const finalCard = serverCard
       ? {
           ...updatedCard,
           updatedByName: serverCard.updatedByName ?? updatedCard.updatedByName,
           updatedAt: serverCard.updatedAt ?? updatedCard.updatedAt,
+          assigneeId: serverCard.assigneeId ?? updatedCard.assigneeId,
+          assigneeName: serverCard.assigneeName ?? updatedCard.assigneeName,
+          assigneeRole: serverCard.assigneeRole ?? updatedCard.assigneeRole,
+          assigneeUsername: serverCard.assigneeUsername ?? updatedCard.assigneeUsername,
+          dueDate: serverDueDate,
+          dueTime: serverDueTime,
+          dueDateEnabled: Boolean(serverDueDate),
         }
       : updatedCard;
 
@@ -757,6 +811,7 @@ export default function BoardPage() {
     setSelectedCard((currentSelection) =>
       currentSelection ? { ...currentSelection, card: finalCard } : currentSelection
     );
+    return finalCard;
   };
 
   const handleToggleCardComplete = (columnId, cardId) => {
@@ -994,21 +1049,6 @@ export default function BoardPage() {
             </button>
           )}
         </main>
-
-        <nav className="board-bottom-nav" aria-label="Điều hướng bảng">
-          <button className="board-nav-item">
-            <span aria-hidden="true">▣</span> Hộp thư đến
-          </button>
-          <button className="board-nav-item">
-            <span aria-hidden="true">▦</span> Trình lập kế hoạch
-          </button>
-          <button className="board-nav-item is-active" aria-current="page">
-            <span aria-hidden="true">▥</span> Bảng thông tin
-          </button>
-          <button className="board-nav-item">
-            <span aria-hidden="true">▤</span> Chuyển đổi các bảng
-          </button>
-        </nav>
         {selectedCard && (
           <CardDetailModal
             key={selectedCard.card.id}
