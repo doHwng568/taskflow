@@ -72,19 +72,20 @@ public class PermissionServiceImpl implements PermissionService {
                 continue; // Bỏ qua nếu role không hợp lệ
             }
 
-            // Xóa toàn bộ quyền cũ của role này
+            // Riêng PM luôn đảm bảo giữ trọn vẹn 12 quyền (không thay đổi quyền của PM)
+            if (role == Role.PM) {
+                continue;
+            }
+
+            // Xóa toàn bộ quyền cũ của role này và flush ngay xuống DB
             rolePermissionRepository.deleteByRole(role);
+            rolePermissionRepository.flush();
 
             // Gán danh sách quyền mới được tick chọn
             List<String> selectedPermNames = entry.getValue();
             List<RolePermission> toSave = new ArrayList<>();
 
-            // Riêng PM luôn đảm bảo giữ trọn vẹn 12 quyền (không thể tự tước quyền của chính mình)
-            if (role == Role.PM) {
-                for (Permission p : permissionMap.values()) {
-                    toSave.add(new RolePermission(Role.PM, p));
-                }
-            } else if (selectedPermNames != null) {
+            if (selectedPermNames != null) {
                 for (String permName : selectedPermNames) {
                     Permission p = permissionMap.get(permName);
                     if (p != null) {
