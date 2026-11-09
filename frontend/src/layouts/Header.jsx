@@ -23,7 +23,6 @@ function getInitialAuth() {
                     role = role.substring(5);
                 }
 
-                // Đồng bộ lại role vào localStorage
                 if (role) {
                     localStorage.setItem("userRole", role);
                 }
@@ -66,7 +65,7 @@ function Header() {
     };
 
     return (
-        <Navbar expand="lg" className="bg-white border-bottom shadow-sm py-2">
+        <Navbar expand="lg" className="border-bottom py-2">
             <Container>
                 <Navbar.Brand
                     as={Link}
@@ -93,14 +92,16 @@ function Header() {
                                 <Nav.Link
                                     as={Link}
                                     to="/register"
-                                    className="btn btn-outline-primary btn-sm px-3"
+                                    className="btn btn-primary btn-sm px-3"
                                 >
                                     Register
                                 </Nav.Link>
+
+                                <ThemeToggle />
                             </>
                         ) : (
                             <>
-                                <span className="navbar-text me-2 text-muted">
+                                <span className="navbar-text me-2">
                                     Hello,{" "}
                                     <strong className="text-dark">
                                         {username}
@@ -113,7 +114,6 @@ function Header() {
                                     )}
                                 </span>
 
-                                {/* Tất cả role đều được vào Workspace */}
                                 <Nav.Link
                                     as={Link}
                                     to="/workspace"
@@ -122,7 +122,6 @@ function Header() {
                                     My Workspaces
                                 </Nav.Link>
 
-                                {/* Chỉ PM mới có các chức năng quản lý */}
                                 {isPM && (
                                     <>
                                         <Nav.Link
@@ -150,7 +149,9 @@ function Header() {
                                 >
                                     Hồ sơ
                                 </Nav.Link>
-<ThemeToggle />
+
+                                <ThemeToggle />
+
                                 <Nav.Link
                                     as="button"
                                     onClick={handleLogout}

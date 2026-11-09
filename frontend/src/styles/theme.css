@@ -1,0 +1,289 @@
+/* =========================================================
+   1. LIGHT THEME (MẶC ĐỊNH - CHỮ ĐEN #000000)
+========================================================= */
+:root,
+html[data-theme="light"] {
+  color-scheme: light;
+
+  /* Ảnh nền chung lấy từ BoardPage */
+  --app-bg-image: url('https://images.unsplash.com/photo-1512453979798-5ea266f8880c?q=80&w=2000');
+  --app-bg-overlay: linear-gradient(
+    180deg,
+    rgba(248, 250, 252, 0.72) 0%,
+    rgba(241, 245, 249, 0.82) 100%
+  );
+
+  /* Bảng màu chữ: Đen tuyệt đối theo yêu cầu */
+  --app-text: #000000;
+  --app-muted: #262626;
+
+  /* Bề mặt Component */
+  --app-bg: transparent;
+  --app-surface: rgba(255, 255, 255, 0.88);
+  --app-surface-solid: #ffffff;
+  --app-surface-subtle: rgba(241, 245, 249, 0.92);
+  --app-surface-hover: rgba(226, 232, 240, 0.75);
+  --app-card-bg: #ffffff;
+  --app-input-bg: #ffffff;
+
+  /* Viền, Màu nhấn & Đổ bóng */
+  --app-border: rgba(0, 0, 0, 0.12);
+  --app-border-strong: rgba(0, 0, 0, 0.22);
+  --app-primary: #1d4ed8;
+  --app-primary-hover: #1e40af;
+  --app-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --app-shadow-md: 0 6px 18px rgba(0, 0, 0, 0.1);
+  --app-shadow-lg: 0 16px 36px rgba(0, 0, 0, 0.16);
+
+  /* Đồng bộ biến Bootstrap */
+  --bs-body-color: #000000;
+  --bs-border-color: rgba(0, 0, 0, 0.12);
+  --bs-secondary-color: #262626;
+  --bs-emphasis-color: #000000;
+}
+
+/* =========================================================
+   2. DARK THEME (CHỮ TRẮNG #ffffff)
+========================================================= */
+html[data-theme="dark"] {
+  color-scheme: dark;
+
+  --app-bg-overlay: linear-gradient(
+    180deg,
+    rgba(11, 15, 25, 0.76) 0%,
+    rgba(11, 15, 25, 0.88) 100%
+  );
+
+  /* Bảng màu chữ: Trắng tuyệt đối theo yêu cầu */
+  --app-text: #ffffff;
+  --app-muted: #d1d5db;
+
+  /* Bề mặt Component */
+  --app-bg: transparent;
+  --app-surface: rgba(17, 24, 39, 0.88);
+  --app-surface-solid: #1e293b;
+  --app-surface-subtle: rgba(15, 23, 42, 0.92);
+  --app-surface-hover: rgba(51, 65, 85, 0.65);
+  --app-card-bg: #1e293b;
+  --app-input-bg: #0f172a;
+
+  /* Viền, Màu nhấn & Đổ bóng */
+  --app-border: rgba(255, 255, 255, 0.14);
+  --app-border-strong: rgba(255, 255, 255, 0.26);
+  --app-primary: #3b82f6;
+  --app-primary-hover: #2563eb;
+  --app-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.35);
+  --app-shadow-md: 0 6px 18px rgba(0, 0, 0, 0.45);
+  --app-shadow-lg: 0 16px 36px rgba(0, 0, 0, 0.65);
+
+  /* Đồng bộ biến Bootstrap */
+  --bs-body-bg: transparent;
+  --bs-body-color: #ffffff;
+  --bs-border-color: rgba(255, 255, 255, 0.14);
+  --bs-secondary-color: #d1d5db;
+  --bs-emphasis-color: #ffffff;
+  --bs-tertiary-bg: #1e293b;
+}
+
+/* =========================================================
+   3. NỀN CHUNG TOÀN CỤC & KIỂU CHỮ
+========================================================= */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color: var(--app-text) !important;
+  background-color: #0f172a;
+  background-image: var(--app-bg-image);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+  transition: color 0.15s ease;
+}
+
+/* Lớp phủ trên ảnh nền giúp chữ Đen (Light) và Trắng (Dark) luôn rõ nét */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: var(--app-bg-overlay);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  pointer-events: none;
+  transition: background 0.2s ease;
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  color: var(--app-text);
+}
+
+/* Bỏ nền đặc của các wrapper Bootstrap để lộ ảnh nền chung */
+.bg-light,
+.min-vh-100.bg-light {
+  background-color: transparent !important;
+}
+
+/* =========================================================
+   4. ĐỒNG BỘ MÀU CHỮ & CÁC COMPONENT BOOTSTRAP
+========================================================= */
+h1, h2, h3, h4, h5, h6,
+.h1, .h2, .h3, .h4, .h5, .h6,
+p, span, label, th, td, li, strong, small {
+  color: var(--app-text);
+}
+
+.text-dark {
+  color: var(--app-text) !important;
+}
+
+.text-secondary,
+.text-muted {
+  color: var(--app-muted) !important;
+}
+
+.text-primary {
+  color: var(--app-primary) !important;
+}
+
+/* Thanh điều hướng chính (Header) */
+.navbar,
+.navbar.bg-white {
+  background: var(--app-surface) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--app-border) !important;
+  box-shadow: var(--app-shadow-sm) !important;
+}
+
+.navbar .navbar-brand {
+  color: var(--app-primary) !important;
+  letter-spacing: -0.02em;
+}
+
+.navbar .navbar-text {
+  color: var(--app-text) !important;
+}
+
+/* Card, Modal, Dropdown, List Group */
+.card,
+.modal-content,
+.dropdown-menu,
+.list-group-item {
+  background: var(--app-surface) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: var(--app-text) !important;
+  border: 1px solid var(--app-border) !important;
+  border-radius: 10px !important;
+  box-shadow: var(--app-shadow-md) !important;
+}
+
+.card-header,
+.card-footer,
+.modal-header,
+.modal-footer,
+.card-header.bg-white,
+.card-footer.bg-white {
+  background: var(--app-surface-subtle) !important;
+  border-color: var(--app-border) !important;
+  color: var(--app-text) !important;
+}
+
+html[data-theme="dark"] .btn-close {
+  filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+/* Ô nhập liệu (Form Control / Select) */
+.form-control,
+.form-select {
+  background-color: var(--app-input-bg) !important;
+  color: var(--app-text) !important;
+  border: 1px solid var(--app-border-strong) !important;
+  border-radius: 7px;
+}
+
+.form-control:disabled,
+.form-control.bg-light {
+  background-color: var(--app-surface-subtle) !important;
+  color: var(--app-muted) !important;
+  opacity: 0.85;
+}
+
+.form-control::placeholder {
+  color: var(--app-muted) !important;
+  opacity: 0.7;
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--app-primary) !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2) !important;
+}
+
+/* Bảng dữ liệu (Table trong WorkspaceDetail, UserManagement, PermissionMatrix) */
+.table {
+  --bs-table-bg: transparent !important;
+  --bs-table-color: var(--app-text) !important;
+  --bs-table-hover-color: var(--app-text) !important;
+  --bs-table-hover-bg: var(--app-surface-hover) !important;
+  --bs-table-border-color: var(--app-border) !important;
+  color: var(--app-text) !important;
+  margin-bottom: 0;
+}
+
+.table thead th,
+.table-light th,
+.table-light td,
+thead.table-light {
+  background-color: var(--app-surface-subtle) !important;
+  color: var(--app-text) !important;
+  border-color: var(--app-border) !important;
+  font-weight: 600;
+}
+
+.table-secondary,
+.table-secondary > td,
+.table-secondary > th {
+  background-color: var(--app-surface-hover) !important;
+  color: var(--app-text) !important;
+  border-color: var(--app-border) !important;
+}
+
+/* Khung Empty State ở MainWorkspace */
+.border.rounded-4 {
+  background: var(--app-surface) !important;
+  backdrop-filter: blur(12px);
+  border-color: var(--app-border) !important;
+  color: var(--app-text) !important;
+}
+
+/* Đảm bảo chữ trên Badge và Button nền đậm luôn giữ độ tương phản */
+.badge.bg-primary,
+.badge.bg-danger,
+.badge.bg-success,
+.badge.bg-secondary,
+.btn-primary,
+.btn-danger,
+.btn-secondary {
+  color: #ffffff !important;
+}
+
+.badge.bg-warning,
+.badge.bg-info,
+.btn-warning {
+  color: #000000 !important;
+}
