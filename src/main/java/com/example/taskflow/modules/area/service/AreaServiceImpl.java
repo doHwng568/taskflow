@@ -19,6 +19,7 @@ import com.example.taskflow.modules.area.dto.request.UpdateAreaColorRequest;
 import com.example.taskflow.modules.card.dto.CardResponse;
 import com.example.taskflow.modules.card.repositories.CardRepository;
 import com.example.taskflow.modules.cardmovement.Repositories.CardMovementRepository;
+import com.example.taskflow.modules.workspace.Repositories.WorkspaceMemberRepository;
 import com.example.taskflow.modules.workspace.Repositories.WorkspaceRepository;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -45,17 +46,19 @@ public class AreaServiceImpl implements AreaService {
     private final CardRepository cardRepository;
     private final CardMovementRepository cardMovementRepository;
     private final WorkspaceRepository workspaceRepository;
+    private final WorkspaceMemberRepository workspaceMemberRepository;
 
     public AreaServiceImpl(
             AreaRepository areaRepository,
             CardRepository cardRepository,
             CardMovementRepository cardMovementRepository,
-            WorkspaceRepository workspaceRepository
+            WorkspaceRepository workspaceRepository, WorkspaceMemberRepository workspaceMemberRepository
     ) {
         this.areaRepository = areaRepository;
         this.cardRepository = cardRepository;
         this.cardMovementRepository = cardMovementRepository;
         this.workspaceRepository = workspaceRepository;
+        this.workspaceMemberRepository = workspaceMemberRepository;
     }
 
     // =====================================================================
