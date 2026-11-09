@@ -1,7 +1,6 @@
-
 package com.example.taskflow.modules.workspace.dto.response;
 
-import com.example.taskflow.common.enums.WorkspaceRole;
+import com.example.taskflow.common.enums.Role;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -21,7 +20,8 @@ public class WorkspaceMemberResponse {
 
     private String email;
 
-    private WorkspaceRole role;
+    // Đây là role của User, không phải Workspace role
+    private Role userRole;
 
     private LocalDateTime joinedAt;
 }

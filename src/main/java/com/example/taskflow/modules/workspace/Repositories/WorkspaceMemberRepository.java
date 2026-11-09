@@ -1,7 +1,5 @@
-
 package com.example.taskflow.modules.workspace.Repositories;
 
-import com.example.taskflow.common.enums.WorkspaceRole;
 import com.example.taskflow.entity.User;
 import com.example.taskflow.entity.Workspace;
 import com.example.taskflow.entity.WorkspaceMember;
@@ -40,11 +38,6 @@ public interface WorkspaceMemberRepository
     );
 
     long countByWorkspace_Id(Long workspaceId);
-
-    long countByWorkspace_IdAndRole(
-            Long workspaceId,
-            WorkspaceRole role
-    );
 
     void deleteAllByWorkspace_Id(Long workspaceId);
 }

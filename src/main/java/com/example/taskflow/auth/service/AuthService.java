@@ -53,19 +53,36 @@ public class AuthService implements AuthServiceImpl {
     public LoginResponse login(LoginRequest request) {
         try {
             Authentication authentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(request.username(), request.password())
+                    new UsernamePasswordAuthenticationToken(
+                            request.username(),
+                            request.password()
+                    )
             );
 
-            // Chỉ lọc lấy Authority bắt đầu bằng "ROLE_" để lấy đúng chức danh
-            String role = authentication.getAuthorities().stream()
-                    .map(GrantedAuthority::getAuthority)
-                    .filter(auth -> auth.startsWith("ROLE_"))
-                    .findFirst()
-                    .map(auth -> auth.substring(5)) // Bỏ prefix "ROLE_" -> "PM", "LEADER", "DEV"...
-                    .orElse("MEMBER");
+            // Lấy User trực tiếp từ database
+            User user = authRepository.findByUsername(authentication.getName());
 
-            String token = jwtService.generateToken(authentication.getName(), role);
-            return new LoginResponse(authentication.getName(), role, token);
+            if (user == null || user.getRole() == null) {
+                throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
+            }
+
+            // Lấy role trực tiếp từ bảng users
+            String role = user.getRole().name();
+
+            // Tạo JWT chứa role
+            String token = jwtService.generateToken(
+                    user.getUsername(),
+                    role
+            );
+
+            return new LoginResponse(
+                    user.getUsername(),
+                    role,
+                    token
+            );
+
+        } catch (BusinessException e) {
+            throw e;
         } catch (Exception e) {
             throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
         }

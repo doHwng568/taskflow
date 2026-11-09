@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
     Alert,
     Button,
@@ -11,7 +11,7 @@ import {
     Row,
     Spinner,
 } from "react-bootstrap";
-
+import { jwtDecode } from "jwt-decode";
 import { useNavigate } from "react-router-dom";
 import workspaceService from "../services/workspaceService";
 
@@ -22,6 +22,42 @@ const EMPTY_FORM = {
 
 function MainWorkspace() {
     const navigate = useNavigate();
+
+    // Lấy role từ localStorage hoặc JWT
+const getCurrentUserRole = () => {
+    const savedRole = localStorage.getItem("userRole");
+
+    if (savedRole) {
+        return savedRole.startsWith("ROLE_")
+            ? savedRole.substring(5)
+            : savedRole;
+    }
+
+    const token = localStorage.getItem("accessToken");
+
+    if (!token) return "";
+
+    try {
+        const decoded = jwtDecode(token);
+        let role = decoded.role || "";
+
+        if (role.startsWith("ROLE_")) {
+            role = role.substring(5);
+        }
+
+        if (role) {
+            localStorage.setItem("userRole", role);
+        }
+
+        return role;
+    } catch (error) {
+        console.error("Cannot get user role:", error);
+        return "";
+    }
+};
+
+const userRole = getCurrentUserRole();
+const isPM = userRole === "PM";
 
     const [workspaces, setWorkspaces] = useState([]);
     const [search, setSearch] = useState("");
@@ -35,16 +71,20 @@ function MainWorkspace() {
     const [saving, setSaving] = useState(false);
 
     const [error, setError] = useState("");
+    const [success, setSuccess] = useState("");
 
-    // Load Workspace
-    const loadWorkspaces = async () => {
+    // =====================================
+    // LOAD WORKSPACES
+    // =====================================
+
+    const loadWorkspaces = useCallback(async () => {
         try {
             setLoading(true);
             setError("");
 
             const data = await workspaceService.getAll();
 
-            setWorkspaces(data || []);
+            setWorkspaces(Array.isArray(data) ? data : []);
         } catch (err) {
             setError(
                 err.response?.data?.message ||
@@ -53,29 +93,45 @@ function MainWorkspace() {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
     useEffect(() => {
         loadWorkspaces();
-    }, []);
+    }, [loadWorkspaces]);
 
-    // Search
-    const filteredWorkspaces = workspaces.filter((workspace) =>
-        `${workspace.name} ${workspace.description || ""}`
-            .toLowerCase()
-            .includes(search.toLowerCase())
-    );
+    // =====================================
+    // SEARCH
+    // =====================================
 
-    // Open Create
+    const filteredWorkspaces = useMemo(() => {
+        return workspaces.filter((workspace) =>
+            `${workspace.name || ""} ${workspace.description || ""}`
+                .toLowerCase()
+                .includes(search.toLowerCase())
+        );
+    }, [workspaces, search]);
+
+    // =====================================
+    // OPEN CREATE MODAL
+    // =====================================
+
     const openCreate = () => {
+        if (!isPM) return;
+
         setForm(EMPTY_FORM);
         setEditingId(null);
         setError("");
+        setSuccess("");
         setShowModal(true);
     };
 
-    // Open Edit
+    // =====================================
+    // OPEN EDIT MODAL
+    // =====================================
+
     const openEdit = (workspace) => {
+        if (!isPM) return;
+
         setForm({
             name: workspace.name || "",
             description: workspace.description || "",
@@ -83,21 +139,34 @@ function MainWorkspace() {
 
         setEditingId(workspace.id);
         setError("");
+        setSuccess("");
         setShowModal(true);
     };
 
-    // Close Modal
+    // =====================================
+    // CLOSE MODAL
+    // =====================================
+
     const closeModal = () => {
         if (saving) return;
 
         setShowModal(false);
         setForm(EMPTY_FORM);
         setEditingId(null);
+        setError("");
     };
 
-    // Create / Update
+    // =====================================
+    // CREATE / UPDATE WORKSPACE
+    // =====================================
+
     const handleSubmit = async (event) => {
         event.preventDefault();
+
+        if (!isPM) {
+            setError("You do not have permission to manage Workspaces.");
+            return;
+        }
 
         if (!form.name.trim()) {
             setError("Workspace name is required.");
@@ -107,6 +176,7 @@ function MainWorkspace() {
         try {
             setSaving(true);
             setError("");
+            setSuccess("");
 
             const data = {
                 name: form.name.trim(),
@@ -115,8 +185,10 @@ function MainWorkspace() {
 
             if (editingId !== null) {
                 await workspaceService.update(editingId, data);
+                setSuccess("Workspace updated successfully.");
             } else {
                 await workspaceService.create(data);
+                setSuccess("Workspace created successfully.");
             }
 
             setShowModal(false);
@@ -135,52 +207,73 @@ function MainWorkspace() {
         }
     };
 
-    // Delete
+    // =====================================
+    // DELETE WORKSPACE
+    // =====================================
+
     const handleDelete = async (workspace) => {
+        if (!isPM) return;
+
         const confirmed = window.confirm(
-            `Delete Workspace "${workspace.name}"?`
+            `Are you sure you want to delete Workspace "${workspace.name}"?`
         );
 
         if (!confirmed) return;
 
         try {
             setError("");
+            setSuccess("");
+            setSaving(true);
 
             await workspaceService.delete(workspace.id);
+
+            setSuccess("Workspace deleted successfully.");
 
             await loadWorkspaces();
 
         } catch (err) {
             setError(
                 err.response?.data?.message ||
-                "Unable to delete Workspace."
+                "Unable to delete Workspace. Please check whether it contains Areas."
             );
+        } finally {
+            setSaving(false);
         }
     };
+
+    // =====================================
+    // RENDER
+    // =====================================
 
     return (
         <Container className="py-5">
 
-            {/* Header */}
-            <div className="d-flex justify-content-between align-items-center mb-4">
+            {/* HEADER */}
+            <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
 
                 <div>
                     <h2 className="fw-bold">
                         My Workspaces
                     </h2>
 
-                    <p className="text-secondary">
+                    <p className="text-secondary mb-0">
                         Manage your workspaces in TaskFlow.
                     </p>
+
+                    <small className="text-muted">
+                        Your role: <strong>{userRole || "Unknown"}</strong>
+                    </small>
                 </div>
 
-                <Button onClick={openCreate}>
-                    + Create Workspace
-                </Button>
+                {isPM && (
+                    <Button onClick={openCreate}>
+                        + Create Workspace
+                    </Button>
+                )}
 
             </div>
 
-            {/* Error */}
+            {/* ERROR */}
             {error && (
                 <Alert
                     variant="danger"
@@ -191,7 +284,18 @@ function MainWorkspace() {
                 </Alert>
             )}
 
-            {/* Search */}
+            {/* SUCCESS */}
+            {success && (
+                <Alert
+                    variant="success"
+                    dismissible
+                    onClose={() => setSuccess("")}
+                >
+                    {success}
+                </Alert>
+            )}
+
+            {/* SEARCH */}
             <Form.Control
                 className="mb-4"
                 style={{ maxWidth: 420 }}
@@ -200,25 +304,36 @@ function MainWorkspace() {
                 onChange={(e) => setSearch(e.target.value)}
             />
 
-            {/* Loading */}
+            {/* LOADING */}
             {loading ? (
 
                 <div className="text-center py-5">
                     <Spinner animation="border" />
-                    <p className="mt-2">Loading Workspaces...</p>
+
+                    <p className="mt-2">
+                        Loading Workspaces...
+                    </p>
                 </div>
 
             ) : filteredWorkspaces.length === 0 ? (
 
+                /* EMPTY STATE */
+
                 <div className="border rounded-4 text-center p-5">
 
-                    <h5>No Workspaces found</h5>
+                    <h5>
+                        {search
+                            ? "No matching Workspaces"
+                            : "No Workspaces found"}
+                    </h5>
 
                     <p className="text-secondary">
-                        Create your first Workspace.
+                        {search
+                            ? "Try another search keyword."
+                            : "You have not joined any Workspace yet."}
                     </p>
 
-                    {!search && (
+                    {!search && isPM && (
                         <Button onClick={openCreate}>
                             Create Workspace
                         </Button>
@@ -227,6 +342,8 @@ function MainWorkspace() {
                 </div>
 
             ) : (
+
+                /* WORKSPACE LIST */
 
                 <Row className="g-4">
 
@@ -243,26 +360,42 @@ function MainWorkspace() {
 
                                 <Card.Body className="d-flex flex-column">
 
-                                    <div className="d-flex justify-content-between">
+                                    {/* WORKSPACE NAME + ROLE */}
+
+                                    <div className="d-flex justify-content-between align-items-start gap-2">
 
                                         <Card.Title className="fw-bold">
                                             {workspace.name}
                                         </Card.Title>
 
                                         <span className="badge bg-primary">
-                                            {workspace.currentUserRole}
+                                            {workspace.currentUserRole || userRole}
                                         </span>
 
                                     </div>
+
+                                    {/* DESCRIPTION */}
 
                                     <Card.Text className="text-secondary flex-grow-1">
                                         {workspace.description ||
                                             "No description provided."}
                                     </Card.Text>
 
-                                    <small className="text-secondary mb-3">
-                                        Members: {workspace.memberCount || 0}
-                                    </small>
+                                    {/* WORKSPACE INFORMATION */}
+
+                                    <div className="mb-3">
+
+                                        <small className="text-secondary d-block">
+                                            Owner: {workspace.ownerUsername || "-"}
+                                        </small>
+
+                                        <small className="text-secondary d-block">
+                                            Members: {workspace.memberCount || 0}
+                                        </small>
+
+                                    </div>
+
+                                    {/* ACTIONS */}
 
                                     <div className="d-flex flex-wrap gap-2">
 
@@ -277,23 +410,27 @@ function MainWorkspace() {
                                             Open
                                         </Button>
 
-                                        {(workspace.currentUserRole === "OWNER" ||
-                                            workspace.currentUserRole === "ADMIN") && (
-                                            <Button
-                                                variant="outline-primary"
-                                                onClick={() => openEdit(workspace)}
-                                            >
-                                                Edit
-                                            </Button>
-                                        )}
+                                        {isPM && (
+                                            <>
+                                                <Button
+                                                    variant="outline-primary"
+                                                    onClick={() =>
+                                                        openEdit(workspace)
+                                                    }
+                                                >
+                                                    Edit
+                                                </Button>
 
-                                        {workspace.currentUserRole === "OWNER" && (
-                                            <Button
-                                                variant="outline-danger"
-                                                onClick={() => handleDelete(workspace)}
-                                            >
-                                                Delete
-                                            </Button>
+                                                <Button
+                                                    variant="outline-danger"
+                                                    disabled={saving}
+                                                    onClick={() =>
+                                                        handleDelete(workspace)
+                                                    }
+                                                >
+                                                    Delete
+                                                </Button>
+                                            </>
                                         )}
 
                                     </div>
@@ -310,7 +447,8 @@ function MainWorkspace() {
 
             )}
 
-            {/* Create / Update Modal */}
+            {/* CREATE / UPDATE MODAL */}
+
             <Modal
                 show={showModal}
                 onHide={closeModal}
@@ -351,6 +489,7 @@ function MainWorkspace() {
                                         name: e.target.value,
                                     })
                                 }
+                                placeholder="Enter Workspace name"
                             />
 
                         </Form.Group>
@@ -371,6 +510,7 @@ function MainWorkspace() {
                                         description: e.target.value,
                                     })
                                 }
+                                placeholder="Enter Workspace description"
                             />
 
                         </Form.Group>
@@ -391,7 +531,17 @@ function MainWorkspace() {
                             type="submit"
                             disabled={saving}
                         >
-                            {saving ? "Saving..." : "Save"}
+                            {saving ? (
+                                <>
+                                    <Spinner
+                                        size="sm"
+                                        className="me-2"
+                                    />
+                                    Saving...
+                                </>
+                            ) : (
+                                "Save"
+                            )}
                         </Button>
 
                     </Modal.Footer>
