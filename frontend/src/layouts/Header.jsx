@@ -49,9 +49,14 @@ function Header() {
                   Hello, <strong className="text-dark">{username}</strong> {role && <span className="badge bg-secondary ms-1">{role}</span>}
                 </span>
                 {role === 'PM' && (
-                  <Nav.Link as={Link} to="/permissions" className="btn btn-outline-primary btn-sm px-3">
-                    Phân quyền
-                  </Nav.Link>
+                  <>
+                    <Nav.Link as={Link} to="/users" className="btn btn-outline-primary btn-sm px-3">
+                      Quản lý nhân viên
+                    </Nav.Link>
+                    <Nav.Link as={Link} to="/permissions" className="btn btn-outline-primary btn-sm px-3">
+                      Phân quyền
+                    </Nav.Link>
+                  </>
                 )}
                 <Nav.Link as={Link} to="/logout" className="btn btn-outline-danger btn-sm px-3">
                   Logout
