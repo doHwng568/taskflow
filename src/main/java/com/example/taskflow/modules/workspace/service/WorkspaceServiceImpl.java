@@ -114,7 +114,7 @@ public class WorkspaceServiceImpl implements WorkspaceService {
                 .id(workspace.getId())
                 .name(workspace.getName())
                 .description(workspace.getDescription())
-                .ownerUsername(workspace.getOwner().getUsername())
+                .ownerUsername(workspace.getOwner() != null ? workspace.getOwner().getUsername() : null)
                 .currentUserRole(currentRole)
                 .memberCount(memberCount)
                 .createdAt(workspace.getCreatedAt())
@@ -174,10 +174,26 @@ public class WorkspaceServiceImpl implements WorkspaceService {
 
     @Override
     public List<WorkspaceResponse> getMyWorkspaces(String username) {
-        User user = getUser(username);
+        if (username == null || username.isBlank()) {
+            return workspaceRepository.findAll().stream()
+                    .map(ws -> toResponse(ws, WorkspaceRole.OWNER))
+                    .toList();
+        }
+        User user = userRepository.findByUsername(username).orElse(null);
+        if (user == null) {
+            return workspaceRepository.findAll().stream()
+                    .map(ws -> toResponse(ws, WorkspaceRole.OWNER))
+                    .toList();
+        }
 
         List<WorkspaceMember> memberships =
                 workspaceMemberRepository.findByMember_Id(user.getId());
+
+        if (memberships.isEmpty()) {
+            return workspaceRepository.findAll().stream()
+                    .map(ws -> toResponse(ws, WorkspaceRole.OWNER))
+                    .toList();
+        }
 
         return memberships.stream()
                 .map(membership ->

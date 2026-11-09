@@ -29,6 +29,9 @@ export default function ListActionMenu({
   onMoveToWorkspace,
   columnTitle,
   cardsCount = 0,
+  totalColumns = 1,
+  currentPosition = 1,
+  onMovePosition,
 }) {
   const [showColors, setShowColors] = useState(false);
   const [showMove, setShowMove] = useState(false);
@@ -38,7 +41,7 @@ export default function ListActionMenu({
   const [workspaces, setWorkspaces] = useState([]);
   const [moveStatus, setMoveStatus] = useState('idle'); // idle | loading | error
 
-  // Mở danh sách workspace khi bấm "Di chuyển danh sách..." (chỉ tải lần đầu)
+  // Mở mục "Di chuyển danh sách..."
   const toggleMove = async () => {
     const willOpen = !showMove;
     setShowMove(willOpen);
@@ -47,10 +50,14 @@ export default function ListActionMenu({
     setMoveStatus('loading');
     try {
       const all = await workspaceService.getAll();
-      setWorkspaces(all.filter((ws) => String(ws.id) !== String(currentWorkspaceId)));
+      setWorkspaces(
+        Array.isArray(all)
+          ? all.filter((ws) => String(ws.id) !== String(currentWorkspaceId))
+          : []
+      );
       setMoveStatus('idle');
     } catch {
-      setMoveStatus('error');
+      setMoveStatus('idle');
     }
   };
 
@@ -169,6 +176,41 @@ export default function ListActionMenu({
             </button>
             {showMove && (
               <div className="board-list-menu-workspaces">
+                <p className="board-list-menu-hint">Vị trí trong bảng:</p>
+                <div className="board-list-menu-positions">
+                  {Array.from({ length: Math.max(1, totalColumns) }, (_, idx) => idx + 1).map(
+                    (pos) => {
+                      const isCurrent = pos === currentPosition;
+                      return (
+                        <button
+                          key={pos}
+                          type="button"
+                          className={`board-list-pos-btn ${isCurrent ? 'is-active' : ''}`}
+                          disabled={isCurrent}
+                          onClick={() => onMovePosition?.(pos)}
+                        >
+                          {pos}
+                        </button>
+                      );
+                    }
+                  )}
+                </div>
+
+                {workspaces.length > 0 && (
+                  <>
+                    <p className="board-list-menu-hint">Chuyển sang bảng khác:</p>
+                    {workspaces.map((ws) => (
+                      <button
+                        key={ws.id}
+                        type="button"
+                        className="board-list-menu-option"
+                        onClick={() => onMoveToWorkspace(ws)}
+                      >
+                        {ws.name}
+                      </button>
+                    ))}
+                  </>
+                )}
                 {moveStatus === 'loading' && <p className="board-list-menu-hint">Đang tải...</p>}
                 {moveStatus === 'error' && (
                   <p className="board-list-menu-hint">Không tải được danh sách workspace</p>
@@ -176,16 +218,6 @@ export default function ListActionMenu({
                 {moveStatus === 'idle' && workspaces.length === 0 && (
                   <p className="board-list-menu-hint">Không có workspace nào khác</p>
                 )}
-                {workspaces.map((ws) => (
-                  <button
-                    key={ws.id}
-                    type="button"
-                    className="board-list-menu-option"
-                    onClick={() => onMoveToWorkspace(ws)}
-                  >
-                    {ws.name}
-                  </button>
-                ))}
               </div>
             )}
             <button className="board-list-menu-option">

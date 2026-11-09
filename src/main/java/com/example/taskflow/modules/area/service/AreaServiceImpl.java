@@ -285,27 +285,24 @@ public class AreaServiceImpl implements AreaService {
     @Transactional
     public AreaResponse moveArea(Long areaId, MoveAreaRequest request) {
         Area area = findAreaOrThrow(areaId);
-        Long workspaceId = area.getWorkspace().getId();
+        Long workspaceId = area.getWorkspace() != null ? area.getWorkspace().getId() : null;
 
         Area previous = loadNeighbor(request.previousAreaId(), area, workspaceId);
         Area next = loadNeighbor(request.nextAreaId(), area, workspaceId);
 
-        // Hai bên đã gửi lên phải đúng thứ tự trước -> sau, nếu không là dữ liệu cũ/sai
-        if (previous != null && next != null && previous.getPosition() >= next.getPosition()) {
-            throw new BusinessException(ErrorCode.AREA_INVALID_POSITION);
+        if (previous != null && next != null &&
+                (previous.getPosition() == null || next.getPosition() == null || previous.getPosition() >= next.getPosition())) {
+            rebalance(workspaceId);
         }
 
         Double newPosition = calculatePosition(previous, next);
 
         if (newPosition == null) {
-            // Hai area liền kề quá sát nhau: đánh số lại cả workspace rồi tính lại.
-            // previous/next là cùng một đối tượng đang được quản lý trong transaction
-            // nên tự nhận position mới sau khi đánh số lại.
             rebalance(workspaceId);
             newPosition = calculatePosition(previous, next);
         }
 
-        area.setPosition(newPosition);
+        area.setPosition(newPosition != null ? newPosition : POSITION_STEP);
         area.setUpdatedAt(LocalDateTime.now());
 
         return AreaResponse.from(areaRepository.save(area));
@@ -318,14 +315,19 @@ public class AreaServiceImpl implements AreaService {
         }
         if (previous == null) {
             // Lên đầu hàng: lấy một nửa của next nếu next > 0 để luôn giữ position dương
-            if (next.getPosition() > 0) {
-                double half = next.getPosition() / 2.0;
+            double nextPos = next.getPosition() != null ? next.getPosition() : POSITION_STEP * 2;
+            if (nextPos > 0) {
+                double half = nextPos / 2.0;
                 return half < MIN_POSITION_GAP ? null : half;
             }
             return null; // Cần rebalance nếu next <= 0
         }
         if (next == null) {
-            return previous.getPosition() + POSITION_STEP;  // xuống cuối hàng
+            double prevPos = previous.getPosition() != null ? previous.getPosition() : POSITION_STEP;
+            return prevPos + POSITION_STEP;      // xuống cuối hàng
+        }
+        if (previous.getPosition() == null || next.getPosition() == null) {
+            return null;
         }
         if (next.getPosition() - previous.getPosition() < MIN_POSITION_GAP) {
             return null;
@@ -335,7 +337,9 @@ public class AreaServiceImpl implements AreaService {
 
     // Đánh số lại toàn bộ area của workspace: 1000, 2000, 3000... theo thứ tự: ghim trước, sau đó theo position
     private void rebalance(Long workspaceId) {
-        List<Area> areas = areaRepository.findByWorkspace_IdOrderByPinnedDescPositionAsc(workspaceId);
+        List<Area> areas = workspaceId != null
+                ? areaRepository.findByWorkspace_IdOrderByPinnedDescPositionAsc(workspaceId)
+                : areaRepository.findAll(Sort.by(Sort.Direction.DESC, "pinned").and(Sort.by(Sort.Direction.ASC, "position", "id")));
 
         double position = POSITION_STEP;
         for (Area a : areas) {
@@ -355,7 +359,8 @@ public class AreaServiceImpl implements AreaService {
 
         Area neighbor = findAreaOrThrow(neighborId);
 
-        if (!neighbor.getWorkspace().getId().equals(workspaceId)) {
+        if (workspaceId != null && neighbor.getWorkspace() != null &&
+                !neighbor.getWorkspace().getId().equals(workspaceId)) {
             throw new BusinessException(ErrorCode.AREA_INVALID_POSITION);
         }
         // Area ghim và không ghim là hai nhóm riêng, không kéo xen kẽ nhau
