@@ -67,7 +67,7 @@ function Login() {
                 message:
                     err.response?.data?.message ||
                     err.message ||
-                    "Đăng nhập thất bại.",
+                    "Login failed.",
                 errors: err.response?.data?.errors || [],
             });
         }
@@ -86,7 +86,6 @@ function Login() {
 
             <div className="auth-page-wrapper">
                 <div className="auth-modal-card">
-                    {/* Thanh tiêu đề giống ảnh mẫu */}
                     <div className="auth-modal-header">
                         <h2 className="auth-modal-title">
                             <svg
@@ -98,14 +97,14 @@ function Login() {
                             >
                                 <path d="M12 12c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm0 2c-3.33 0-10 1.67-10 5v3h20v-3c0-3.33-6.67-5-10-5z" />
                             </svg>
-                            Đăng nhập
+                            Login
                         </h2>
 
                         <Link
                             to="/home"
                             className="auth-modal-close"
-                            aria-label="Đóng"
-                            title="Về trang chủ"
+                            aria-label="Close"
+                            title="Back to Home"
                         >
                             ×
                         </Link>
@@ -119,20 +118,19 @@ function Login() {
                         )}
 
                         <form onSubmit={handleSubmit}>
-                            {/* Tên đăng nhập */}
                             <div className="auth-field-group">
                                 <label
                                     htmlFor="loginUsername"
                                     className="auth-field-label"
                                 >
-                                    Tên đăng nhập
+                                    Username
                                 </label>
                                 <input
                                     id="loginUsername"
                                     type="text"
                                     name="username"
                                     className="auth-input"
-                                    placeholder="Nhập tên đăng nhập"
+                                    placeholder="Enter username"
                                     value={form.username}
                                     onChange={handleChange}
                                     required
@@ -144,13 +142,12 @@ function Login() {
                                 )}
                             </div>
 
-                            {/* Mật khẩu + nút con mắt ẩn/hiện */}
                             <div className="auth-field-group">
                                 <label
                                     htmlFor="loginPassword"
                                     className="auth-field-label"
                                 >
-                                    Mật khẩu
+                                    Password
                                 </label>
                                 <div className="auth-password-group">
                                     <input
@@ -171,13 +168,13 @@ function Login() {
                                         }
                                         aria-label={
                                             showPassword
-                                                ? "Ẩn mật khẩu"
-                                                : "Hiện mật khẩu"
+                                                ? "Hide password"
+                                                : "Show password"
                                         }
                                         title={
                                             showPassword
-                                                ? "Ẩn mật khẩu"
-                                                : "Hiện mật khẩu"
+                                                ? "Hide password"
+                                                : "Show password"
                                         }
                                     >
                                         <svg
@@ -210,7 +207,6 @@ function Login() {
                                 )}
                             </div>
 
-                            {/* Duy trì đăng nhập */}
                             <label className="auth-remember-row">
                                 <input
                                     type="checkbox"
@@ -219,20 +215,18 @@ function Login() {
                                         setRememberMe(e.target.checked)
                                     }
                                 />
-                                <span>Duy trì đăng nhập</span>
+                                <span>Remember me</span>
                             </label>
 
-                            {/* Chuyển sang Đăng ký */}
                             <div className="auth-switch-row">
                                 <Link to="/register" className="auth-switch-link">
-                                    Đăng ký
+                                    Register
                                 </Link>{" "}
-                                nếu bạn chưa có tài khoản
+                                if you don't have an account
                             </div>
 
-                            {/* Nút Đăng nhập màu đỏ cam */}
                             <button type="submit" className="auth-submit-btn">
-                                Đăng nhập
+                                Login
                             </button>
                         </form>
                     </div>

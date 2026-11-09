@@ -11,7 +11,7 @@ function ThemeToggle() {
             type="button"
             className="tf-header-btn"
             onClick={toggleTheme}
-            title={isDark ? "Chuyển sang giao diện Sáng" : "Chuyển sang giao diện Tối"}
+            title={isDark ? "Switch to Light mode" : "Switch to Dark mode"}
             aria-label="Toggle theme"
         >
             {isDark ? "☀ Light" : "☾ Dark"}

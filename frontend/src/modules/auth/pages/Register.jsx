@@ -57,14 +57,14 @@ function Register() {
                             >
                                 <path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
                             </svg>
-                            Đăng ký tài khoản
+                            Register
                         </h2>
 
                         <Link
                             to="/home"
                             className="auth-modal-close"
-                            aria-label="Đóng"
-                            title="Về trang chủ"
+                            aria-label="Close"
+                            title="Back to Home"
                         >
                             ×
                         </Link>
@@ -83,14 +83,14 @@ function Register() {
                                     htmlFor="registerUsername"
                                     className="auth-field-label"
                                 >
-                                    Tên đăng nhập
+                                    Username
                                 </label>
                                 <input
                                     id="registerUsername"
                                     type="text"
                                     name="username"
                                     className="auth-input"
-                                    placeholder="Nhập tên đăng nhập"
+                                    placeholder="Enter username"
                                     value={form.username}
                                     onChange={handleChange}
                                     required
@@ -107,7 +107,7 @@ function Register() {
                                     htmlFor="registerPassword"
                                     className="auth-field-label"
                                 >
-                                    Mật khẩu
+                                    Password
                                 </label>
                                 <div className="auth-password-group">
                                     <input
@@ -115,7 +115,7 @@ function Register() {
                                         type={showPassword ? "text" : "password"}
                                         name="password"
                                         className="auth-input"
-                                        placeholder="Nhập mật khẩu"
+                                        placeholder="Enter password"
                                         value={form.password}
                                         onChange={handleChange}
                                         required
@@ -128,8 +128,13 @@ function Register() {
                                         }
                                         aria-label={
                                             showPassword
-                                                ? "Ẩn mật khẩu"
-                                                : "Hiện mật khẩu"
+                                                ? "Hide password"
+                                                : "Show password"
+                                        }
+                                        title={
+                                            showPassword
+                                                ? "Hide password"
+                                                : "Show password"
                                         }
                                     >
                                         <svg
@@ -163,14 +168,14 @@ function Register() {
                             </div>
 
                             <div className="auth-switch-row mt-3">
-                                Đã có tài khoản?{" "}
+                                Already have an account?{" "}
                                 <Link to="/login" className="auth-switch-link">
-                                    Đăng nhập
+                                    Login
                                 </Link>
                             </div>
 
                             <button type="submit" className="auth-submit-btn">
-                                Đăng ký
+                                Register
                             </button>
                         </form>
                     </div>
