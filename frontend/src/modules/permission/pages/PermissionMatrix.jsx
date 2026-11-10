@@ -82,7 +82,7 @@ export default function PermissionMatrix() {
         <div>
           <h3 className="fw-bold text-primary mb-1">Quản Lý Phân Quyền</h3>
         </div>
-        <Link to="/home" className="btn btn-outline-secondary btn-sm">
+        <Link to="/home" className="btn btn-warning btn-sm">
           Về Trang Chủ
         </Link>
       </div>
