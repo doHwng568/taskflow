@@ -11,7 +11,7 @@ public interface UserService {
 
     List<UserResponse> getAllUsers();
 
-    UserResponse updateUserRole(Long userId, Role newRole, String currentUsername);
+    UserResponse updateUserRole(Long userId, Role newRole);
 
     UserResponse getProfile(String username);
 
