@@ -4,7 +4,7 @@ import com.example.taskflow.common.enums.Role;
 import com.example.taskflow.entity.RolePermission;
 import com.example.taskflow.entity.User;
 import com.example.taskflow.modules.permission.repository.RolePermissionRepository;
-import com.example.taskflow.user.UserRepository;
+import com.example.taskflow.modules.user.UserRepository;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -12,7 +12,6 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 @Service

@@ -1,4 +1,4 @@
-package com.example.taskflow.user;
+package com.example.taskflow.modules.user;
 
 import com.example.taskflow.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;

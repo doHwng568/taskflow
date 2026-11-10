@@ -1,11 +1,11 @@
-package com.example.taskflow.user;
+package com.example.taskflow.modules.user;
 
 import com.example.taskflow.common.dto.ApiResponse;
-import com.example.taskflow.user.dto.request.ChangePasswordRequest;
-import com.example.taskflow.user.dto.request.UpdateProfileRequest;
-import com.example.taskflow.user.dto.request.UpdateUserRoleRequest;
-import com.example.taskflow.user.dto.response.UserResponse;
-import com.example.taskflow.user.service.UserService;
+import com.example.taskflow.modules.user.dto.request.ChangePasswordRequest;
+import com.example.taskflow.modules.user.dto.request.UpdateProfileRequest;
+import com.example.taskflow.modules.user.dto.request.UpdateUserRoleRequest;
+import com.example.taskflow.modules.user.dto.response.UserResponse;
+import com.example.taskflow.modules.user.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;

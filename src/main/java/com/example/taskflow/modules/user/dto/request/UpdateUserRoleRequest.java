@@ -1,4 +1,4 @@
-package com.example.taskflow.user.dto.request;
+package com.example.taskflow.modules.user.dto.request;
 
 import com.example.taskflow.common.enums.Role;
 import jakarta.validation.constraints.NotNull;
