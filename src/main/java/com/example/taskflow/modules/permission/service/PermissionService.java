@@ -5,10 +5,9 @@ import com.example.taskflow.modules.permission.dto.response.PermissionMatrixResp
 
 public interface PermissionService {
 
-    // Lấy toàn bộ 12 quyền và ma trận quyền hiện tại
+    // get matrix permission
     PermissionMatrixResponse getMatrix();
 
-    // Lưu ma trận phân quyền mới vào database
+    // update matrix permission
     void updateMatrix(UpdatePermissionMatrixRequest request);
 }
-

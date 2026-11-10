@@ -38,17 +38,12 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public UserResponse updateUserRole(Long userId, Role newRole, String currentUsername) {
-        // 1. Tìm user theo id
+    public UserResponse updateUserRole(Long userId, Role newRole) {
+        // get user by id
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
-        // 2. Chặn không cho PM tự đổi role của chính mình
-        if (user.getUsername().equalsIgnoreCase(currentUsername)) {
-            throw new BusinessException(ErrorCode.CANNOT_CHANGE_OWN_ROLE);
-        }
-
-        // 3. Cập nhật role mới
+        // update role
         user.setRole(newRole);
         User savedUser = userRepository.save(user);
 
@@ -71,7 +66,7 @@ public class UserServiceImpl implements UserService {
 
         String newEmail = request.email().trim();
 
-        // Nếu email thay đổi, kiểm tra xem email mới đã được user khác sử dụng chưa
+        // check valid email
         if (user.getEmail() == null || !user.getEmail().equalsIgnoreCase(newEmail)) {
             userRepository.findByEmailIgnoreCase(newEmail).ifPresent(existingUser -> {
                 if (!existingUser.getId().equals(user.getId())) {
@@ -93,12 +88,12 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
-        // Kiểm tra mật khẩu cũ có khớp không
+        // check old password
         if (!passwordEncoder.matches(request.oldPassword(), user.getPassword())) {
             throw new BusinessException(ErrorCode.OLD_PASSWORD_INCORRECT);
         }
 
-        // Mã hóa và lưu mật khẩu mới
+        // save new password
         user.setPassword(passwordEncoder.encode(request.newPassword()));
         userRepository.save(user);
     }

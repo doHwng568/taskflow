@@ -13,7 +13,6 @@ import com.example.taskflow.security.JwtService;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -59,17 +58,13 @@ public class AuthService implements AuthServiceImpl {
                     )
             );
 
-            // Lấy User trực tiếp từ database
+            // if authen ok -> get user
             User user = authRepository.findByUsername(authentication.getName());
 
-            if (user == null || user.getRole() == null) {
-                throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
-            }
-
-            // Lấy role trực tiếp từ bảng users
+            // get role
             String role = user.getRole().name();
 
-            // Tạo JWT chứa role
+            // generate access token
             String token = jwtService.generateToken(
                     user.getUsername(),
                     role
@@ -81,8 +76,6 @@ public class AuthService implements AuthServiceImpl {
                     token
             );
 
-        } catch (BusinessException e) {
-            throw e;
         } catch (Exception e) {
             throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
         }

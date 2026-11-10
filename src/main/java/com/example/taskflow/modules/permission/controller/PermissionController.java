@@ -19,7 +19,7 @@ public class PermissionController {
         this.permissionService = permissionService;
     }
 
-    // Lấy dữ liệu ma trận phân quyền (Chỉ PM mới có quyền xem)
+    // get matrix permission
     @PreAuthorize("hasRole('PM')")
     @GetMapping("/matrix")
     public ResponseEntity<ApiResponse<PermissionMatrixResponse>> getMatrix() {
@@ -27,14 +27,12 @@ public class PermissionController {
         return ResponseEntity.ok(ApiResponse.success(response, "Get permission matrix successfully"));
     }
 
-    // Cập nhật ma trận phân quyền mới vào Database (Chỉ PM mới có quyền sửa)
+    // update matrix permission
     @PreAuthorize("hasRole('PM')")
     @PutMapping("/matrix")
     public ResponseEntity<ApiResponse<Void>> updateMatrix(
-            @Valid @RequestBody UpdatePermissionMatrixRequest request
-    ) {
+            @Valid @RequestBody UpdatePermissionMatrixRequest request) {
         permissionService.updateMatrix(request);
         return ResponseEntity.ok(ApiResponse.success(null, "Update permission matrix successfully"));
     }
 }
-

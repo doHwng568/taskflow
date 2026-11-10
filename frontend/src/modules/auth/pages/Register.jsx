@@ -11,7 +11,6 @@ function Register() {
         username: "",
         password: "",
     });
-    const [showPassword, setShowPassword] = useState(false);
     const [response, setResponse] = useState("");
 
     const handleSubmit = async (e) => {
@@ -112,7 +111,7 @@ function Register() {
                                 <div className="auth-password-group">
                                     <input
                                         id="registerPassword"
-                                        type={showPassword ? "text" : "password"}
+                                        type="password"
                                         name="password"
                                         className="auth-input"
                                         placeholder="Enter password"
@@ -120,45 +119,6 @@ function Register() {
                                         onChange={handleChange}
                                         required
                                     />
-                                    <button
-                                        type="button"
-                                        className="auth-password-toggle"
-                                        onClick={() =>
-                                            setShowPassword((prev) => !prev)
-                                        }
-                                        aria-label={
-                                            showPassword
-                                                ? "Hide password"
-                                                : "Show password"
-                                        }
-                                        title={
-                                            showPassword
-                                                ? "Hide password"
-                                                : "Show password"
-                                        }
-                                    >
-                                        <svg
-                                            width="15"
-                                            height="15"
-                                            viewBox="0 0 24 24"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            strokeWidth="2"
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                        >
-                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                                            <circle cx="12" cy="12" r="3" />
-                                            {showPassword && (
-                                                <line
-                                                    x1="2"
-                                                    y1="2"
-                                                    x2="22"
-                                                    y2="22"
-                                                />
-                                            )}
-                                        </svg>
-                                    </button>
                                 </div>
                                 {passwordError && (
                                     <div className="auth-field-error">

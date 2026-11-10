@@ -23,8 +23,7 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     public CustomUserDetailsService(
             UserRepository userRepository,
-            RolePermissionRepository rolePermissionRepository
-    ) {
+            RolePermissionRepository rolePermissionRepository) {
         this.userRepository = userRepository;
         this.rolePermissionRepository = rolePermissionRepository;
     }
@@ -38,10 +37,10 @@ public class CustomUserDetailsService implements UserDetailsService {
         List<SimpleGrantedAuthority> authorities = new ArrayList<>();
 
         if (role != null) {
-            // 1. Nạp Role (ROLE_PM, ROLE_LEADER, ROLE_DEV...)
+            // get role
             authorities.add(new SimpleGrantedAuthority("ROLE_" + role.name()));
 
-            // 2. Nạp toàn bộ Permissions từ Database mà Role này được gán
+            // get permission
             List<RolePermission> rolePermissions = rolePermissionRepository.findByRole(role);
             for (RolePermission rp : rolePermissions) {
                 authorities.add(new SimpleGrantedAuthority(rp.getPermission().getName()));
@@ -51,7 +50,6 @@ public class CustomUserDetailsService implements UserDetailsService {
         return new org.springframework.security.core.userdetails.User(
                 user.getUsername(),
                 user.getPassword(),
-                authorities
-        );
+                authorities);
     }
 }
