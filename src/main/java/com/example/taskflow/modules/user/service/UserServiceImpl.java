@@ -1,13 +1,13 @@
-package com.example.taskflow.user.service;
+package com.example.taskflow.modules.user.service;
 
 import com.example.taskflow.common.enums.ErrorCode;
 import com.example.taskflow.common.enums.Role;
 import com.example.taskflow.common.exception.BusinessException;
 import com.example.taskflow.entity.User;
-import com.example.taskflow.user.UserRepository;
-import com.example.taskflow.user.dto.request.ChangePasswordRequest;
-import com.example.taskflow.user.dto.request.UpdateProfileRequest;
-import com.example.taskflow.user.dto.response.UserResponse;
+import com.example.taskflow.modules.user.UserRepository;
+import com.example.taskflow.modules.user.dto.request.ChangePasswordRequest;
+import com.example.taskflow.modules.user.dto.request.UpdateProfileRequest;
+import com.example.taskflow.modules.user.dto.response.UserResponse;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

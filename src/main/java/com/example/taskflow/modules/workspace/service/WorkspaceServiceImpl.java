@@ -13,7 +13,7 @@ import com.example.taskflow.modules.workspace.dto.request.CreateWorkspaceRequest
 import com.example.taskflow.modules.workspace.dto.request.UpdateWorkspaceRequest;
 import com.example.taskflow.modules.workspace.dto.response.WorkspaceMemberResponse;
 import com.example.taskflow.modules.workspace.dto.response.WorkspaceResponse;
-import com.example.taskflow.user.UserRepository;
+import com.example.taskflow.modules.user.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

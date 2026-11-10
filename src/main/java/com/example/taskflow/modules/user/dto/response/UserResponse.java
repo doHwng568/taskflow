@@ -1,4 +1,4 @@
-package com.example.taskflow.user.dto.response;
+package com.example.taskflow.modules.user.dto.response;
 
 import com.example.taskflow.common.enums.Role;
 import com.example.taskflow.entity.User;

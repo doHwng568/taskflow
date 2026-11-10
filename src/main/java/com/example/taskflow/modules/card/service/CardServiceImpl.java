@@ -16,7 +16,7 @@ import com.example.taskflow.modules.card.repositories.CardRepository;
 import com.example.taskflow.modules.card.dto.*;
 import com.example.taskflow.modules.cardmovement.Repositories.CardMovementRepository;
 import com.example.taskflow.modules.workspace.Repositories.WorkspaceMemberRepository;
-import com.example.taskflow.user.UserRepository;
+import com.example.taskflow.modules.user.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

@@ -1,9 +1,9 @@
-package com.example.taskflow.user.service;
+package com.example.taskflow.modules.user.service;
 
 import com.example.taskflow.common.enums.Role;
-import com.example.taskflow.user.dto.request.ChangePasswordRequest;
-import com.example.taskflow.user.dto.request.UpdateProfileRequest;
-import com.example.taskflow.user.dto.response.UserResponse;
+import com.example.taskflow.modules.user.dto.request.ChangePasswordRequest;
+import com.example.taskflow.modules.user.dto.request.UpdateProfileRequest;
+import com.example.taskflow.modules.user.dto.response.UserResponse;
 
 import java.util.List;
 
