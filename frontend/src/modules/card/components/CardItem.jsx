@@ -3,7 +3,10 @@ import '../styles/Card.css';
 
 const formatShortDate = (dateString) => {
   if (!dateString) return '';
-  const [year, month, day] = dateString.split('-');
+  const cleanDate = dateString.includes('T') ? dateString.split('T')[0] : dateString;
+  const parts = cleanDate.split('-');
+  if (parts.length < 3) return cleanDate;
+  const [year, month, day] = parts;
   const currentYear = new Date().getFullYear();
   const base = `${Number(day)} thg ${Number(month)}`;
   return Number(year) !== currentYear ? `${base}, ${year}` : base;
@@ -12,11 +15,26 @@ const formatShortDate = (dateString) => {
 const getCardDateBadgeStatus = (card) => {
   if (!card.dueDate) return '';
   if (card.completed) return 'is-complete';
-  const target = new Date(`${card.dueDate}T${card.dueTime || '23:59'}:00`);
+  const cleanDate = card.dueDate.includes('T') ? card.dueDate.split('T')[0] : card.dueDate;
+  let timeStr = '23:59:00';
+  if (card.dueTime) {
+    const t = String(card.dueTime).trim();
+    timeStr = t.length === 5 ? `${t}:00` : t;
+  } else if (card.dueDate.includes('T')) {
+    const t = card.dueDate.split('T')[1];
+    if (t) timeStr = t.length >= 8 ? t.substring(0, 8) : (t.length === 5 ? `${t}:00` : '23:59:00');
+  }
+  const target = new Date(`${cleanDate}T${timeStr}`);
   const diffMs = target.getTime() - Date.now();
   if (diffMs < 0) return 'is-overdue';
   if (diffMs <= 48 * 60 * 60 * 1000) return 'is-due-soon';
   return '';
+};
+
+const getAssigneeInitial = (name) => {
+  if (!name) return '?';
+  const parts = name.trim().split(/\s+/);
+  return parts[parts.length - 1].charAt(0).toUpperCase();
 };
 
 export default function CardItem({
@@ -146,7 +164,7 @@ export default function CardItem({
           </span>
         )}
 
-        {(hasAnyDate || commentCount > 0) && (
+        {(hasAnyDate || commentCount > 0 || card.assigneeName) && (
           <span className="board-card-details">
             {hasAnyDate && (
               <span className={`board-card-due-date ${dateStatusClass}`.trim()}>
@@ -157,6 +175,15 @@ export default function CardItem({
               <span className="card-badge-item" aria-label={`${commentCount} nhận xét`} title="Nhận xét">
                 <CommentIcon size={16} />
                 <span className="card-badge-count">{commentCount}</span>
+              </span>
+            )}
+            {card.assigneeName && (
+              <span
+                className="board-card-assignee"
+                title={`Được giao cho: ${card.assigneeName}${card.assigneeRole ? ` (${card.assigneeRole})` : ''}`}
+                aria-label={`Người thực hiện: ${card.assigneeName}`}
+              >
+                {getAssigneeInitial(card.assigneeName)}
               </span>
             )}
           </span>
