@@ -4,10 +4,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Trả về toàn bộ danh mục 12 quyền và ma trận quyền hiện tại của từng vai trò
+ * get matrix permission
  */
 public record PermissionMatrixResponse(
-        List<PermissionResponse> permissions,
-        Map<String, List<String>> matrix
-) {}
-
+                List<PermissionResponse> permissions,
+                Map<String, List<String>> matrix) {
+}

@@ -1,11 +1,7 @@
 package com.example.taskflow.modules.card.controller;
 
 import com.example.taskflow.common.dto.ApiResponse;
-import com.example.taskflow.modules.card.dto.CardMovementResponse;
-import com.example.taskflow.modules.card.dto.CreateCardRequest;
-import com.example.taskflow.modules.card.dto.MoveCardRequest;
-import com.example.taskflow.modules.card.dto.UpdateCardRequest;
-import com.example.taskflow.modules.card.dto.CardResponse;
+import com.example.taskflow.modules.card.dto.*;
 import com.example.taskflow.modules.card.service.CardService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -45,8 +41,12 @@ public class CardController {
 
     @PreAuthorize("hasAuthority('CARD_CREATE')")
     @PostMapping
-    public ResponseEntity<ApiResponse<CardResponse>> createCard(@Valid @RequestBody CreateCardRequest request) {
-        CardResponse createdCard = cardService.createCard(request);
+    public ResponseEntity<ApiResponse<CardResponse>> createCard(
+            @Valid @RequestBody CreateCardRequest request,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        String username = userDetails != null ? userDetails.getUsername() : null;
+        CardResponse createdCard = cardService.createCard(request, username);
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(ApiResponse.success(createdCard, "Create card successfully"));
@@ -56,9 +56,11 @@ public class CardController {
     @PutMapping("/{cardId}")
     public ResponseEntity<ApiResponse<CardResponse>> updateCard(
             @PathVariable Long cardId,
-            @Valid @RequestBody UpdateCardRequest request
+            @Valid @RequestBody UpdateCardRequest request,
+            @AuthenticationPrincipal UserDetails userDetails
     ) {
-        CardResponse updatedCard = cardService.updateCard(cardId, request);
+        String username = userDetails != null ? userDetails.getUsername() : null;
+        CardResponse updatedCard = cardService.updateCard(cardId, request, username);
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(ApiResponse.success(updatedCard, "Update card successfully"));
@@ -86,17 +88,33 @@ public class CardController {
                 .body(ApiResponse.success(movements, "Get card movements successfully"));
     }
 
+    @GetMapping("/{cardId}/activities")
+    public ResponseEntity<ApiResponse<List<CardActivityResponse>>> getCardActivities(@PathVariable Long cardId) {
+        List<CardActivityResponse> activities = cardService.getCardActivities(cardId);
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(ApiResponse.success(activities, "Get card activities successfully"));
+    }
+
     @PatchMapping("/{cardId}/archive")
-    public ResponseEntity<ApiResponse<CardResponse>> archiveCard(@PathVariable Long cardId) {
-        CardResponse archivedCard = cardService.archiveCard(cardId);
+    public ResponseEntity<ApiResponse<CardResponse>> archiveCard(
+            @PathVariable Long cardId,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        String username = userDetails != null ? userDetails.getUsername() : null;
+        CardResponse archivedCard = cardService.archiveCard(cardId, username);
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(ApiResponse.success(archivedCard, "Archive card successfully"));
     }
 
     @PatchMapping("/{cardId}/restore")
-    public ResponseEntity<ApiResponse<CardResponse>> restoreCard(@PathVariable Long cardId) {
-        CardResponse restoredCard = cardService.restoreCard(cardId);
+    public ResponseEntity<ApiResponse<CardResponse>> restoreCard(
+            @PathVariable Long cardId,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        String username = userDetails != null ? userDetails.getUsername() : null;
+        CardResponse restoredCard = cardService.restoreCard(cardId, username);
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(ApiResponse.success(restoredCard, "Restore card successfully"));

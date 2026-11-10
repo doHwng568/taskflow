@@ -24,7 +24,7 @@ public class UserController {
         this.userService = userService;
     }
 
-    // 1. Lấy danh sách tất cả nhân viên (Chỉ PM)
+    // get list users
     @PreAuthorize("hasRole('PM')")
     @GetMapping
     public ResponseEntity<ApiResponse<List<UserResponse>>> getAllUsers() {
@@ -32,20 +32,17 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success(users, "Lấy danh sách người dùng thành công"));
     }
 
-    // 2. Cập nhật vai trò (Role) cho một nhân viên (Chỉ PM)
+    // update role
     @PreAuthorize("hasRole('PM')")
     @PutMapping("/{id}/role")
     public ResponseEntity<ApiResponse<UserResponse>> updateUserRole(
             @PathVariable Long id,
-            @Valid @RequestBody UpdateUserRoleRequest request,
-            Authentication authentication
-    ) {
-        String currentUsername = authentication.getName();
-        UserResponse updatedUser = userService.updateUserRole(id, request.role(), currentUsername);
+            @Valid @RequestBody UpdateUserRoleRequest request) {
+        UserResponse updatedUser = userService.updateUserRole(id, request.role());
         return ResponseEntity.ok(ApiResponse.success(updatedUser, "Cập nhật vai trò thành công"));
     }
 
-    // 3. Xem thông tin cá nhân (Profile) của chính mình
+    // profile
     @GetMapping("/profile")
     public ResponseEntity<ApiResponse<UserResponse>> getProfile(Authentication authentication) {
         String currentUsername = authentication.getName();
@@ -53,23 +50,21 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success(profile, "Lấy thông tin cá nhân thành công"));
     }
 
-    // 4. Cập nhật thông tin cá nhân (Họ và tên)
+    // update profile
     @PutMapping("/profile")
     public ResponseEntity<ApiResponse<UserResponse>> updateProfile(
             @Valid @RequestBody UpdateProfileRequest request,
-            Authentication authentication
-    ) {
+            Authentication authentication) {
         String currentUsername = authentication.getName();
         UserResponse updatedProfile = userService.updateProfile(currentUsername, request);
         return ResponseEntity.ok(ApiResponse.success(updatedProfile, "Cập nhật thông tin cá nhân thành công"));
     }
 
-    // 5. Đổi mật khẩu
+    // change password
     @PutMapping("/change-password")
     public ResponseEntity<ApiResponse<Void>> changePassword(
             @Valid @RequestBody ChangePasswordRequest request,
-            Authentication authentication
-    ) {
+            Authentication authentication) {
         String currentUsername = authentication.getName();
         userService.changePassword(currentUsername, request);
         return ResponseEntity.ok(ApiResponse.success(null, "Đổi mật khẩu thành công"));

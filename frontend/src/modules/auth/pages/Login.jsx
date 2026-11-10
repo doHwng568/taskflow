@@ -1,134 +1,187 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Container, Row, Col, Card, Form, Button, Alert } from "react-bootstrap";
+import { Alert } from "react-bootstrap";
+import { jwtDecode } from "jwt-decode";
 import api from "../../../services/api";
+import Header from "../../../layouts/Header";
 
 function Login() {
-  const navigate = useNavigate();
+    const navigate = useNavigate();
 
-  const [form, setForm] = useState({
-    username: "",
-    password: "",
-  });
+    const [form, setForm] = useState({
+        username: "",
+        password: "",
+    });
+    const [response, setResponse] = useState(null);
 
-  const [response, setResponse] = useState("");
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setForm((prev) => ({
+            ...prev,
+            [name]: value,
+        }));
+    };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setResponse(null);
 
-    try {
-      const res = await api.post("/auth/login", form);
+        try {
+            const res = await api.post("/auth/login", form);
+            const loginData = res.data?.data;
 
-      const accessToken = res.data.data.accessToken;
-      localStorage.setItem("accessToken", accessToken);
+            if (!loginData?.accessToken) {
+                throw new Error("Backend did not return accessToken.");
+            }
 
-      navigate("/home");
-    } catch (err) {
-      setResponse(err.response?.data || "");
-    }
-  };
+            const token = loginData.accessToken;
+            let role = loginData.role;
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
+            if (!role) {
+                const decoded = jwtDecode(token);
+                role = decoded.role;
+            }
 
-    setForm((pre) => ({
-      ...pre,
-      [name]: value,
-    }));
-  };
+            if (role?.startsWith("ROLE_")) {
+                role = role.substring(5);
+            }
 
-  useEffect(() => {
-    console.log("giá trị hiện tại của form ", form);
-  }, [form]);
+            if (!role) {
+                throw new Error(
+                    "Cannot find user role in login response or JWT token."
+                );
+            }
 
-  return (
-    <div className="min-vh-100 d-flex align-items-center bg-light py-5">
-      <Container>
-        <Row className="justify-content-center">
-          <Col xs={12} sm={10} md={8} lg={5} xl={4}>
-            <Card className="shadow-sm border-0 rounded-4">
-              <Card.Body className="p-4 p-sm-5">
-                <div className="text-center mb-4">
-                  <h2 className="fw-bold text-primary mb-1">Login</h2>
+            localStorage.setItem("accessToken", token);
+            localStorage.setItem(
+                "username",
+                loginData.username || form.username
+            );
+            localStorage.setItem("userRole", role);
+
+            navigate("/home");
+        } catch (err) {
+            setResponse({
+                message:
+                    err.response?.data?.message ||
+                    err.message ||
+                    "Login failed.",
+                errors: err.response?.data?.errors || [],
+            });
+        }
+    };
+
+    const usernameError = response?.errors?.find(
+        (item) => item.field === "username"
+    )?.message;
+    const passwordError = response?.errors?.find(
+        (item) => item.field === "password"
+    )?.message;
+
+    return (
+        <div className="min-vh-100 d-flex flex-column">
+            <Header />
+
+            <div className="auth-page-wrapper">
+                <div className="auth-modal-card">
+                    <div className="auth-modal-header">
+                        <h2 className="auth-modal-title">
+                            <svg
+                                width="15"
+                                height="15"
+                                viewBox="0 0 24 24"
+                                fill="currentColor"
+                                aria-hidden="true"
+                            >
+                                <path d="M12 12c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm0 2c-3.33 0-10 1.67-10 5v3h20v-3c0-3.33-6.67-5-10-5z" />
+                            </svg>
+                            Login
+                        </h2>
+
+                        <Link
+                            to="/home"
+                            className="auth-modal-close"
+                            aria-label="Close"
+                            title="Back to Home"
+                        >
+                            ×
+                        </Link>
+                    </div>
+
+                    <div className="auth-modal-body">
+                        {response?.message && !usernameError && !passwordError && (
+                            <Alert variant="danger" className="py-2 small mb-3">
+                                {response.message}
+                            </Alert>
+                        )}
+
+                        <form onSubmit={handleSubmit}>
+                            <div className="auth-field-group">
+                                <label
+                                    htmlFor="loginUsername"
+                                    className="auth-field-label"
+                                >
+                                    Username
+                                </label>
+                                <input
+                                    id="loginUsername"
+                                    type="text"
+                                    name="username"
+                                    className="auth-input"
+                                    placeholder="Enter username"
+                                    value={form.username}
+                                    onChange={handleChange}
+                                    required
+                                />
+                                {usernameError && (
+                                    <div className="auth-field-error">
+                                        {usernameError}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="auth-field-group">
+                                <label
+                                    htmlFor="loginPassword"
+                                    className="auth-field-label"
+                                >
+                                    Password
+                                </label>
+                                <div className="auth-password-group">
+                                    <input
+                                        id="loginPassword"
+                                        type="password"
+                                        name="password"
+                                        className="auth-input"
+                                        placeholder="••••••••••••"
+                                        value={form.password}
+                                        onChange={handleChange}
+                                        required
+                                    />
+                                </div>
+                                {passwordError && (
+                                    <div className="auth-field-error">
+                                        {passwordError}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="auth-switch-row">
+                                <Link to="/register" className="auth-switch-link">
+                                    Register
+                                </Link>{" "}
+                                if you don't have an account
+                            </div>
+
+                            <button type="submit" className="auth-submit-btn">
+                                Login
+                            </button>
+                        </form>
+                    </div>
                 </div>
-
-                {response.code === "AUTH_001" && (
-                  <Alert variant="danger" className="py-2 small">
-                    {response.message}
-                  </Alert>
-                )}
-
-                <Form onSubmit={handleSubmit}>
-                  <Form.Group className="mb-3" controlId="loginUsername">
-                    <Form.Label className="fw-semibold ">Username</Form.Label>
-                    <Form.Control
-                      type="text"
-                      placeholder="Username"
-                      name="username"
-                      value={form.username}
-                      onChange={handleChange}
-                    />
-                    {response.errors?.map((item, index) => {
-                      if (item.field === "username") {
-                        return (
-                          <div key={index} className="text-danger small mt-1">
-                            {item.message}
-                          </div>
-                        );
-                      }
-                      return null;
-                    })}
-                  </Form.Group>
-
-                  <Form.Group className="mb-4" controlId="loginPassword">
-                    <Form.Label className="fw-semibold ">Password</Form.Label>
-                    <Form.Control
-                      type="password"
-                      placeholder="Password"
-                      name="password"
-                      value={form.password}
-                      onChange={handleChange}
-                    />
-                    {response.errors?.map((item, index) => {
-                      if (item.field === "password") {
-                        return (
-                          <div key={index} className="text-danger small mt-1">
-                            {item.message}
-                          </div>
-                        );
-                      }
-                      return null;
-                    })}
-                  </Form.Group>
-
-                  <Button
-                    variant="primary"
-                    type="submit"
-                    className="w-100 py-2 fw-semibold rounded-3 mb-3"
-                  >
-                    Login
-                  </Button>
-                </Form>
-
-                <div className="text-center small mt-3">
-                  <span className="text-muted">Don't have an account? </span>
-                  <Link to="/register" className="fw-semibold text-decoration-none">
-                    Sign up
-                  </Link>
-                </div>
-
-                <div className="text-center mt-3">
-                  <Link to="/home" className="text-muted small text-decoration-none">
-                    Back to Home
-                  </Link>
-                </div>
-              </Card.Body>
-            </Card>
-          </Col>
-        </Row>
-      </Container>
-    </div>
-  );
+            </div>
+        </div>
+    );
 }
 
 export default Login;

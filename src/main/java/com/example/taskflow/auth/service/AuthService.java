@@ -13,7 +13,6 @@ import com.example.taskflow.security.JwtService;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -53,19 +52,30 @@ public class AuthService implements AuthServiceImpl {
     public LoginResponse login(LoginRequest request) {
         try {
             Authentication authentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(request.username(), request.password())
+                    new UsernamePasswordAuthenticationToken(
+                            request.username(),
+                            request.password()
+                    )
             );
 
-            // Chỉ lọc lấy Authority bắt đầu bằng "ROLE_" để lấy đúng chức danh
-            String role = authentication.getAuthorities().stream()
-                    .map(GrantedAuthority::getAuthority)
-                    .filter(auth -> auth.startsWith("ROLE_"))
-                    .findFirst()
-                    .map(auth -> auth.substring(5)) // Bỏ prefix "ROLE_" -> "PM", "LEADER", "DEV"...
-                    .orElse("MEMBER");
+            // if authen ok -> get user
+            User user = authRepository.findByUsername(authentication.getName());
 
-            String token = jwtService.generateToken(authentication.getName(), role);
-            return new LoginResponse(authentication.getName(), role, token);
+            // get role
+            String role = user.getRole().name();
+
+            // generate access token
+            String token = jwtService.generateToken(
+                    user.getUsername(),
+                    role
+            );
+
+            return new LoginResponse(
+                    user.getUsername(),
+                    role,
+                    token
+            );
+
         } catch (Exception e) {
             throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
         }

@@ -15,20 +15,20 @@ export default function UserProfile() {
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState(null);
 
-  // State cho form cập nhật thông tin cá nhân
+  // state for information
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [updatingProfile, setUpdatingProfile] = useState(false);
   const [profileMessage, setProfileMessage] = useState(null);
 
-  // State cho form đổi mật khẩu
+  // state for change password
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [changingPassword, setChangingPassword] = useState(false);
   const [passwordMessage, setPasswordMessage] = useState(null);
 
-  // 1. Tải thông tin cá nhân từ Backend
+  // 1. Load user profile from backend
   const loadProfile = async () => {
     try {
       setLoading(true);
@@ -40,7 +40,7 @@ export default function UserProfile() {
     } catch (err) {
       setProfileMessage({
         type: "danger",
-        text: err.response?.data?.message || "Không thể tải thông tin cá nhân.",
+        text: err.response?.data?.message || "Failed to load user profile.",
       });
     } finally {
       setLoading(false);
@@ -51,15 +51,15 @@ export default function UserProfile() {
     loadProfile();
   }, []);
 
-  // 2. Xử lý lưu họ tên và email
+  // update information
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
     if (!fullName.trim()) {
-      setProfileMessage({ type: "danger", text: "Họ và tên không được để trống." });
+      setProfileMessage({ type: "danger", text: "Full name cannot be empty." });
       return;
     }
     if (!email.trim()) {
-      setProfileMessage({ type: "danger", text: "Email không được để trống." });
+      setProfileMessage({ type: "danger", text: "Email cannot be empty." });
       return;
     }
 
@@ -71,32 +71,32 @@ export default function UserProfile() {
         email: email.trim(),
       });
       setProfile(res.data.data);
-      setProfileMessage({ type: "success", text: "Cập nhật thông tin cá nhân thành công!" });
+      setProfileMessage({ type: "success", text: "Profile updated successfully!" });
     } catch (err) {
       setProfileMessage({
         type: "danger",
-        text: err.response?.data?.message || "Lỗi khi cập nhật thông tin cá nhân.",
+        text: err.response?.data?.message || "Failed to update profile.",
       });
     } finally {
       setUpdatingProfile(false);
     }
   };
 
-  // 3. Xử lý đổi mật khẩu
+  // update password
   const handleChangePassword = async (e) => {
     e.preventDefault();
     setPasswordMessage(null);
 
     if (!oldPassword) {
-      setPasswordMessage({ type: "danger", text: "Vui lòng nhập mật khẩu hiện tại." });
+      setPasswordMessage({ type: "danger", text: "Please enter your current password." });
       return;
     }
     if (!newPassword || newPassword.length < 6) {
-      setPasswordMessage({ type: "danger", text: "Mật khẩu mới phải có ít nhất 6 ký tự." });
+      setPasswordMessage({ type: "danger", text: "New password must be at least 6 characters." });
       return;
     }
     if (newPassword !== confirmPassword) {
-      setPasswordMessage({ type: "danger", text: "Mật khẩu mới và xác nhận mật khẩu không khớp." });
+      setPasswordMessage({ type: "danger", text: "New password and confirm password do not match." });
       return;
     }
 
@@ -107,14 +107,14 @@ export default function UserProfile() {
         newPassword,
       });
 
-      setPasswordMessage({ type: "success", text: "Đổi mật khẩu thành công!" });
+      setPasswordMessage({ type: "success", text: "Password changed successfully!" });
       setOldPassword("");
       setNewPassword("");
       setConfirmPassword("");
     } catch (err) {
       setPasswordMessage({
         type: "danger",
-        text: err.response?.data?.message || "Lỗi khi đổi mật khẩu.",
+        text: err.response?.data?.message || "Failed to change password.",
       });
     } finally {
       setChangingPassword(false);
@@ -125,30 +125,29 @@ export default function UserProfile() {
     return (
       <Container className="py-5 text-center">
         <Spinner animation="border" variant="primary" />
-        <div className="mt-2 text-muted">Đang tải thông tin hồ sơ...</div>
+        <div className="mt-2 text-muted">Loading...</div>
       </Container>
     );
   }
 
   return (
     <Container className="py-4" style={{ maxWidth: "860px" }}>
-      {/* Header trang */}
+      {/* Page Header */}
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
-          <h3 className="fw-bold text-primary mb-1">Hồ Sơ Cá Nhân</h3>
-          <p className="text-muted small mb-0">Quản lý thông tin tài khoản và đổi mật khẩu</p>
+          <h3 className="fw-bold text-primary mb-1">User Profile</h3>
         </div>
-        <Link to="/home" className="btn btn-outline-secondary btn-sm">
-          ← Về Trang Chủ
+        <Link to="/home" className="btn btn-warning btn-sm">
+          Back to Home
         </Link>
       </div>
 
       <Row className="g-4">
-        {/* Phần 1: Thông tin cá nhân */}
+        {/* Profile Information */}
         <Col md={6}>
           <Card className="shadow-sm border-0 rounded-3 h-100">
             <Card.Header className="bg-white py-3 border-bottom">
-              <h5 className="fw-bold mb-0 text-dark">Thông Tin Tài Khoản</h5>
+              <h5 className="fw-bold mb-0 text-dark">Profile Information</h5>
             </Card.Header>
             <Card.Body className="p-4">
               {profileMessage && (
@@ -158,13 +157,11 @@ export default function UserProfile() {
               )}
 
               <Form onSubmit={handleUpdateProfile}>
-                {/* Tên đăng nhập (Read-only) */}
                 <Form.Group className="mb-3">
-                  <Form.Label className="small fw-semibold text-muted">Tên Đăng Nhập</Form.Label>
+                  <Form.Label className="small fw-semibold text-muted">Username</Form.Label>
                   <Form.Control type="text" value={profile?.username || ""} disabled className="bg-light" />
                 </Form.Group>
 
-                {/* Vai trò (Read-only) */}
                 <Form.Group className="mb-3">
                   <Form.Label className="small fw-semibold text-muted">Role</Form.Label>
                   <div>
@@ -174,23 +171,21 @@ export default function UserProfile() {
                   </div>
                 </Form.Group>
 
-                {/* Họ và tên (Cho phép sửa) */}
                 <Form.Group className="mb-3">
-                  <Form.Label className="small fw-semibold text-dark">Họ và Tên</Form.Label>
+                  <Form.Label className="small fw-semibold text-dark">Full Name</Form.Label>
                   <Form.Control
                     type="text"
-                    placeholder="Nhập họ và tên của bạn..."
+                    placeholder="Enter your full name..."
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                   />
                 </Form.Group>
 
-                {/* Email (Cho phép sửa) */}
                 <Form.Group className="mb-4">
-                  <Form.Label className="small fw-semibold text-dark">Địa Chỉ Email</Form.Label>
+                  <Form.Label className="small fw-semibold text-dark">Email Address</Form.Label>
                   <Form.Control
                     type="email"
-                    placeholder="Nhập địa chỉ email..."
+                    placeholder="Enter your email address..."
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                   />
@@ -200,10 +195,10 @@ export default function UserProfile() {
                   {updatingProfile ? (
                     <>
                       <Spinner size="sm" animation="border" className="me-2" />
-                      Đang lưu...
+                      Saving...
                     </>
                   ) : (
-                    "Lưu Thông Tin Cá Nhân"
+                    "Save Changes"
                   )}
                 </Button>
               </Form>
@@ -211,11 +206,11 @@ export default function UserProfile() {
           </Card>
         </Col>
 
-        {/* Phần 2: Đổi mật khẩu */}
+        {/* Change Password */}
         <Col md={6}>
           <Card className="shadow-sm border-0 rounded-3 h-100">
             <Card.Header className="bg-white py-3 border-bottom">
-              <h5 className="fw-bold mb-0 text-dark">Đổi Mật Khẩu</h5>
+              <h5 className="fw-bold mb-0 text-dark">Change Password</h5>
             </Card.Header>
             <Card.Body className="p-4">
               {passwordMessage && (
@@ -226,30 +221,30 @@ export default function UserProfile() {
 
               <Form onSubmit={handleChangePassword}>
                 <Form.Group className="mb-3">
-                  <Form.Label className="small fw-semibold text-dark">Mật Khẩu Hiện Tại</Form.Label>
+                  <Form.Label className="small fw-semibold text-dark">Current Password</Form.Label>
                   <Form.Control
                     type="password"
-                    placeholder="Nhập mật khẩu hiện tại..."
+                    placeholder="Enter current password..."
                     value={oldPassword}
                     onChange={(e) => setOldPassword(e.target.value)}
                   />
                 </Form.Group>
 
                 <Form.Group className="mb-3">
-                  <Form.Label className="small fw-semibold text-dark">Mật Khẩu Mới</Form.Label>
+                  <Form.Label className="small fw-semibold text-dark">New Password</Form.Label>
                   <Form.Control
                     type="password"
-                    placeholder="Nhập mật khẩu mới (ít nhất 6 ký tự)..."
+                    placeholder="Enter new password (at least 6 characters)"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                   />
                 </Form.Group>
 
                 <Form.Group className="mb-4">
-                  <Form.Label className="small fw-semibold text-dark">Xác Nhận Mật Khẩu Mới</Form.Label>
+                  <Form.Label className="small fw-semibold text-dark">Confirm New Password</Form.Label>
                   <Form.Control
                     type="password"
-                    placeholder="Nhập lại mật khẩu mới..."
+                    placeholder="Confirm new password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                   />
@@ -259,10 +254,10 @@ export default function UserProfile() {
                   {changingPassword ? (
                     <>
                       <Spinner size="sm" animation="border" className="me-2" />
-                      Đang xử lý...
+                      Updating...
                     </>
                   ) : (
-                    "Đổi Mật Khẩu"
+                    "Change Password"
                   )}
                 </Button>
               </Form>

@@ -1,7 +1,6 @@
-
 package com.example.taskflow.modules.workspace.dto.response;
 
-import com.example.taskflow.common.enums.WorkspaceRole;
+import com.example.taskflow.common.enums.Role;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -19,7 +18,8 @@ public class WorkspaceResponse {
 
     private String ownerUsername;
 
-    private WorkspaceRole currentUserRole;
+    // Role lấy trực tiếp từ User
+    private Role currentUserRole;
 
     private Integer memberCount;
 

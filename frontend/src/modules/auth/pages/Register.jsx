@@ -1,126 +1,148 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Container, Row, Col, Card, Form, Button, Alert } from "react-bootstrap";
+import { Alert } from "react-bootstrap";
 import api from "../../../services/api";
+import Header from "../../../layouts/Header";
 
 function Register() {
-  const navigate = useNavigate();
+    const navigate = useNavigate();
 
-  const [form, setForm] = useState({
-    username: "",
-    password: "",
-  });
+    const [form, setForm] = useState({
+        username: "",
+        password: "",
+    });
+    const [response, setResponse] = useState("");
 
-  const [response, setResponse] = useState("");
+    const handleSubmit = async (e) => {
+        e.preventDefault();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+        try {
+            await api.post("/auth/register", form);
+            navigate("/login");
+        } catch (err) {
+            setResponse(err.response?.data || "");
+        }
+    };
 
-    try {
-      await api.post("/auth/register", form);
-      navigate("/login");
-    } catch (err) {
-      console.log(err.response?.data);
-      setResponse(err.response?.data || "");
-    }
-  };
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setForm((pre) => ({
+            ...pre,
+            [name]: value,
+        }));
+    };
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
+    const usernameError = response?.errors?.find(
+        (item) => item.field === "username"
+    )?.message;
+    const passwordError = response?.errors?.find(
+        (item) => item.field === "password"
+    )?.message;
 
-    setForm((pre) => ({
-      ...pre,
-      [name]: value,
-    }));
-  };
+    return (
+        <div className="min-vh-100 d-flex flex-column">
+            <Header />
 
-  useEffect(() => {
-    console.log("giá trị hiện tại của form ", form);
-  }, [form]);
+            <div className="auth-page-wrapper">
+                <div className="auth-modal-card">
+                    <div className="auth-modal-header">
+                        <h2 className="auth-modal-title">
+                            <svg
+                                width="15"
+                                height="15"
+                                viewBox="0 0 24 24"
+                                fill="currentColor"
+                                aria-hidden="true"
+                            >
+                                <path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                            </svg>
+                            Register
+                        </h2>
 
-  return (
-    <div className="min-vh-100 d-flex align-items-center bg-light py-5">
-      <Container>
-        <Row className="justify-content-center">
-          <Col xs={12} sm={10} md={8} lg={5} xl={4}>
-            <Card className="shadow-sm border-0 rounded-4">
-              <Card.Body className="p-4 p-sm-5">
-                {/* Tiêu đề */}
-                <div className="text-center mb-4">
-                  <h2 className="fw-bold text-primary mb-1">Register</h2>
+                        <Link
+                            to="/home"
+                            className="auth-modal-close"
+                            aria-label="Close"
+                            title="Back to Home"
+                        >
+                            ×
+                        </Link>
+                    </div>
+
+                    <div className="auth-modal-body">
+                        {response?.code === "USER_002" && (
+                            <Alert variant="danger" className="py-2 small mb-3">
+                                {response.message}
+                            </Alert>
+                        )}
+
+                        <form onSubmit={handleSubmit}>
+                            <div className="auth-field-group">
+                                <label
+                                    htmlFor="registerUsername"
+                                    className="auth-field-label"
+                                >
+                                    Username
+                                </label>
+                                <input
+                                    id="registerUsername"
+                                    type="text"
+                                    name="username"
+                                    className="auth-input"
+                                    placeholder="Enter username"
+                                    value={form.username}
+                                    onChange={handleChange}
+                                    required
+                                />
+                                {usernameError && (
+                                    <div className="auth-field-error">
+                                        {usernameError}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="auth-field-group">
+                                <label
+                                    htmlFor="registerPassword"
+                                    className="auth-field-label"
+                                >
+                                    Password
+                                </label>
+                                <div className="auth-password-group">
+                                    <input
+                                        id="registerPassword"
+                                        type="password"
+                                        name="password"
+                                        className="auth-input"
+                                        placeholder="Enter password"
+                                        value={form.password}
+                                        onChange={handleChange}
+                                        required
+                                    />
+                                </div>
+                                {passwordError && (
+                                    <div className="auth-field-error">
+                                        {passwordError}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="auth-switch-row mt-3">
+                                Already have an account?{" "}
+                                <Link to="/login" className="auth-switch-link">
+                                    Login
+                                </Link>
+                            </div>
+
+                            <button type="submit" className="auth-submit-btn">
+                                Register
+                            </button>
+                        </form>
+                    </div>
                 </div>
-
-                {response.code === "USER_002" && (
-                  <Alert variant="danger" className="py-2 small">
-                    {response.message}
-                  </Alert>
-                )}
-
-                <Form onSubmit={handleSubmit}>
-                  <Form.Group className="mb-3" controlId="registerUsername">
-                    <Form.Label className="fw-semibold small">Username</Form.Label>
-                    <Form.Control
-                      type="text"
-                      placeholder="Username"
-                      name="username"
-                      value={form.username}
-                      onChange={handleChange}
-                    />
-                    {response.errors?.map((item, index) => {
-                      if (item.field === "username") {
-                        return (
-                          <div key={index} className="text-danger small mt-1">
-                            {item.message}
-                          </div>
-                        );
-                      }
-                      return null;
-                    })}
-                  </Form.Group>
-
-                  <Form.Group className="mb-4" controlId="registerPassword">
-                    <Form.Label className="fw-semibold small">Password</Form.Label>
-                    <Form.Control
-                      type="password"
-                      placeholder="Password"
-                      name="password"
-                      value={form.password}
-                      onChange={handleChange}
-                    />
-                    {response.errors?.map((item, index) => {
-                      if (item.field === "password") {
-                        return (
-                          <div key={index} className="text-danger small mt-1">
-                            {item.message}
-                          </div>
-                        );
-                      }
-                      return null;
-                    })}
-                  </Form.Group>
-
-                  <Button
-                    variant="primary"
-                    type="submit"
-                    className="w-100 py-2 fw-semibold rounded-3 mb-3"
-                  >
-                    Register
-                  </Button>
-                </Form>
-
-                <div className="text-center small mt-3">
-                  <span className="text-muted">Have account? </span>
-                  <Link to="/login" className="fw-semibold text-decoration-none">
-                    Login
-                  </Link>
-                </div>
-              </Card.Body>
-            </Card>
-          </Col>
-        </Row>
-      </Container>
-    </div>
-  );
+            </div>
+        </div>
+    );
 }
 
 export default Register;

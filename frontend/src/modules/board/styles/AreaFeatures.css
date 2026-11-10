@@ -1,17 +1,23 @@
-﻿/* CSS cho tÃ­nh nÄƒng 5 (lÆ°u trá»¯), 6 (Ä‘á»•i mÃ u), 7 (kÃ©o tháº£ area).
-   Import SAU BoardPage.css Ä‘á»ƒ ghi Ä‘Ã¨ Ä‘Æ°á»£c. */
-
-/* ---------- TÃ­nh nÄƒng 6: mÃ u area ---------- */
+﻿/* ---------- Tính năng 6: màu area ---------- */
 .board-column.has-color {
   background: var(--area-color) !important;
+  color: #ffffff !important;
+}
+
+.board-column.has-color .board-column-title,
+.board-column.has-color .board-card-count,
+.board-column.has-color .board-column-menu-button,
+.board-column.has-color .board-add-card-button,
+.board-column.has-color .board-create-card-button {
+  color: #ffffff !important;
 }
 
 .board-column.has-color.is-drop-target {
-  background: color-mix(in srgb, var(--area-color) 60%, #579dff) !important;
+  background: color-mix(in srgb, var(--area-color) 60%, #3b82f6) !important;
 }
 
 .board-list-menu-colors-wrap {
-  padding: 4px 12px 8px;
+  padding: 6px 4px 4px;
 }
 
 .board-list-menu-colors {
@@ -28,27 +34,27 @@
 }
 
 .board-list-menu-swatch:hover {
-  filter: brightness(1.25);
+  filter: brightness(1.15);
 }
 
 .board-list-menu-swatch.is-selected {
-  border-color: #ffffff;
+  border-color: var(--app-text);
 }
 
 .board-list-menu-clear-color {
   width: 100%;
   margin-top: 8px;
   padding: 6px 8px;
-  border: 0;
+  border: 1px solid var(--app-border);
   border-radius: 6px;
-  background: rgb(255 255 255 / 10%);
-  color: inherit;
+  background: var(--app-surface-subtle);
+  color: var(--app-text);
   cursor: pointer;
   font-size: 12px;
 }
 
 .board-list-menu-clear-color:hover:not(:disabled) {
-  background: rgb(255 255 255 / 18%);
+  background: var(--app-surface-hover);
 }
 
 .board-list-menu-clear-color:disabled {
@@ -56,7 +62,7 @@
   opacity: 0.45;
 }
 
-/* ---------- TÃ­nh nÄƒng 7: kÃ©o tháº£ area ---------- */
+/* ---------- Tính năng 7: kéo thả area ---------- */
 .board-column-heading[draggable="true"] {
   cursor: grab;
 }
@@ -69,29 +75,28 @@
   opacity: 0.45;
 }
 
-/* Váº¡ch xanh cho biáº¿t area sáº½ Ä‘Æ°á»£c tháº£ vÃ o trÆ°á»›c / sau cá»™t nÃ y */
 .board-column.is-area-drop-before {
-  box-shadow: -6px 0 0 0 #579dff, 0 2px 8px rgb(0 0 0 / 24%);
+  box-shadow: -6px 0 0 0 var(--app-primary), var(--app-shadow-md);
 }
 
 .board-column.is-area-drop-after {
-  box-shadow: 6px 0 0 0 #579dff, 0 2px 8px rgb(0 0 0 / 24%);
+  box-shadow: 6px 0 0 0 var(--app-primary), var(--app-shadow-md);
 }
 
-/* ---------- TÃ­nh nÄƒng 5: nÃºt vÃ  báº£ng "ÄÃ£ lÆ°u trá»¯" ---------- */
+/* ---------- Tính năng 5: nút và bảng "Đã lưu trữ" ---------- */
 .board-archive-button {
-  padding: 6px 10px;
-  border: 0;
+  padding: 6px 12px;
+  border: 1px solid var(--app-border-strong);
   border-radius: 6px;
-  background: rgb(255 255 255 / 14%);
-  color: #ffffff;
+  background: var(--app-surface-subtle);
+  color: var(--app-text);
   cursor: pointer;
   font-size: 13px;
   font-weight: 600;
 }
 
 .board-archive-button:hover {
-  background: rgb(255 255 255 / 24%);
+  background: var(--app-surface-hover);
 }
 
 .archived-panel {
@@ -99,14 +104,14 @@
   z-index: 30;
   top: 64px;
   right: 16px;
-  width: 320px;
+  width: 330px;
   max-height: calc(100vh - 150px);
   overflow: auto;
-  border: 1px solid #444b52;
-  border-radius: 9px;
-  background: #22272b;
-  box-shadow: 0 8px 24px rgb(0 0 0 / 45%);
-  color: #d7dce2;
+  border: 1px solid var(--app-border-strong);
+  border-radius: 10px;
+  background: var(--app-surface-solid);
+  box-shadow: var(--app-shadow-lg);
+  color: var(--app-text);
   font-size: 13px;
 }
 
@@ -114,15 +119,16 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 12px;
-  border-bottom: 1px solid #444b52;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--app-border);
   font-weight: 700;
+  color: var(--app-text);
 }
 
 .archived-panel-close {
   border: 0;
   background: transparent;
-  color: inherit;
+  color: var(--app-text);
   cursor: pointer;
 }
 
@@ -130,16 +136,16 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 6px;
-  padding: 8px 12px 4px;
-  border-bottom: 1px solid #444b52;
+  padding: 8px 12px 6px;
+  border-bottom: 1px solid var(--app-border);
 }
 
 .archived-panel-tab {
   padding: 6px 10px;
-  border: 0;
+  border: 1px solid var(--app-border);
   border-radius: 6px;
-  background: rgb(255 255 255 / 8%);
-  color: #9fadbc;
+  background: var(--app-surface-subtle);
+  color: var(--app-muted);
   cursor: pointer;
   font: inherit;
   font-size: 12px;
@@ -148,30 +154,32 @@
 }
 
 .archived-panel-tab:hover {
-  background: rgb(255 255 255 / 14%);
-  color: #ffffff;
+  background: var(--app-surface-hover);
+  color: var(--app-text);
 }
 
 .archived-panel-tab.is-active {
-  background: #579dff;
-  color: #07182f;
+  background: var(--app-primary);
+  border-color: var(--app-primary);
+  color: #ffffff;
 }
 
 .archived-card-preview {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  border: 1px solid var(--app-border);
   border-radius: 8px;
-  background: #ffffff;
-  color: #172b4d;
+  background: var(--app-card-bg);
+  color: var(--app-text);
   cursor: pointer;
-  box-shadow: 0 1px 3px rgb(0 0 0 / 28%);
+  box-shadow: var(--app-shadow-sm);
   transition: transform 100ms ease, box-shadow 100ms ease;
 }
 
 .archived-card-preview:hover {
   transform: translateY(-1px);
-  box-shadow: 0 3px 8px rgb(0 0 0 / 35%);
+  box-shadow: var(--app-shadow-md);
 }
 
 .archived-card-cover {
@@ -213,28 +221,28 @@
 .archived-card-title {
   font-size: 13px;
   font-weight: 600;
-  color: #172b4d;
+  color: var(--app-text);
   overflow-wrap: anywhere;
 }
 
 .archived-card-meta {
   font-size: 11px;
-  color: #626f86;
+  color: var(--app-muted);
 }
 
 .archived-panel-view {
   padding: 5px 10px;
-  border: 0;
+  border: 1px solid var(--app-border);
   border-radius: 6px;
-  background: rgb(255 255 255 / 14%);
-  color: #ffffff;
+  background: var(--app-surface-subtle);
+  color: var(--app-text);
   cursor: pointer;
   font-size: 12px;
   font-weight: 600;
 }
 
 .archived-panel-view:hover {
-  background: rgb(255 255 255 / 22%);
+  background: var(--app-surface-hover);
 }
 
 .archived-panel-body {
@@ -243,12 +251,12 @@
 
 .archived-panel-note {
   margin: 8px 0;
-  color: #9fadbc;
+  color: var(--app-muted);
 }
 
 .archived-panel-error {
   margin: 8px 0;
-  color: #ff8f8f;
+  color: #dc2626;
 }
 
 .archived-panel-item {
@@ -256,7 +264,7 @@
   flex-direction: column;
   gap: 8px;
   padding: 10px 0;
-  border-bottom: 1px solid rgb(255 255 255 / 8%);
+  border-bottom: 1px solid var(--app-border);
 }
 
 .archived-panel-item:last-child {
@@ -273,13 +281,14 @@
 .archived-panel-name {
   overflow: hidden;
   font-weight: 600;
+  color: var(--app-text);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .archived-panel-count {
   flex-shrink: 0;
-  color: #9fadbc;
+  color: var(--app-muted);
   font-size: 12px;
 }
 
@@ -299,13 +308,17 @@
 }
 
 .archived-panel-restore {
-  background: #579dff;
-  color: #07182f;
+  background: var(--app-primary);
+  color: #ffffff;
 }
 
 .archived-panel-delete {
-  background: rgb(255 255 255 / 10%);
-  color: #ff8f8f;
+  background: rgba(220, 38, 38, 0.12);
+  color: #dc2626;
+}
+
+html[data-theme="dark"] .archived-panel-delete {
+  color: #f87171;
 }
 
 .archived-panel-restore:disabled,
@@ -314,7 +327,7 @@
   opacity: 0.5;
 }
 
-/* Ghim / di chuyá»ƒn area */
+/* Ghim / di chuyển area */
 .board-column-pin-badge {
   font-size: 12px;
   line-height: 1;
@@ -323,8 +336,8 @@
 .board-pinned-divider {
   width: 2px;
   min-width: 2px;
-  background: rgba(255, 255, 255, 0.35);
-  margin: 6px 6px;
+  background: var(--app-border-strong);
+  margin: 6px 4px;
   border-radius: 2px;
   align-self: stretch;
 }
@@ -332,24 +345,24 @@
 .board-list-menu-workspaces {
   max-height: 200px;
   overflow-y: auto;
-  padding: 4px 12px 8px;
+  padding: 4px 4px 6px;
 }
 
 .board-list-menu-positions {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  padding: 2px 4px 6px;
+  padding: 2px 0 6px;
 }
 
 .board-list-pos-btn {
   min-width: 30px;
   height: 28px;
   padding: 0 8px;
-  border: 1px solid rgb(255 255 255 / 16%);
+  border: 1px solid var(--app-border-strong);
   border-radius: 6px;
-  background: rgb(255 255 255 / 10%);
-  color: #ffffff;
+  background: var(--app-surface-subtle);
+  color: var(--app-text);
   cursor: pointer;
   font-size: 12px;
   font-weight: 600;
@@ -357,28 +370,28 @@
 }
 
 .board-list-pos-btn:hover:not(:disabled) {
-  background: #579dff;
-  border-color: #579dff;
-  color: #07182f;
+  background: var(--app-primary);
+  border-color: var(--app-primary);
+  color: #ffffff;
 }
 
 .board-list-pos-btn.is-current,
 .board-list-pos-btn:disabled {
-  background: #579dff;
-  border-color: #579dff;
-  color: #07182f;
+  background: var(--app-primary);
+  border-color: var(--app-primary);
+  color: #ffffff;
   cursor: default;
-  opacity: 0.7;
+  opacity: 0.8;
 }
 
 .board-list-menu-hint {
   margin: 6px 4px 4px;
   font-size: 11px;
   font-weight: 600;
-  color: #9fadbc;
+  color: var(--app-muted);
 }
 
-/* ---------- Menu thao tác v?i danh sách: can ch?nh g?n gàng ---------- */
+/* ---------- Menu thao tác với danh sách: căn chỉnh gọn gàng ---------- */
 .board-list-menu {
   left: 6px;
   right: 6px;
@@ -390,20 +403,29 @@
   font-family: inherit;
   z-index: 20;
 }
-.board-list-menu *, .board-list-menu *::before, .board-list-menu *::after { box-sizing: border-box; }
+
+.board-list-menu *,
+.board-list-menu *::before,
+.board-list-menu *::after {
+  box-sizing: border-box;
+}
+
 .board-list-menu-header {
-  padding: 4px 6px 10px;
+  padding: 4px 4px 10px 10px;
   margin-bottom: 4px;
 }
+
 .board-list-menu-header span {
   flex: 1;
-  text-align: center;
-  padding-left: 26px;
+  text-align: left;
+  padding-left: 0;
 }
+
 .board-list-menu-options {
   padding: 2px 0;
   gap: 2px;
 }
+
 .board-list-menu-option {
   min-height: 32px;
   padding: 6px 10px;
@@ -415,15 +437,17 @@
   justify-content: space-between;
   gap: 8px;
 }
-.board-list-menu-option span:first-child { flex: 1; text-align: left; }
-.board-list-menu-divider { margin: 6px 0; }
-.board-list-menu-colors-wrap { padding: 6px 4px 4px; }
-.board-list-menu-workspaces { padding: 4px 4px 6px; }
-.board-list-menu-positions { padding: 2px 0 6px; }
 
+.board-list-menu-option,
+.board-list-menu-option span {
+  text-align: left;
+}
 
-/* Tiêu d? can trái th?ng hàng v?i các m?c */
-.board-list-menu-header { padding: 4px 4px 10px 10px; }
-.board-list-menu-header span { flex: 1; text-align: left; padding-left: 0; }
-.board-list-menu-option, .board-list-menu-option span { text-align: left; }
+.board-list-menu-option span:first-child {
+  flex: 1;
+  text-align: left;
+}
 
+.board-list-menu-divider {
+  margin: 6px 0;
+}
