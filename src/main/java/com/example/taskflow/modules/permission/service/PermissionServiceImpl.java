@@ -21,8 +21,7 @@ public class PermissionServiceImpl implements PermissionService {
 
     public PermissionServiceImpl(
             PermissionRepository permissionRepository,
-            RolePermissionRepository rolePermissionRepository
-    ) {
+            RolePermissionRepository rolePermissionRepository) {
         this.permissionRepository = permissionRepository;
         this.rolePermissionRepository = rolePermissionRepository;
     }
@@ -30,14 +29,14 @@ public class PermissionServiceImpl implements PermissionService {
     @Override
     @Transactional(readOnly = true)
     public PermissionMatrixResponse getMatrix() {
-        // 1. Lấy danh sách 12 permissions xếp theo module
+        // get list permission
         List<PermissionResponse> permissionResponses = permissionRepository
                 .findAllByOrderByModuleAscIdAsc()
                 .stream()
                 .map(PermissionResponse::fromEntity)
                 .toList();
 
-        // 2. Lấy danh sách quyền của từng Role
+        // get matrix permission
         Map<String, List<String>> matrix = new LinkedHashMap<>();
         for (Role role : Role.values()) {
             List<String> permNames = rolePermissionRepository.findByRole(role)
@@ -54,34 +53,36 @@ public class PermissionServiceImpl implements PermissionService {
     @Transactional
     public void updateMatrix(UpdatePermissionMatrixRequest request) {
         Map<String, List<String>> newMatrix = request.matrix();
-        if (newMatrix == null) return;
+        if (newMatrix == null)
+            return;
 
-        // Tải sẵn toàn bộ permissions trong DB vào Map theo name để tra cứu nhanh
+        // map permission by name
         Map<String, Permission> permissionMap = new HashMap<>();
         for (Permission p : permissionRepository.findAll()) {
             permissionMap.put(p.getName(), p);
         }
 
-        // Duyệt qua từng Role được cập nhật
+        // iterate role
         for (Map.Entry<String, List<String>> entry : newMatrix.entrySet()) {
             String roleName = entry.getKey();
             Role role;
             try {
                 role = Role.valueOf(roleName);
             } catch (IllegalArgumentException e) {
-                continue; // Bỏ qua nếu role không hợp lệ
+                // skip invalid role
+                continue;
             }
 
-            // Riêng PM luôn đảm bảo giữ trọn vẹn 12 quyền (không thay đổi quyền của PM)
+            // PM has all permissions
             if (role == Role.PM) {
                 continue;
             }
 
-            // Xóa toàn bộ quyền cũ của role này và flush ngay xuống DB
+            // delete all old permissions of this role and flush to DB
             rolePermissionRepository.deleteByRole(role);
             rolePermissionRepository.flush();
 
-            // Gán danh sách quyền mới được tick chọn
+            // save new permission
             List<String> selectedPermNames = entry.getValue();
             List<RolePermission> toSave = new ArrayList<>();
 
@@ -100,4 +101,3 @@ public class PermissionServiceImpl implements PermissionService {
         }
     }
 }
-

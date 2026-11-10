@@ -131,7 +131,6 @@ export default function PermissionMatrix() {
                         <tr key={perm.id}>
                           <td>
                             <div className="fw-semibold">{perm.description}</div>
-                            <div className="text-muted small font-monospace">({perm.name})</div>
                           </td>
                           {ROLES.map((role) => {
                             const isChecked = matrix[role]?.includes(perm.name) || false;
@@ -155,7 +154,7 @@ export default function PermissionMatrix() {
             </Table>
           </Card.Body>
 
-          {/* Footer nút hành động */}
+          {/* save */}
           <Card.Footer className="bg-white p-3 d-flex justify-content-between align-items-center">
             <span className="small text-muted">
             </span>
